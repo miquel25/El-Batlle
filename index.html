@@ -2618,7 +2618,7 @@ function updateHud() {
     $('cDot').style.left = (50 + 50 * c).toFixed(1) + '%'; $('cMeter').setAttribute('aria-valuenow', Math.round(100 * c));
     put('cWhy', S.day < YEAR ? 'El primer any el consell encara no té cap orientació.'
       : `Consell ${councilType(c)}. ` +
-        (pr ? `El 10% més ric té el ${Math.round(pr.top * 100)}% de la riquesa${pr.rich > 0 ? ' i pressiona cap a la dreta' : ''}; ${pr.poor > 0 ? 'el malestar empeny cap a l\'esquerra' : 'el malestar no és prou alt per empènyer cap a l\'esquerra'}.` : ''));
+        (pr ? `El 10% més ric té el ${Math.round(pr.top * 100)}% de la riquesa${pr.rich > 0 ? ' i empeny cap a la dreta' : ', massa poc per empènyer'}; el 50% més pobre en té el ${Math.round((pr.bot || 0) * 100)}%${pr.poor > 0 ? ' i empeny cap a l\'esquerra' : ', massa poc per empènyer'}.` : ''));
   }
   { // unrest meter
     const u = S.unrest || 0, lvl = u >= 75 ? 'high' : u >= 50 ? 'mid' : '';
@@ -2712,7 +2712,7 @@ function unrest(active) {
   u += UNREST_HUNGER * hs + died * Math.max(3, UNREST_DEATH / n) - (hs < 0.05 ? UNREST_CALM : 0.15);
   S.unrest = u = Math.max(base, Math.min(100, u)); // inequality alone keeps people from ever being quite content
   if (!POLITICS) return; // the meter still moves, but with dynamic politics off nobody acts on it
-  if (S.day % 10 === 0) { S.press = pressures(active, u); S.council = (S.council || 0) + 0.1 * (S.press.rich - S.press.poor - (S.council || 0)); }
+  if (S.day % 10 === 0) { S.press = pressures(active); S.council = (S.council || 0) + 0.1 * (S.press.rich - S.press.poor - (S.council || 0)); }
   if (S.day % LOBBY_EVERY === 0) lobby(active, u);
   if (u >= 100 && !(S.day - (S.revDay ?? -1e9) < REVOLT_GAP)) revolution(active);
   else if (u >= RIOT_AT && R() < 0.01 + 0.05 * (u - RIOT_AT) / (100 - RIOT_AT)) riot(active);
@@ -2722,10 +2722,11 @@ function unrest(active) {
 // 40%). The stronger side may get one of its laws through: the poor a socialist one, the rich a turbocapitalist one,
 // or a technofeudal one when they hold more than half of everything
 const LOBBY_EVERY = 60;
-function topShare(active) {
-  const ws = wealthsOf(active.filter(h => h.members.length)).sort((a, b) => b - a), tot = ws.reduce((t, v) => t + v, 0);
-  return tot > 0 ? ws.slice(0, Math.max(1, Math.ceil(ws.length / 10))).reduce((t, v) => t + v, 0) / tot : 0;
+function wealthShares(active) {
+  const ws = wealthsOf(active.filter(h => h.members.length)).sort((a, b) => b - a), tot = ws.reduce((t, v) => t + v, 0), sum = a => a.reduce((t, v) => t + v, 0);
+  return tot > 0 ? { top: sum(ws.slice(0, Math.max(1, Math.ceil(ws.length / 10)))) / tot, bot: sum(ws.slice(ws.length - Math.floor(ws.length / 2))) / tot } : { top: 0, bot: 0 };
 }
+const topShare = active => wealthShares(active).top;
 // the council's colour follows its position: socialist far left, social-democrat left, centre, turbocapitalist right
 // and technofeudal far right
 const councilType = c => c < -0.5 ? 'socialista' : c < -0.15 ? 'socialdemòcrata' : c <= 0.15 ? 'de centre' : c <= 0.5 ? 'turbocapitalista' : 'tecnofeudal';
@@ -2740,7 +2741,7 @@ function councilProclaim(k) {
   proclaim(k, true);
 }
 function lobby(active, u) {
-  const { rich, poor, top } = S.press || pressures(active, u), c = S.council || 0;
+  const { rich, poor, top, bot } = S.press || pressures(active), c = S.council || 0;
   ecoLaws(c); civicLaws(active, c);
   // a council far to one side sweeps away a law of the other side
   const sweep = c > 0.6 ? ['SOCIALISTES', 'SOCIALDEMÒCRATES'] : c < -0.6 ? ['TURBOCAPITALISTES', 'TECNOFEUDALS'] : null;
@@ -2750,7 +2751,7 @@ function lobby(active, u) {
   }
   const push = Math.max(rich, poor);
   if (push <= 0 || R() > push * 0.6) return;
-  // the poor ask for reforms, and for socialism outright once anger is high or the council already leans far left;
+  // the poor ask for reforms, and for socialism outright once the council already leans far left;
   // the rich for the free market, and for technofeudalism once they own more than half of everything
   // when the rich win and a tax is still standing, half the time they get rid of the tax instead
   const tax = laws.findIndex(l => l.fx.some(f => f === 'wealthtax' || f === 'inhtax'));
@@ -2758,21 +2759,22 @@ function lobby(active, u) {
     log(`Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell derogui «${laws[tax].text}».`, 'bad');
     repeal(tax, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; return;
   }
-  const cat = poor >= rich ? (u >= 75 || c < -0.5 ? 'SOCIALISTES' : 'SOCIALDEMÒCRATES') : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
+  const cat = poor >= rich ? (c < -0.5 ? 'SOCIALISTES' : 'SOCIALDEMÒCRATES') : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
   const options = LAW_CATS.find(x => x[0] === cat)[1].filter(k => !L[k]);
   if (!options.length) return;
   const k = options[Math.floor(R() * options.length)];
   log(poor >= rich
-    ? `La gent que passa gana omple la plaça i el consell cedeix: s'aprova «${LAWDEFS[k].name}».`
+    ? `La meitat més pobre del poble, que té el ${Math.round(bot * 100)}% de tota la riquesa, aconsegueix que el consell aprovi «${LAWDEFS[k].name}».`
     : `Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell aprovi «${LAWDEFS[k].name}».`, poor >= rich ? 'good' : 'bad');
   councilProclaim(k);
   S.st.autoLaws = (S.st.autoLaws || 0) + 1;
 }
-// how hard each side pushes: the rich from the share of wealth the richest tenth hold (from 30%), the poor from the
-// unrest (from 40%). The council drifts towards the side that pushes harder: -1 far left, +1 far right
-function pressures(active, u) {
-  const top = topShare(active);
-  return { top, rich: Math.max(0, Math.min(1, (top - 0.3) * 2.5)), poor: Math.max(0, Math.min(1, (u - 40) / 60)) };
+// how hard each side pushes, from how the wealth is shared and nothing else: the rich from the share the richest tenth
+// hold (from 25%, full at 65%), the poor from the share the poorer half hold together (from 25%, full at 50%, an equal
+// village). The council drifts towards the side that pushes harder: -1 far left, +1 far right
+function pressures(active) {
+  const { top, bot } = wealthShares(active), clamp = x => Math.max(0, Math.min(1, x));
+  return { top, bot, rich: clamp((top - 0.25) * 2.5), poor: clamp((bot - 0.25) * 4) };
 }
 // general and security laws, voted by the council as things happen in the village (every two months): the left wants a
 // public school and the right a private one; socialists and technofeudals close the borders when the village goes
@@ -3482,15 +3484,16 @@ const HELP_TABS = [
       'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
     ]],
     ['EL CONSELL I LES PRESSIONS', [
-      'Cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques, a partir del 30% del total. Els pobres pressionen més com més malestar hi ha, a partir del 40%.',
-      'El consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
+      'Els rics i els pobres pressionen el consell, i la pressió depèn només de com està repartida la riquesa. Els rics empenyen cap a la dreta com més riquesa té el 10% de cases més riques: comencen quan en tenen el 25% del total i pressionen al màxim quan en tenen el 65%. Els pobres empenyen cap a l\'esquerra com més riquesa té, sumada, la meitat més pobre de les cases: comencen quan en té el 25% i pressionen al màxim quan en té el 50% (un poble del tot igualitari).',
+      'El malestar social no mou el consell: només porta aldarulls i revolucions.',
+      'Cada deu dies el consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
       'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
       'Abans d\'aprovar una llei d\'un bàndol (socialista o socialdemòcrata a l\'esquerra, turbocapitalista o tecnofeudal a la dreta), el consell deroga totes les lleis de l\'altre bàndol que encara hi hagi.',
       'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar.',
     ]],
     ['LLEIS ECONÒMIQUES', [
       'Qui pressiona més pot aconseguir aprovar una llei. Com més pressió, més probable és.',
-      'Els pobres demanen una llei socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres.',
+      'Els pobres demanen una llei socialdemòcrata, o una de socialista si el consell ja és molt d\'esquerres.',
       'Els rics demanen una llei turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Si hi ha l\'impost a les grans fortunes o el de les herències, la meitat de les vegades n\'aconsegueixen la derogació en lloc d\'una llei nova.',
       'Un consell molt de dretes deroga lleis socialistes i socialdemòcrates, i un de molt d\'esquerres lleis turbocapitalistes i tecnofeudals.',
       'Si molts jornalers no troben feina, un consell socialdemòcrata aprova el salari mínim i un de turbocapitalista el mercat lliure total.',
