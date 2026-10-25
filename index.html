@@ -123,6 +123,12 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .tleg{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0 0;font-size:11px;color:var(--muted)}
 .tleg i{display:inline-block;width:12px;height:2px;vertical-align:3px;margin-right:6px;border-radius:1px}
 #decTip{white-space:normal;max-width:calc(100% - 12px)}
+.propose{display:flex;flex-direction:column;gap:5px}
+.propose label{font-size:10px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.propose input,.propose textarea{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:inherit;font-size:13px;resize:vertical}
+.propose input:focus,.propose textarea:focus{outline:none;border-color:var(--amber)}
+.propose .btn{margin-top:4px;align-self:flex-start}
+.proplink{font-size:12px;color:var(--amber)}
 .gnote{margin:6px 0 0;font-size:11px;color:var(--muted)}.gnote b{color:var(--ink)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .stats div{background:var(--panel);padding:6px 8px}
@@ -383,6 +389,18 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     <section class="sec">
       <h3 class="loghead">CRÒNICA <label><input type="checkbox" id="logAll"> Mostra també els fets petits</label></h3>
       <ul class="log" id="log"></ul>
+    </section>
+    <section class="sec">
+      <h3>PROPOSA UNA LLEI</h3>
+      <form class="propose" id="propForm">
+        <label for="propTitle">Nom de la llei</label>
+        <input type="text" id="propTitle" maxlength="120" required placeholder="Per exemple: Dret a pescar al riu">
+        <label for="propText">Què hauria de fer?</label>
+        <textarea id="propText" rows="4" maxlength="3000" required placeholder="Explica com hauria de funcionar i què canviaria al poble."></textarea>
+        <button class="btn primary" type="submit">Envia la proposta a GitHub</button>
+        <a id="propLink" class="proplink" target="_blank" rel="noopener" hidden>Si no s'ha obert GitHub, clica aquí</a>
+      </form>
+      <p class="gnote">S'obre GitHub amb la proposta ja escrita: només cal prémer «Create» per desar-la. Cal tenir un compte de GitHub.</p>
     </section>
     <p class="credit">Basat en la idea de @an_ai_tries_youtube · Llicència MIT</p>
   </aside>
@@ -2948,6 +2966,17 @@ function updateFamily() {
   put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${h.hut ? (stoneHouse(h) ? 'Casa de pedra' : h.tenant ? 'Viuen de lloguer en un pis' : 'Cabana pròpia') : 'Encara sense casa'}.`);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ask').hidden) e.stopImmediatePropagation(); }, true);
+// law proposals become GitHub issues: the page only opens a filled-in "new issue" form, so it needs no token
+const ISSUES = 'https://github.com/miquel25/El-Batlle/issues/new';
+$('propForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const t = $('propTitle').value.trim(), d = $('propText').value.trim();
+  if (!t || !d) return;
+  const body = `${d}\n\n---\nProposta enviada des del joc. Lleis vigents: ${laws.length ? laws.map(l => l.text).join(' · ') : 'cap'}.`;
+  const url = `${ISSUES}?${new URLSearchParams({ title: `Proposta de llei: ${t}`, body, labels: 'enhancement' })}`;
+  window.open(url, '_blank', 'noopener');
+  $('propLink').href = url; $('propLink').hidden = false; // in case the browser blocked the new tab
+});
 $('forgetBtn').onclick = () => { // every answer is forgotten, the remembered ones and the recent ones: the family asks again
   S.pol = {}; updateFamily(); log('Has oblidat totes les respostes: la família et tornarà a preguntar cada decisió.', 'info');
 };
