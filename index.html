@@ -567,7 +567,7 @@ const clashes = (a, b) => (LAWDEFS[a].excl || []).includes(b) || (LAWDEFS[b].exc
 // for three years after a revolution nobody can repeal a socialist law, so nor can anyone pass a law that would push
 // one out (for the council, any law of the right, since it clears the other side first)
 const SOC_LOCK = 3 * YEAR;
-const socLocked = () => S.revDay !== undefined && S.day - S.revDay < SOC_LOCK;
+const socLocked = () => POLITICS && S.revDay !== undefined && S.day - S.revDay < SOC_LOCK;
 const lockedLaw = l => socLocked() && l.fx.some(f => LAW_CATS[3][1].includes(f));
 const blockers = (k, council) => laws.filter(l => lockedLaw(l) && l.fx.some(f => clashes(k, f) || (council && sideOf(k) && sideOf(k) !== sideOf(f))));
 const lockEnd = () => dateLong(S.revDay + SOC_LOCK);
@@ -3480,7 +3480,7 @@ $('quakeBtn').onclick = () => { // works even with natural disasters switched of
 };
 $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
-  POLITICS = !POLITICS; syncPol(); updateHud();
+  POLITICS = !POLITICS; syncPol(); updateHud(); renderLaws();
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
   log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
@@ -3731,7 +3731,7 @@ const HELP_TABS = [
     ['MALESTAR SOCIAL', [
       'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
       'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. Si es desactiva la política dinàmica, aquesta protecció deixa d\'actuar i el batlle pot derogar qualsevol llei. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
     ]],
     ['EL CONSELL I LES PRESSIONS', [
       'Els rics i els pobres pressionen el consell, i la pressió depèn només de com està repartida la riquesa. Els rics empenyen cap a la dreta com més riquesa té el 10% de cases més riques: comencen quan en tenen el 25% del total i pressionen al màxim quan en tenen el 65%. Els pobres empenyen cap a l\'esquerra com més riquesa té, sumada, la meitat més pobre de les cases: comencen quan en té el 25% i pressionen al màxim quan en té el 50% (un poble del tot igualitari).',
@@ -3739,7 +3739,7 @@ const HELP_TABS = [
       'Cada deu dies el consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
       'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
       'Abans d\'aprovar una llei d\'un bàndol (socialista o socialdemòcrata a l\'esquerra, turbocapitalista o tecnofeudal a la dreta), el consell deroga totes les lleis de l\'altre bàndol que encara hi hagi.',
-      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar. L\'única excepció són les lleis socialistes durant els tres anys després d\'una revolució.',
+      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar. L\'única excepció són les lleis socialistes durant els tres anys després d\'una revolució, mentre la política dinàmica estigui activada.',
     ]],
     ['LLEIS ECONÒMIQUES', [
       'Qui pressiona més pot aconseguir aprovar una llei. Com més pressió, més probable és.',
