@@ -600,16 +600,40 @@ function searchSite(nx, ny, w, h, rmin, west) {
 }
 function mark(x, y, w, h, v) {
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { const k = idx(i, j); S.occ[k] = v; if (v) S.tree[k] = 0; }
-  S.occVer = (S.occVer || 0) + 1; S.dirty = true;
+  S.occVer = (S.occVer || 0) + 1; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true;
+}
+// every tree on the map, in row order; rebuilt only after a tree is felled or grows
+function treeList() {
+  if (S.treeListVer !== (S.treeVer || 0) || !S.treeListArr) {
+    const a = []; for (let k = 0; k < W * H; k++) if (S.tree[k]) a.push(k);
+    S.treeListArr = a; S.treeListVer = S.treeVer || 0;
+  }
+  return S.treeListArr;
+}
+// the trees on the nearest ring (at least 7 away, under 70) in the same row-by-row order the ring walk would find them
+function farTree(x, y) {
+  let r = 70; const best = [];
+  for (const k of treeList()) {
+    const d = Math.max(Math.abs(k % W - x), Math.abs(((k / W) | 0) - y));
+    if (d === 0 || d > r || d >= 70) continue; // the walk never looks at its own tile
+    if (d < r) { r = d; best.length = 0; }
+    best.push(k);
+  }
+  return best.length ? best[ri(0, best.length - 1)] : -1;
 }
 function nearestTree(x, y) {
   x = Math.round(x); y = Math.round(y);
+  // walks out ring by ring (only the edge of each square, in the same row-by-row order) and picks one of the trees on
+  // the first ring that has any
+  const best = [];
+  const at = (i, j) => { if (inMap(i, j) && S.tree[idx(i, j)]) best.push(idx(i, j)); };
   for (let r = 1; r < 70; r++) {
-    const best = [];
-    for (let j = y - r; j <= y + r; j++) for (let i = x - r; i <= x + r; i++) {
-      if (Math.max(Math.abs(i - x), Math.abs(j - y)) !== r || !inMap(i, j)) continue;
-      if (S.tree[idx(i, j)]) best.push(idx(i, j));
-    }
+    // once the forest near by is gone, it is quicker to measure the distance to every tree left: same answer, same order
+    if (r === 7) return farTree(x, y);
+    best.length = 0;
+    for (let i = x - r; i <= x + r; i++) at(i, y - r);
+    for (let j = y - r + 1; j < y + r; j++) { at(x - r, j); at(x + r, j); }
+    for (let i = x - r; i <= x + r; i++) at(i, y + r);
     if (best.length) return best[ri(0, best.length - 1)];
   }
   return -1;
@@ -740,11 +764,17 @@ const hutOwner = hut => S.homes.find(o => o.hut === hut && !o.gone && !o.tenant)
 const landlord = hut => hut.landlord && !hut.landlord.gone ? hut.landlord : null;
 const rentTo = hut => hutOwner(hut) || landlord(hut);
 // what a household owns, in food: stores, materials at market prices, sheep, and the houses it owns
-function wealth(h) {
-  let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
-  if (h.hut && !h.tenant) w += housePrice(h.hut);
-  for (const u of new Set(S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut))) w += housePrice(u);
-  return w;
+function wealth(h) { return wealthsOf([h])[0]; }
+// the wealth of many houses at once: the blocks each one lets out are looked up in a single pass
+function wealthsOf(list) {
+  const lets = new Map();
+  for (const o of S.homes) { const u = o.hut, l = u && u.landlord; if (l) { const s = lets.get(l) || lets.set(l, new Set()).get(l); s.add(u); } }
+  return list.map(h => {
+    let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
+    if (h.hut && !h.tenant) w += housePrice(h.hut);
+    for (const u of lets.get(h) || []) w += housePrice(u);
+    return w;
+  });
 }
 // Gini index of household wealth: 0 when every house owns the same, 1 when one house owns everything
 function gini(ws) {
@@ -844,7 +874,8 @@ function bequeath(h) {
 function lordOf(key) {
   let o = S[key];
   if (!o || o.gone || !o.members.length) {
-    o = S[key] = S.homes.filter(h => !h.gone && h.members.length && h.hut).map(h => [h, wealth(h)]).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const act = S.homes.filter(h => !h.gone && h.members.length && h.hut), ws = wealthsOf(act);
+    o = S[key] = act.map((h, i) => [h, ws[i]]).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
     if (o) { log(key === 'lord' ? `Els ${o.surname} esdevenen els senyors de la plataforma.` : `Els ${o.surname} es queden el bosc: ara és seu.`, 'amber'); tagHome(o, key === 'lord' ? 'SENYORS DE LA PLATAFORMA' : 'AMOS DEL BOSC', 'amber'); renderLaws(); }
   }
   return o;
@@ -877,7 +908,8 @@ function escheat(h) {
   for (const hut of new Set(S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut))) hut.landlord = null;
   if (v < 1) return;
   if (L.notax) { // no taxes, no granary: the richest house takes it all
-    const o = S.homes.filter(x => !x.gone && x.members.length).map(x => [x, wealth(x)]).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const act = S.homes.filter(x => !x.gone && x.members.length), ws = wealthsOf(act);
+    const o = act.map((x, i) => [x, ws[i]]).sort((a, b) => b[1] - a[1])[0]?.[0];
     if (o) { o.food += v; log(`Els ${h.surname} s'han extingit sense descendents. Els ${o.surname}, la casa més rica, se'n queden els béns.${sold}`, 'info'); }
     return;
   }
@@ -1082,7 +1114,7 @@ function daily() {
         setTask(w, 'jornal', e.pending.x + 1.5, e.pending.y + 1, 1.2);
       } else if (kind === 'wood') {
         const t = nearestTree(e.hut.x + 1 + rr(-4, 4), e.hut.y + 1 + rr(-4, 4));
-        if (t >= 0) { setTask(w, 'jornal', t % W + 0.5, Math.floor(t / W) + 1.2, 1); if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.dirty = true; } }
+        if (t >= 0) { setTask(w, 'jornal', t % W + 0.5, Math.floor(t / W) + 1.2, 1); if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true; } }
         e.wood += forestToll(e, 'wood', 1.6 * (1 - w.lazy * 0.5) * (0.6 + 0.8 * w.str) * (L.forest ? 0.7 : 1));
       } else {
         e.shep = 1 - w.int * 0.5;
@@ -1399,11 +1431,11 @@ function daily() {
     tagHome(h, 'MILLOREN EL CORRAL', 'good');
     if (!S.flags.penUp) { S.flags.penUp = 1; log(`Els ${h.surname} milloren el corral amb ${PEN_WOOD} de fusta i ${PEN_IRON} de ferro: un cobert i una tanca forta. Hi cabran més ovelles i donaran més llet.`, 'good'); }
   }
-  if (S.day % 5 === 0 && active.length > 1) S.gini.push([S.day, gini(active.map(wealth))]);
+  if (S.day % 5 === 0 && active.length > 1) S.gini.push([S.day, gini(wealthsOf(active))]);
   // redistribution laws
   if (L.wealthtax && S.day % 30 === 0 && active.length > 3) {
     // a progressive wealth tax: every house above the median pays on what it has above it, at a rate that grows the further above it is
-    const ws = active.map(h => [h, wealth(h)]), sorted = ws.map(x => x[1]).sort((a, b) => a - b), med = Math.max(1, sorted[Math.floor(sorted.length / 2)]);
+    const ws = (w => active.map((h, i) => [h, w[i]]))(wealthsOf(active)), sorted = ws.map(x => x[1]).sort((a, b) => a - b), med = Math.max(1, sorted[Math.floor(sorted.length / 2)]);
     let pool = 0;
     for (const [h, w] of ws) if (w > med) {
       const rate = Math.min(WT_MAX, WT_STEP * (w / med - 1)); // 5% of the excess at twice the median, 10% at three times... up to 30%
@@ -1419,7 +1451,8 @@ function daily() {
   if (L.agrarian && doy === 300) {
     // land reform: every winter, houses with more than three fields hand one over to a house with one or none
     const big = active.filter(h => h.fields.length > 3).sort((a, b) => b.fields.length - a.fields.length);
-    const small = active.filter(h => h.hut && h.fields.length <= 1 && adultsOf(h).length).sort((a, b) => wealth(a) - wealth(b));
+    const small0 = active.filter(h => h.hut && h.fields.length <= 1 && adultsOf(h).length), sw = new Map(wealthsOf(small0).map((w, i) => [small0[i], w]));
+    const small = small0.sort((a, b) => sw.get(a) - sw.get(b));
     let moved = 0;
     for (const b of big) { const t = small.shift(); if (!t) break; const f = b.fields.pop(); f.used = S.day; t.fields.push(f); moved++; }
     if (moved) log(`Reforma agrària: ${moved} ${moved > 1 ? 'camps passen' : 'camp passa'} de les cases que en tenen més a les que no en tenen.`, 'good');
@@ -1480,7 +1513,7 @@ function daily() {
   if (S.granary > 0 && !L.notax && S.day % 7 === 0 && active.length > 3) {
     const reserve = 10 * active.reduce((t, h) => t + need(h), 0), extra = S.granary - reserve;
     if (extra > 1) {
-      const poor = active.map(h => [h, wealth(h)]).sort((a, b) => a[1] - b[1]).slice(0, Math.max(1, Math.floor(active.length / 4)));
+      const poor = (w => active.map((h, i) => [h, w[i]]))(wealthsOf(active)).sort((a, b) => a[1] - b[1]).slice(0, Math.max(1, Math.floor(active.length / 4)));
       for (const [h] of poor) { h.food += extra / poor.length; h.got += extra / poor.length; h.helped = (h.helped || 0) + extra / poor.length; }
       S.granary -= extra;
       logOnce('granPoor', `El graner comú és ple i reparteix ${fmt(extra)} de menjar entre les cases més pobres.`, 'good');
@@ -1679,14 +1712,14 @@ function daily() {
       const x = ri(0, W - 1), y = ri(0, H - 1);
       if (!S.tree[idx(x, y)] || R() > 0.015 * (L.forest ? 3 : 1)) continue;
       const [dx, dy] = [[1, 0], [-1, 0], [0, 1], [0, -1]][ri(0, 3)];
-      if (inMap(x + dx, y + dy) && free(idx(x + dx, y + dy))) { S.tree[idx(x + dx, y + dy)] = 1; S.dirty = true; }
+      if (inMap(x + dx, y + dy) && free(idx(x + dx, y + dy))) { S.tree[idx(x + dx, y + dy)] = 1; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true; }
     }
   }
   // cleared patches of the original forest slowly come back, even with no tree left nearby
   if (season !== 3) {
     for (let k = 0; k < 60; k++) {
       const i = ri(0, W * H - 1);
-      if (S.forest[i] && free(i) && R() < 0.03 * (L.forest ? 3 : 1)) { S.tree[i] = 1; S.dirty = true; }
+      if (S.forest[i] && free(i) && R() < 0.03 * (L.forest ? 3 : 1)) { S.tree[i] = 1; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true; }
     }
   }
 
@@ -1729,7 +1762,7 @@ function burnCoal(h, p, eff) {
   h.kilnUsed = S.day;
   setTask(p, 'carbo', t % W + 0.5, Math.floor(t / W) + 1.2, 1.5);
   h.kilnWood = (h.kilnWood || 0) + 2.5 * eff * (0.6 + 0.8 * p.str) * (L.forest ? 0.7 : 1);
-  if (R() < (L.forest ? 0.05 : 0.12)) { S.tree[t] = 0; S.dirty = true; }
+  if (R() < (L.forest ? 0.05 : 0.12)) { S.tree[t] = 0; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true; }
   const c = Math.floor(h.kilnWood / 2); h.coal += forestToll(h, 'coal', c); h.kilnWood -= c * 2;
   h.food += 0.2;
 }
@@ -1740,7 +1773,7 @@ function doWood(h, p, eff, hx) {
   setTask(p, 'wood', t % W + 0.5, Math.floor(t / W) + 1.2, 1);
   h.wood += forestToll(h, 'wood', 1.6 * eff * (0.6 + 0.8 * p.str) * (L.forest ? 0.7 : 1));
   h.food += 0.2;
-  if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.dirty = true; h.woodTree = -1; }
+  if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.treeVer = (S.treeVer || 0) + 1; S.dirty = true; h.woodTree = -1; }
 }
 function buildHut(h) {
   const site = findSite(CX, CY, 2, 2, 2);
@@ -2055,7 +2088,8 @@ function log(text, kind = 'info') {
 }
 function logOnce(key, text, kind) { if (!S.flags[key]) { S.flags[key] = 1; log(text, kind); } }
 const $ = id => document.getElementById(id);
-function fmt(n) { return Math.round(n).toLocaleString('ca-ES'); }
+const NUMFMT = new Intl.NumberFormat('ca-ES');
+function fmt(n) { return NUMFMT.format(Math.round(n)); }
 // ---------- Gini chart ----------
 let giniLen = -1, giniHover = null;
 function drawGini(force) {
@@ -2115,7 +2149,7 @@ function drawDeciles() {
   if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
   const css = getComputedStyle(document.documentElement), ink = css.getPropertyValue('--muted').trim(), line = css.getPropertyValue('--line').trim(), amber = css.getPropertyValue('--amber').trim();
-  const ws = S.homes.filter(x => !x.gone && x.members.length).map(wealth).sort((a, b) => b - a), n = ws.length, tot = ws.reduce((t, v) => t + v, 0);
+  const ws = wealthsOf(S.homes.filter(x => !x.gone && x.members.length)).sort((a, b) => b - a), n = ws.length, tot = ws.reduce((t, v) => t + v, 0);
   decData = [];
   if (n >= 10 && tot > 0) for (let k = 0; k < 10; k++) {
     const part = ws.slice(Math.floor((9 - k) * n / 10), Math.floor((10 - k) * n / 10)), sum = part.reduce((t, v) => t + v, 0);
@@ -2156,63 +2190,65 @@ addEventListener('resize', () => drawDeciles());
 $('giniCv').addEventListener('pointermove', e => { giniHover = e.offsetX; drawGini(true); });
 $('giniCv').addEventListener('pointerleave', () => { giniHover = null; drawGini(true); });
 addEventListener('resize', () => drawGini(true));
+// the panel is refreshed every day: only the numbers that changed touch the page
+function put(id, v) { const e = $(id), t = String(v); if (e.textContent !== t) e.textContent = t; }
 function updateHud() {
   drawGini();
   const doy = S.day % YEAR;
-  $('hDay').textContent = dateLong(S.day).toUpperCase();
-  $('hSeason').textContent = SEASONS[seasonOf(doy)];
+  put('hDay', dateLong(S.day).toUpperCase());
+  put('hSeason', SEASONS[seasonOf(doy)]);
   const alive = S.people.filter(p => !p.leaving);
   const act = S.homes.filter(h => !h.gone);
-  $('hPeople').textContent = alive.length;
-  $('hHuts').textContent = new Set(S.homes.filter(h => h.hut).map(h => h.hut)).size;
-  $('hFields').textContent = S.homes.reduce((s, h) => s + h.fields.length, 0);
-  $('hTrees').textContent = fmt(countTrees());
-  $('hLaws').textContent = laws.length;
+  put('hPeople', alive.length);
+  put('hHuts', new Set(S.homes.filter(h => h.hut).map(h => h.hut)).size);
+  put('hFields', S.homes.reduce((s, h) => s + h.fields.length, 0));
+  put('hTrees', fmt(countTrees()));
+  put('hLaws', laws.length);
   
   const food = act.reduce((s, h) => s + h.food, 0);
   const nd = act.reduce((s, h) => s + need(h), 0);
-  $('sFood').textContent = fmt(food);
-  $('sDays').textContent = nd ? Math.round(food / nd) : 0;
-  $('sGran').textContent = fmt(S.granary);
-  $('sHomes').textContent = act.length;
-  $('sNames').textContent = new Set(act.map(h => h.surname)).size;
-  $('sHerd').textContent = act.reduce((t, h) => t + h.herd, 0);
-  $('sPens').textContent = act.filter(h => h.pen).length;
-  $('sWages').textContent = fmt(S.st.wages);
-  $('sCoalPrice').textContent = S.coalPrice.toFixed(2);
-  $('sBurners').textContent = S.people.filter(p => p.job === 'carboner' && !p.leaving).length;
-  $('sStonePrice').textContent = S.stonePrice.toFixed(2);
-  $('sCutters').textContent = S.people.filter(p => p.job === 'picapedrer' && !p.leaving).length;
-  $('sDug').textContent = fmt(S.quarry.dug);
-  $('sIronPrice').textContent = S.ironPrice.toFixed(2);
-  $('sMiners').textContent = S.people.filter(p => p.job === 'miner' && !p.leaving).length;
-  $('sIronDug').textContent = fmt(S.mine.dug);
-  $('sSmiths').textContent = S.people.filter(p => p.job === 'ferrer' && !p.leaving).length;
-  $('sHoePrice').textContent = S.hoePrice.toFixed(1);
-  $('sPickPrice').textContent = S.pickPrice.toFixed(1);
-  $('sWage').textContent = S.wage.toFixed(2);
-  $('sTools').textContent = S.st.hoesSold + S.st.picksSold + S.st.plowsSold + S.st.rodsSold;
-  $('sPlowPrice').textContent = S.plowPrice.toFixed(1);
-  $('sPlows').textContent = S.st.plowsSold;
-  $('sRodPrice').textContent = S.rodPrice.toFixed(1);
-  $('sRods').textContent = S.st.rodsSold;
-  $('sFish').textContent = fmt(S.st.fish);
-  $('sBequests').textContent = S.st.bequests;
-  $('sExtinct').textContent = S.homes.filter(h => h.gone).length;
-  $('sOldest').textContent = alive.length ? Math.floor(Math.max(...alive.map(p => p.age)) / YEAR) + ' anys' : '—';
-  $('sPenUps').textContent = act.filter(h => h.pen && h.pen.lvl).length;
-  $('sIronSaved').textContent = S.st.ironSaved;
-  $('sOldDeaths').textContent = S.st.oldDeaths;
-  $('sStoneHouses').textContent = act.filter(stoneHouse).length;
-  $('sEmpty').textContent = S.homes.filter(h => h.gone && h.hut && !h.taken && !(h.hut.flats || []).some(Boolean)).length;
-  $('sIronSold').textContent = fmt(S.st.ironSold);
+  put('sFood', fmt(food));
+  put('sDays', nd ? Math.round(food / nd) : 0);
+  put('sGran', fmt(S.granary));
+  put('sHomes', act.length);
+  put('sNames', new Set(act.map(h => h.surname)).size);
+  put('sHerd', act.reduce((t, h) => t + h.herd, 0));
+  put('sPens', act.filter(h => h.pen).length);
+  put('sWages', fmt(S.st.wages));
+  put('sCoalPrice', S.coalPrice.toFixed(2));
+  put('sBurners', S.people.filter(p => p.job === 'carboner' && !p.leaving).length);
+  put('sStonePrice', S.stonePrice.toFixed(2));
+  put('sCutters', S.people.filter(p => p.job === 'picapedrer' && !p.leaving).length);
+  put('sDug', fmt(S.quarry.dug));
+  put('sIronPrice', S.ironPrice.toFixed(2));
+  put('sMiners', S.people.filter(p => p.job === 'miner' && !p.leaving).length);
+  put('sIronDug', fmt(S.mine.dug));
+  put('sSmiths', S.people.filter(p => p.job === 'ferrer' && !p.leaving).length);
+  put('sHoePrice', S.hoePrice.toFixed(1));
+  put('sPickPrice', S.pickPrice.toFixed(1));
+  put('sWage', S.wage.toFixed(2));
+  put('sTools', S.st.hoesSold + S.st.picksSold + S.st.plowsSold + S.st.rodsSold);
+  put('sPlowPrice', S.plowPrice.toFixed(1));
+  put('sPlows', S.st.plowsSold);
+  put('sRodPrice', S.rodPrice.toFixed(1));
+  put('sRods', S.st.rodsSold);
+  put('sFish', fmt(S.st.fish));
+  put('sBequests', S.st.bequests);
+  put('sExtinct', S.homes.filter(h => h.gone).length);
+  put('sOldest', alive.length ? Math.floor(Math.max(...alive.map(p => p.age)) / YEAR) + ' anys' : '—');
+  put('sPenUps', act.filter(h => h.pen && h.pen.lvl).length);
+  put('sIronSaved', S.st.ironSaved);
+  put('sOldDeaths', S.st.oldDeaths);
+  put('sStoneHouses', act.filter(stoneHouse).length);
+  put('sEmpty', S.homes.filter(h => h.gone && h.hut && !h.taken && !(h.hut.flats || []).some(Boolean)).length);
+  put('sIronSold', fmt(S.st.ironSold));
   const huts = [...new Set(act.filter(h => h.hut).map(h => h.hut))];
-  $('sRent').textContent = S.rent.toFixed(2);
-  $('sFlats').textContent = `${act.filter(h => h.tenant).length} / ${huts.reduce((t, u) => t + (u.floors || 0), 0)}`;
-  $('sHousePrice').textContent = fmt(HUT_VAL * S.houseIdx);
-  $('sHealth').textContent = alive.length ? Math.round(100 * avg(alive.map(p => p.health))) : '—';
-  $('sAge').textContent = alive.length ? (avg(alive.map(p => p.age)) / YEAR).toFixed(1).replace('.', ',') + ' anys' : '—';
-  for (const k of ['thefts', 'gifts', 'births', 'left', 'died', 'caught', 'arrived', 'lostHerd', 'jobs', 'weddings', 'coalSold']) $('s' + k[0].toUpperCase() + k.slice(1)).textContent = S.st[k];
+  put('sRent', S.rent.toFixed(2));
+  put('sFlats', `${act.filter(h => h.tenant).length} / ${huts.reduce((t, u) => t + (u.floors || 0), 0)}`);
+  put('sHousePrice', fmt(HUT_VAL * S.houseIdx));
+  put('sHealth', alive.length ? Math.round(100 * avg(alive.map(p => p.health))) : '—');
+  put('sAge', alive.length ? (avg(alive.map(p => p.age)) / YEAR).toFixed(1).replace('.', ',') + ' anys' : '—');
+  for (const k of ['thefts', 'gifts', 'births', 'left', 'died', 'caught', 'arrived', 'lostHerd', 'jobs', 'weddings', 'coalSold']) put('s' + k[0].toUpperCase() + k.slice(1), S.st[k]);
 }
 
 // ---------- laws UI ----------
@@ -2248,7 +2284,7 @@ function proclaim(k) {
   log(`Nova llei: «${d.name}».`, 'amber');
   // laws that hand something over the moment they come in
   if (k === 'notax' && S.granary > 0) {
-    const act = S.homes.filter(h => !h.gone && h.members.length), ws = act.map(wealth), tot = ws.reduce((t, v) => t + v, 0) || 1;
+    const act = S.homes.filter(h => !h.gone && h.members.length), ws = wealthsOf(act), tot = ws.reduce((t, v) => t + v, 0) || 1;
     act.forEach((h, i) => { h.food += S.granary * ws[i] / tot; });
     log(`Es tanca el graner comú: els seus ${fmt(S.granary)} de menjar es reparteixen segons el que ja té cada casa.`, 'amber'); S.granary = 0;
   }
