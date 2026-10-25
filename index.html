@@ -2626,11 +2626,11 @@ function renderLaws() {
   $('hLaws').textContent = laws.length;
 }
 function repeal(i) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); log(`Es deroga la llei «${l.text}».`, 'amber'); }
-function proclaim(k) {
+function proclaim(k, quiet) {
   const d = LAWDEFS[k];
   for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => (d.excl || []).includes(f))) repeal(i);
   laws.push({ text: d.name, fx: [k], day: S.day }); recomputeLaws();
-  log(`Nova llei: «${d.name}».`, 'amber');
+  if (!quiet) log(`Nova llei: «${d.name}».`, 'amber');
   // laws that hand something over the moment they come in
   if (k === 'notax' && S.granary > 0) {
     const act = S.homes.filter(h => !h.gone && h.members.length), ws = wealthsOf(act), tot = ws.reduce((t, v) => t + v, 0) || 1;
@@ -2772,8 +2772,10 @@ function riot(active) {
 }
 function revolution(active) {
   S.st.revolutions = (S.st.revolutions || 0) + 1;
-  const old = laws.length;
-  for (let i = laws.length - 1; i >= 0; i--) laws.splice(i, 1);
+  // the revolution tears up the laws of the right, turbocapitalist and technofeudal; the rest stay
+  const right = new Set(LAW_CATS.filter(c => c[0] === 'TURBOCAPITALISTES' || c[0] === 'TECNOFEUDALS').flatMap(c => c[1]));
+  const old = laws.filter(l => l.fx.some(f => right.has(f))).length;
+  for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => right.has(f))) laws.splice(i, 1);
   recomputeLaws();
   // the richest tenth lose half their stores to the common granary and every field beyond two to families with none
   const live = active.filter(h => h.members.length), ws = wealthsOf(live);
@@ -2793,13 +2795,13 @@ function revolution(active) {
   // the materials go to the poorest quarter, in equal shares
   const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
   for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
-  for (const k of ['collective', 'nowage', 'norent']) laws.push({ text: LAWDEFS[k].name, fx: [k], day: S.day });
+  for (const k of ['collective', 'nowage', 'norent']) if (!L[k]) proclaim(k, true);
   S.council = -1;
   recomputeLaws(); renderLaws();
   S.unrest = 20; S.revDay = S.day;
-  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es deroguen les ${old} lleis vigents. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell col·lectivitza la terra i aboleix el treball assalariat i la renda.`, 'bad');
+  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es ${old > 1 ? `deroguen les ${old} lleis de dretes` : 'deroga l\'única llei de dretes'}. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell col·lectivitza la terra i aboleix el treball assalariat i la renda.`, 'bad');
   tag(W / 2, H / 2, 'REVOLUCIÓ', 'bad');
-  if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis del batlle s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
+  if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis de dretes s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
 }
 
 // ---------- disaster effects on the map ----------
@@ -3256,7 +3258,7 @@ const RULES = [
     'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Segons qui pressiona més, el consell es mou cap a l\'esquerra o cap a la dreta (l\'indicador «Orientació del consell»). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
     'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
     'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
   ]],
   ['DESASTRES NATURALS', [
     'Es poden activar o desactivar amb el botó Desastres. Quan estan desactivats no passa cap d\'aquests fenòmens.',
