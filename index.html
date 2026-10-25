@@ -521,7 +521,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <p class="lbl">Regles de la partida</p>
       <label><input type="checkbox" id="mpo_pol"> Política dinàmica (el consell també aprova i deroga lleis sol)</label>
       <label><input type="checkbox" id="mpo_dis"> Desastres naturals</label>
-      <label><input type="checkbox" id="mpo_wait"> El poble s'atura mentre algú ha de decidir</label>
+      <label><input type="checkbox" id="mpo_wait"> Les decisions de les famílies s'acumulen i el poble s'atura un cop per setmana perquè tothom les respongui alhora</label>
       <div class="opt"><button class="btn primary" type="button" id="mpGo">Comença la partida</button><button class="btn" type="button" id="mpLeave">Surt</button></div>
       <p class="msg" id="mpWait" role="status"></p>
     </div>
@@ -3446,7 +3446,7 @@ function ask(h, key, text, yes = 'Sí', no = 'No', ttl = 30, yesDays = 0) {
   h.pol ||= {}; h.asks ||= [];
   const pol = h.pol[key];
   if (pol && pol.until >= S.day) { if (pol.once) delete h.pol[key]; return pol.yes; }
-  if (!h.asks.some(q => q.key === key)) { h.asks.push({ key, text, yes, no, ttl, yesDays }); if (h === ME) showAsk(); }
+  if (!h.asks.some(q => q.key === key)) { h.asks.push({ key, text, yes, no, ttl, yesDays }); if (h === ME && !weekly()) showAsk(); }
   return false;
 }
 // the player said yes and the family hasn't acted on it yet: chance checks that would hold the action back are skipped
@@ -3457,12 +3457,13 @@ const sentAns = new Set(); // answers sent to the host that haven't come back ye
 // in a shared village the host decides when the village stops, so a window never pauses it
 function pauseFor() { if (NET) return; if (askOpen === null) askWasRunning = running || askWasRunning; running = false; syncPlay(); }
 function showAsk() {
+  if (weekly() && !decideNow()) return; // in a shared village the questions wait for the end of the week
   const q = ME && ME.asks && ME.asks.find(q => !sentAns.has(q.key));
   if (!q || (askOpen && askOpen !== 'q')) return;
   pauseFor(); askOpen = 'q'; askQ = q;
   const h = ME, more = ME.asks.filter(o => o !== q && !sentAns.has(o.key)).length;
   put('askTitle', `DECISIÓ · ELS ${h.surname.toUpperCase()}`);
-  put('askSub', dateLong(S.day));
+  put('askSub', dateLong(S.day) + (weekly() ? ' · decisions de la setmana' : ''));
   put('askText', q.text);
   put('askCtx', `${h.members.length} persones · ${fmt(h.food)} de menjar (${Math.floor(daysOf(h))} dies) · riquesa ${fmt(wealth(h))}`);
   put('askMore', more ? `Hi ha ${more} decisió${more > 1 ? 'ns' : ''} més esperant.` : '');
@@ -3797,7 +3798,12 @@ function applyInput(m) {
   }
 }
 // the families waiting for their player to decide (the village stops for them if the room says so)
-const waitingOn = () => NET && NET.live && NET.opts.wait ? S.homes.filter(h => h.human != null && !h.gone && h.asks && h.asks.length && isOn(h.human)) : [];
+// with the room's weekly rule, the questions a family gets during the week pile up, and the village stops once a
+// week (at the same moment on every screen) until every player has answered theirs
+const WEEK = DAYLEN * 7;
+const weekly = () => !!(NET && NET.live && NET.opts.wait);
+const decideNow = () => weekly() && S.frame % WEEK === 0;
+const waitingOn = () => decideNow() ? S.homes.filter(h => h.human != null && !h.gone && h.asks && h.asks.length && isOn(h.human)) : [];
 
 // --- host ---
 async function hostRoom(name) {
@@ -4446,8 +4452,8 @@ const HELP_TABS = [
       'Tots jugueu el mateix poble. Quan comença la partida, a cada jugador li toca una família a l\'atzar, i decideix per ella com al mode família. Al mapa, la teva casa porta un marcador groc i les dels altres jugadors, un de blau. El panell SALA diu quina família porta cadascú.',
       'Les lleis es voten. Qualsevol jugador pot proposar aprovar una llei o derogar-ne una de vigent. S\'aplica si hi vota a favor més de la meitat dels jugadors de la sala. Si en un minut no hi arriba, o ja no hi pot arribar, no s\'aplica: qui no vota compta com a no.',
       'La política dinàmica funciona igual que sempre: el consell aprova i deroga lleis sol, i hi pot haver aldarulls i revolucions.',
-      'L\'amfitrió tria les regles de la partida (política dinàmica, desastres i si el poble s\'atura mentre algú ha de decidir), la velocitat, el terratrèmol i quan es fa un poble nou. Tothom pot aturar el poble i tornar-lo a posar en marxa.',
-      'Si el poble s\'atura per les decisions, s\'espera fins que cada jugador ha respost les seves. Si no, el poble segueix i la família no fa res que encara no hagis decidit.',
+      'L\'amfitrió tria les regles de la partida (política dinàmica, desastres i si les decisions s\'acumulen fins al final de cada setmana), la velocitat, el terratrèmol i quan es fa un poble nou. Tothom pot aturar el poble i tornar-lo a posar en marxa.',
+      'Decisions setmanals: les preguntes que rep cada família durant la setmana s\'acumulen. Un cop per setmana el poble s\'atura, tots els jugadors veuen alhora les seves decisions pendents, i el poble no continua fins que tothom les ha respostes. Mentre una pregunta espera, la família no fa allò que encara no has decidit. Si l\'amfitrió desactiva aquesta regla, cada pregunta surt al moment i el poble no s\'atura.',
       'Si la teva família s\'extingeix, passes a portar la família hereva, si no la porta un altre jugador. Si no, continues mirant el poble i votant les lleis.',
       'Si algú surt de la sala, la seva família torna a decidir sola. Si torna a entrar amb el mateix nom, recupera la família si encara hi és. També es pot entrar en una partida començada: et toca una família lliure.',
       'Si l\'amfitrió marxa, la sala es tanca i cadascú pot continuar sol amb la seva família.',
@@ -4494,6 +4500,7 @@ setInterval(() => {
 }, 800);
 
 function frame() {
+  if (decideNow() && ME && ME.asks && ME.asks.length && askOpen === null) showAsk();
   if (NET && NET.live) NET.role === 'host' ? hostRun(speed) : guestRun(Math.max(Math.ceil(speed * 1.25), NET.target - S.frame - speed * 8)); // a little faster than the host, and all at once when far behind
   else for (let k = 0; k < speed && running; k++) step();
   render();
