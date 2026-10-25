@@ -4,6 +4,10 @@
 
 Joc de navegador en català on fas de batlle d'un poble. Tot el joc és un sol fitxer, `index.html`, sense dependències ni passos de compilació.
 
+## Crèdits
+
+Basat en la idea de [@an_ai_tries_youtube](https://www.youtube.com/@an_ai_tries_youtube).
+
 ## Jugar
 
 - En línia: https://miquel25.github.io/El-Batlle/ (un cop activat GitHub Pages)
@@ -16,3 +20,7 @@ Joc de navegador en català on fas de batlle d'un poble. Tot el joc és un sol f
 3. Branca `main`, carpeta `/ (root)`, i desa.
 
 En un parell de minuts el joc serà accessible a l'adreça de dalt.
+
+## Llicència
+
+MIT. Vegeu el fitxer [LICENSE](LICENSE).

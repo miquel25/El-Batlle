@@ -1,4 +1,9 @@
 <!doctype html>
+<!--
+  El batlle · https://github.com/miquel25/El-Batlle
+  Copyright (c) 2026 Miquel de la Iglesia. Publicat sota la llicència MIT (vegeu el fitxer LICENSE).
+  Basat en la idea de @an_ai_tries_youtube (https://www.youtube.com/@an_ai_tries_youtube).
+-->
 <html lang="ca">
 <head>
 <meta charset="utf-8">
@@ -191,6 +196,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   .members{grid-template-columns:minmax(0,1fr)}
 }
 .houses footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.houses footer.credits a{color:var(--amber);text-underline-offset:3px}
 </style>
 
 <div class="app">
@@ -370,6 +376,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <button class="btn" id="helpClose">Tanca</button>
     </header>
     <div class="scroller"><div class="rules" id="helpBody"></div></div>
+    <footer class="credits">Basat en la idea de <a href="https://www.youtube.com/@an_ai_tries_youtube" target="_blank" rel="noopener">@an_ai_tries_youtube</a>. Codi obert amb <a href="https://github.com/miquel25/El-Batlle/blob/main/LICENSE" target="_blank" rel="noopener">llicència MIT</a>.</footer>
   </div>
 </div>
 <div class="houses" id="houses" hidden role="dialog" aria-modal="true" aria-labelledby="housesTitle">
