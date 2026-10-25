@@ -68,6 +68,19 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .scroll .row{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .scroll .btn{background:var(--parch-ink);color:var(--parch);border-color:var(--parch-ink);font-size:12px}
 .scroll .msg{font-size:12px;min-height:1.2em;margin:0;font-family:var(--f-mono)}
+.scroll .pick{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:10px}
+.scroll .pick .btn{font-size:14px;padding:8px 18px}
+.lawpick .win{width:min(860px,100%)}
+.lawpick .cat{padding:4px 20px 14px}
+.lawpick .cat h3{font-family:var(--f-display);font-weight:400;font-size:12px;letter-spacing:.08em;color:var(--amber);margin:16px 0 8px}
+.lawpick .cat ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.lawpick li{border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.02)}
+.lawpick li.on{border-color:var(--amber);background:rgba(234,164,65,.07)}
+.lawpick li b{font-family:var(--f-serif);font-weight:500;font-size:17px;line-height:1.2}
+.lawpick li p{margin:0;font-size:12px;color:var(--muted);line-height:1.45;flex:1}
+.lawpick li .warn{color:var(--amber);font-size:11px}
+.lawpick li .btn{align-self:flex-start;font-size:12px}
+.lawpick li.on .btn{color:var(--bad);border-color:var(--bad)}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .chip{border:1px solid rgba(59,45,24,.35);background:rgba(255,255,255,.3);border-radius:999px;padding:2px 9px;font-size:11.5px;cursor:pointer;color:var(--parch-ink)}
 .chip:hover{background:rgba(255,255,255,.6)}
@@ -179,7 +192,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <div class="console" id="console"></div>
       <div class="intro" id="intro">
         <h1>Un poble. Cent persones. <em>Cap llei.</em></h1>
-        <p>Mira com s'organitzen sols: aixequen cabanes, llauren camps, cullen i passen l'hivern. Quan falti menjar, alguns l'agafaran d'altres cases. Quan vulguis, escriu una llei i mira què canvia.</p>
+        <p>Mira com s'organitzen sols: aixequen cabanes, llauren camps, cullen i passen l'hivern. Quan falti menjar, alguns l'agafaran d'altres cases. Quan vulguis, tria una llei i mira què canvia.</p>
         <div><button class="btn primary" id="startBtn">Comença</button></div>
       </div>
     </div>
@@ -201,15 +214,11 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   <aside class="col-side">
     <div class="scroll">
       <h2 id="lawTitle">Llei #1</h2>
-      <form id="lawForm" autocomplete="off">
-        <input id="lawInput" maxlength="90" placeholder="Escriu la llei…" aria-label="Text de la llei">
-        <p class="by">escrita per: tu</p>
-        <div class="row">
-          <p class="msg" id="lawMsg"></p>
-          <button class="btn" type="submit">Proclama-la</button>
-        </div>
-        <div class="chips" id="chips"></div>
-      </form>
+      <div class="pick">
+        <p class="by">proclamada per: el batlle</p>
+        <button class="btn" type="button" id="lawPickBtn">Tria una llei</button>
+        <p class="msg" id="lawMsg"></p>
+      </div>
     </div>
 
     <section class="sec">
@@ -296,6 +305,15 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   </aside>
 </div>
 
+<div class="houses lawpick" id="lawPick" hidden role="dialog" aria-modal="true" aria-labelledby="lawPickTitle">
+  <div class="win">
+    <header>
+      <div><h2 id="lawPickTitle">LLEIS DEL POBLE</h2><p>Tria quines lleis vols que regeixin el poble. Les que es contradiuen es deroguen entre elles.</p></div>
+      <button class="btn" id="lawPickClose">Tanca</button>
+    </header>
+    <div class="scroller" id="lawPickBody"></div>
+  </div>
+</div>
 <div class="houses help" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="win">
     <header>
@@ -345,59 +363,46 @@ const SEASONS = ['PRIMAVERA', 'ESTIU', 'TARDOR', 'HIVERN'];
 const CX = 45, CY = 50;
 const CLOTHES = ['#b0402f', '#96593a', '#c97a3c', '#7a3d29', '#bf9670', '#5f4a3c', '#a4492f', '#d0a35a'];
 
+// every law the batlle can proclaim, by category. A law that contradicts another one repeals it
+const LAW_CATS = [
+  ['GENERAL', ['work', 'forest', 'nocoal', 'natal', 'limit', 'ration', 'school', 'pasture']],
+  ['SEGURETAT', ['theft', 'stay', 'closed']],
+  ['SOCIALISTES', ['share', 'granary', 'wealthtax', 'inhtax', 'basic', 'agrarian', 'prices', 'wage', 'tools', 'rentcap', 'housing']],
+  ['TURBOCAPITALISTES', ['laissez', 'notax', 'usury', 'enclosure']],
+  ['TECNOFEUDALS', ['platform', 'cloud', 'tribute', 'vassal']],
+];
 const LAWDEFS = {
-  theft:   { re: /(rob|furt|lladr|ladr|steal|thie|agafar|prendre|quitar|hurt)/, txt: 'Robar està prohibit: hi ha molts menys robatoris i hi ha guàrdia, que atrapa el doble de lladres.' },
-  share:   { re: /(compart|repart|solidar|share|ajud|help|regal|donar|dona |sobr)/, txt: 'Les cases amb molt de menjar en donen a les que passen gana.' },
-  granary: { re: /(graner|comu|impost|tax|reserv|magatzem|granar|almacen|delme)/, txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.' },
-  work:    { re: /(treball|feina|work|cultiv|llaur|trabaj|camp|mandr)/, txt: 'Tothom treballa més: més camps per casa i menys mandra.' },
-  forest:  { re: /(arbre|bosc|tala|tree|forest|fusta|arbol|bosque|lena|llenya)/, txt: 'El bosc es protegeix: es talen menys arbres i en tornen a créixer, però hi ha menys fusta.' },
-  natal:   { re: /(fill|nado|nen|bebe|beb|child|baby|natal|famil|hij)/, txt: 'Es fomenten les famílies: neixen més nadons.' },
-  stay:    { re: /(marx|abandon|leave|sortir|irse|anar-se|anarse|quedar|emigr)/, txt: 'Ningú pot marxar del poble, ni passant gana.' },
-  ration:  { re: /(racion|ration|estalvi|ahorr|menys menjar|menjar menys|save food)/, txt: 'El menjar es raciona: tothom menja un 20% menys.' },
-  prices:  { re: /(preu|precio|price|especul|abus|car )/, txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.' },
-  wage:    { re: /(jornal|salari|sou |paga |cobr|wage|sueldo)/, txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.` },
-  school:  { re: /(escol|educa|ensenya|aprend|mestre|estudi|school|saber)/, txt: 'Escola per a la canalla: els nens neixen més llestos que els seus pares, però cada casa paga el mestre amb menjar.' },
-  tools:   { re: /(eina|eines|aixad|ferrer|farga| pic |pics |tool|herramient)/, txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.' },
-  pasture: { re: /(ovell|bestiar|ramat|pastur|xai|pastor|sheep|ganado)/, txt: 'Pastures comunals: a l\'hivern les ovelles necessiten un 40% menys de farratge, però cap casa pot tenir més de 5 ovelles.' },
-  wealthtax: { re: /(fortun|riquesa|rics|ricos|wealth|patrimoni)/, txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.' },
-  inhtax:  { re: /(heren|inherit)/, txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.' },
-  basic:   { re: /(renda|renta|ingres|basic income)/, txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.' },
-  agrarian:{ re: /(la terra|reforma agr|latifund|terres)/, txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
-  rentcap: { re: /(topall|lloguer|alquiler)/, txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.' },
-  housing: { re: /(habitatge|vivenda|vivienda|desnon|sostre|sense casa)/, txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.' },
+  work: { name: 'Tothom a treballar', txt: 'Tothom treballa més: més camps per casa i menys mandra.' },
+  forest: { name: 'Protecció del bosc', txt: 'El bosc es protegeix: es talen menys arbres i en tornen a créixer, però hi ha menys fusta.' },
+  nocoal: { name: 'Prohibit fer carbó', txt: 'Prohibit fer carbó: les carboneres s\'apaguen i es talen menys arbres, però els hiverns costen més de passar.' },
+  natal: { name: 'Foment de la natalitat', txt: 'Es fomenten les famílies: neixen més nadons.', excl: ['limit'] },
+  limit: { name: 'Límit de naixements', txt: 'Es limiten els naixements: neixen molts menys nadons.', excl: ['natal'] },
+  ration: { name: 'Racionament', txt: 'El menjar es raciona: tothom menja un 20% menys.' },
+  school: { name: 'Escola per a la canalla', txt: 'Escola per a la canalla: els nens neixen més llestos que els seus pares, però cada casa paga el mestre amb menjar.' },
+  pasture: { name: 'Pastures comunals', txt: 'Pastures comunals: a l\'hivern les ovelles necessiten un 40% menys de farratge, però cap casa pot tenir més de 5 ovelles.' },
+  theft: { name: 'Llei contra els robatoris', txt: 'Robar està prohibit: hi ha molts menys robatoris i hi ha guàrdia, que atrapa el doble de lladres.' },
+  stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
+  closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
+  share: { name: 'Solidaritat obligatòria', txt: 'Les cases amb molt de menjar en donen a les que passen gana.' },
+  granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax'] },
+  wealthtax: { name: 'Impost a les grans fortunes', txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.', excl: ['notax'] },
+  inhtax: { name: 'Impost sobre les herències', txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.', excl: ['notax'] },
+  basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax'] },
+  agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
+  prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
+  wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
+  tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
+  rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez'] },
+  housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez'] },
+  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal pot baixar fins a 0,6, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage'] },
+  notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
+  usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Qui no ha pagat al cap de quatre mesos perd un camp o una ovella a favor del creditor.' },
+  enclosure: { name: 'Privatització del bosc', txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
+  platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament.' },
+  cloud: { name: 'Eines al núvol', txt: 'Eines al núvol: les eines ja no es gasten, però cada eina paga una quota diària al senyor de la plataforma. Qui no pot pagar la quota es queda sense l\'eina.' },
+  tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.' },
+  vassal: { name: 'Vassallatge', txt: 'Vassallatge: les cases sense camps es tornen vassalles del senyor de la plataforma. Cada adult li paga cada dia mig de menjar, i a canvi el senyor les alimenta quan passen gana, si pot.' },
 };
-const NOCOAL_TXT = 'Prohibit fer carbó: les carboneres s\'apaguen i es talen menys arbres, però els hiverns costen més de passar.';
-const PROHIB = /(prohib|vetat|no es pot|no es poden|no fer|ningu|cap |prou |no )/;
-// suggested laws, all about sharing out wealth (the older laws are still understood if typed)
-const SUGGEST = ['Impost a les grans fortunes', 'Impost sobre les herències', 'Renda bàsica per a tothom', 'La terra per a qui la treballa',
-  'Topall als lloguers', 'Dret a l\'habitatge'];
-
-function norm(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-function interpret(text) {
-  const n = ' ' + norm(text) + ' ';
-  const fx = [];
-  for (const k in LAWDEFS) {
-    if (k === 'natal') continue;
-    if (LAWDEFS[k].re.test(n)) fx.push(k);
-  }
-  if (LAWDEFS.natal.re.test(n)) fx.push(/(max|limit|nomes|solo|only|menys|prohib|cap |no )/.test(n) ? 'limit' : 'natal');
-  if (/(carbo|coal)/.test(n) && PROHIB.test(n)) fx.push('nocoal');
-  // words that also belong to other laws: "escola per als nens" is not about having children, "pastures comunals" is not the granary
-  if (fx.includes('school')) for (const k of ['natal', 'limit']) if (fx.includes(k) && !/(naix|nado|natal|bebe|tenir fills)/.test(n)) fx.splice(fx.indexOf(k), 1);
-  if (fx.includes('pasture') && fx.includes('granary') && !/(graner|impost|delme|collita|magatzem)/.test(n)) fx.splice(fx.indexOf('granary'), 1);
-  if (fx.includes('wage') && fx.includes('work') && !/(tothom|camp|mandr|llaur|cultiv)/.test(n)) fx.splice(fx.indexOf('work'), 1);
-  if (['wealthtax', 'inhtax', 'basic'].some(k => fx.includes(k)) && fx.includes('granary') && !/(graner|collita|magatzem|comu)/.test(n)) fx.splice(fx.indexOf('granary'), 1);
-  if (fx.includes('agrarian') && fx.includes('work') && !/(tothom|mandr|cultiv|llaur)/.test(n)) fx.splice(fx.indexOf('work'), 1);
-  if (fx.includes('housing')) for (const k of ['natal', 'limit']) if (fx.includes(k) && !/(fill|nado|natal|naix|bebe)/.test(n)) fx.splice(fx.indexOf(k), 1);
-  if (fx.includes('rentcap') && !/(topall|limit|max|just|baix|control|abus|car |preu)/.test(n)) fx.splice(fx.indexOf('rentcap'), 1);
-  if (fx.includes('rentcap') && fx.includes('prices') && !/(mercat|carbo|ferro|pedra|eines)/.test(n)) fx.splice(fx.indexOf('prices'), 1);
-  if (fx.includes('inhtax') && fx.includes('share') && !/(compart|repart|solidar|ajud|regal|donar|de sobres)/.test(n)) fx.splice(fx.indexOf('share'), 1);
-  if (fx.includes('nocoal') && fx.includes('forest') && !/(arbre|bosc|tala|tree|forest)/.test(n)) fx.splice(fx.indexOf('forest'), 1);
-  // "no es poden talar" should not also be read as "stay"
-  if (fx.includes('ration') && fx.includes('granary') && !/(graner|comu|impost|tax|magatzem)/.test(n)) fx.splice(fx.indexOf('granary'), 1);
-  return fx;
-}
-const LIMIT_TXT = 'Es limiten els naixements: neixen molts menys nadons.';
 
 // ---------- rng / noise ----------
 let seed = 1, rng;
@@ -830,6 +835,30 @@ function bequeath(h) {
   for (const o of homes) tagHome(o, 'HERÈNCIA', 'good');
   return true;
 }
+// the lords: the house that owns the platform (tecnofeudal laws) or the forest (privatised forest). It is the richest
+// house when the law comes in, and if it dies out the richest house left takes its place
+function lordOf(key) {
+  let o = S[key];
+  if (!o || o.gone || !o.members.length) {
+    o = S[key] = S.homes.filter(h => !h.gone && h.members.length && h.hut).map(h => [h, wealth(h)]).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    if (o) { log(key === 'lord' ? `Els ${o.surname} esdevenen els senyors de la plataforma.` : `Els ${o.surname} es queden el bosc: ara és seu.`, 'amber'); tagHome(o, key === 'lord' ? 'SENYORS DE LA PLATAFORMA' : 'AMOS DEL BOSC', 'amber'); renderLaws(); }
+  }
+  return o;
+}
+// pays the platform's lord: returns what was paid, nothing if the payer is the lord
+function payLord(h, amt) {
+  const o = lordOf('lord');
+  if (!o || o === h || !(amt > 0)) return 0;
+  o.food += amt; o.lordIn = (o.lordIn || 0) + amt; S.st.toLord = (S.st.toLord || 0) + amt;
+  return amt;
+}
+// with the forest privatised, a quarter of what anyone else takes from it goes to its owner, in kind
+function forestToll(h, k, amt) {
+  if (!L.enclosure || !(amt > 0)) return amt;
+  const o = lordOf('forestLord'); if (!o || o === h) return amt;
+  o[k] += amt * 0.25; S.st.toForest = (S.st.toForest || 0) + amt * 0.25 * (k === 'food' ? 1 : k === 'coal' ? S.coalPrice : 1);
+  return amt * 0.75;
+}
 // a house that dies out with nobody to inherit: everything goes to the common granary. The materials and the
 // sheep are sold at market value, and the house, if it finds a buyer, is sold too
 function escheat(h) {
@@ -843,6 +872,11 @@ function escheat(h) {
   }
   for (const hut of new Set(S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut))) hut.landlord = null;
   if (v < 1) return;
+  if (L.notax) { // no taxes, no granary: the richest house takes it all
+    const o = S.homes.filter(x => !x.gone && x.members.length).map(x => [x, wealth(x)]).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (o) { o.food += v; log(`Els ${h.surname} s'han extingit sense descendents. Els ${o.surname}, la casa més rica, se'n queden els béns.${sold}`, 'info'); }
+    return;
+  }
   S.granary += v; S.st.redist += v; S.st.escheats = (S.st.escheats || 0) + 1;
   log(`Els ${h.surname} s'han extingit sense descendents. Tot el que tenien, ${fmt(v)} de menjar en béns, va al graner comú.${sold}`, 'info');
 }
@@ -970,6 +1004,7 @@ function daily() {
           let got = f.yield * REAP(p); f.used = S.day;
           if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
           if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
+          if (L.tribute) got -= payLord(h, got * 0.1);
           h.food += got; f.stage = 3; S.dirty = true;
           if (!S.flags.harvest) { S.flags.harvest = 1; log('Primera collita. Les cases s\'omplen de gra.', 'good'); }
         } else ripe.push(f);
@@ -1032,6 +1067,7 @@ function daily() {
         let got = f.yield * (0.8 + 0.2 * w.str) * REAP_FOR(w, e); f.used = S.day;
         if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
         if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
+        if (L.tribute) got -= payLord(e, got * 0.1);
         e.food += got; f.stage = 3; S.dirty = true;
         setTask(w, 'jornal', f.x + 1.5, f.y + 1, 1.5);
       } else if (kind === 'farm') {
@@ -1043,12 +1079,12 @@ function daily() {
       } else if (kind === 'wood') {
         const t = nearestTree(e.hut.x + 1 + rr(-4, 4), e.hut.y + 1 + rr(-4, 4));
         if (t >= 0) { setTask(w, 'jornal', t % W + 0.5, Math.floor(t / W) + 1.2, 1); if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.dirty = true; } }
-        e.wood += 1.6 * (1 - w.lazy * 0.5) * (0.6 + 0.8 * w.str) * (L.forest ? 0.7 : 1);
+        e.wood += forestToll(e, 'wood', 1.6 * (1 - w.lazy * 0.5) * (0.6 + 0.8 * w.str) * (L.forest ? 0.7 : 1));
       } else {
         e.shep = 1 - w.int * 0.5;
         setTask(w, 'jornal', e.pen.x + 1.5 + rr(-3, 3), e.pen.y + 1.5 + rr(-3, 3), 2);
       }
-      e.food -= wage; w.h.food += wage;
+      e.food -= wage; w.h.food += wage - (L.platform ? payLord(w.h, wage * 0.15) : 0);
       e.hired++; e.paid += wage; w.h.worked++; w.h.earned += wage;
       S.st.jobs++; S.st.wages += wage;
       if (R() < 0.15) tag(w.x, w.y, `JORNAL +${wage.toFixed(1)}`, 'amber');
@@ -1058,7 +1094,7 @@ function daily() {
 
   // wages follow supply and demand: jobs left undone push them up, idle hands push them down
   if (short) S.wage *= 1.01; else if (pool.length > 3) S.wage *= 0.993;
-  S.wage = Math.max(L.wage ? MIN_WAGE : 1.2, Math.min(8, S.wage));
+  S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.6 : 1.2, Math.min(8, S.wage));
 
   // livestock
   for (const h of active) {
@@ -1232,7 +1268,7 @@ function daily() {
     // with the tools law the buyer pays half; the richest house pays the rest
     const share = L.tools ? 0.5 : 1;
     const payTool = (h, sl, price) => {
-      h.food -= price * share; sl.food += price;
+      h.food -= price * share; sl.food += price - (L.platform ? payLord(sl, price * 0.15) : 0);
       if (share < 1) { const rich = active.filter(o => o !== h && o.hut).sort((a, c) => c.food - a.food)[0]; if (rich) rich.food -= price * (1 - share); else h.food -= price * (1 - share); }
     };
     const buyers = active.filter(h => h.hut && daysOf(h) > 25).flatMap(h => h.members.filter(m => m.age >= 360 && !m.leaving));
@@ -1283,9 +1319,9 @@ function daily() {
       const due = S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
       const own = rentTo(t.hut), pay = Math.min(due, Math.max(0, t.food));
       t.food -= pay; t.rentPaid = (t.rentPaid || 0) + pay; S.st.rents += pay;
-      if (own) { own.food += pay; own.rentIn = (own.rentIn || 0) + pay; }
+      if (own) { const cut = L.platform ? payLord(own, pay * 0.15) : 0; own.food += pay - cut; own.rentIn = (own.rentIn || 0) + pay - cut; }
       t.arrears = pay < due ? (t.arrears || 0) + 1 : Math.max(0, (t.arrears || 0) - 1);
-      if (t.arrears > 20 && !L.housing) {
+      if (t.arrears > (L.laissez ? 5 : 20) && !L.housing) {
         log(`Els ${t.surname} fa dies que no poden pagar el lloguer${own ? ` als ${own.surname}` : ''} i han de deixar el pis.`, 'bad');
         tagHome(t, 'DESNONATS', 'bad'); leaveFlat(t);
       }
@@ -1302,7 +1338,7 @@ function daily() {
     }
     S.homeless = unmet; S.vacant = vac.length;
     if (unmet > 0) S.rent *= 1.01; else if (vac.length > 1) S.rent *= 0.997;
-    S.rent = Math.max(RENT_MIN, Math.min(L.rentcap ? RENT_CAP : RENT_MAX, S.rent));
+    S.rent = Math.max(RENT_MIN, Math.min(L.rentcap ? RENT_CAP : L.laissez ? 6 : RENT_MAX, S.rent));
     // a new floor on top
     for (const h of active) {
       if (!wantFloor(h)) continue;
@@ -1437,7 +1473,7 @@ function daily() {
   // the common granary feeds the hungry. It exists from the start and is filled by the laws: the harvest tithe, the
   // taxes, and everything from houses that die out without heirs. Once a week, what is above a reserve of 10 days of
   // food for the whole village is shared among the poorest quarter of the houses
-  if (S.granary > 0 && S.day % 7 === 0 && active.length > 3) {
+  if (S.granary > 0 && !L.notax && S.day % 7 === 0 && active.length > 3) {
     const reserve = 10 * active.reduce((t, h) => t + need(h), 0), extra = S.granary - reserve;
     if (extra > 1) {
       const poor = active.map(h => [h, wealth(h)]).sort((a, b) => a[1] - b[1]).slice(0, Math.max(1, Math.floor(active.length / 4)));
@@ -1446,12 +1482,62 @@ function daily() {
       logOnce('granPoor', `El graner comú és ple i reparteix ${fmt(extra)} de menjar entre les cases més pobres.`, 'good');
     }
   }
-  if (S.granary > 0) {
+  if (S.granary > 0 && !L.notax) {
     for (const h of active) {
       if (daysOf(h) < 3 && S.granary > 0) {
         const g = Math.min(S.granary, need(h) * 4); S.granary -= g; h.food += g; h.got += g;
         if (g >= 3 && R() < 0.3) tagHome(h, `GRANER: +${Math.round(g)}`, 'amber');
       }
+    }
+  }
+  // loans at interest: a hungry house borrows six days of food from the richest one and owes 40% more. It pays back out
+  // of what it has above 15 days of food; after four months unpaid, the creditor takes a sheep or a field
+  if (L.usury) {
+    const lenders = active.filter(h => daysOf(h) > 60).sort((a, b) => b.food - a.food);
+    for (const h of active) {
+      if (h.debt > 0) {
+        const c = h.creditor;
+        if (!c || c.gone) { h.debt = 0; h.creditor = null; continue; }
+        const pay = Math.min(h.debt, Math.max(0, h.food - 15 * need(h)) * 0.3);
+        h.food -= pay; h.debt -= pay; c.food += pay; c.interest = (c.interest || 0) + pay;
+        if (h.debt < 0.5) { h.debt = 0; h.creditor = null; }
+        else if (S.day - h.loanDay > 120) {
+          h.loanDay = S.day;
+          if (h.herd && c.pen) { h.herd--; c.herd++; syncHerd(h); syncHerd(c); h.debt = Math.max(0, h.debt - SHEEP_COST); tagHome(h, 'EMBARGAMENT: UNA OVELLA', 'bad'); }
+          else if (h.fields.length) { const f = h.fields.pop(); f.used = S.day; c.fields.push(f); h.debt = Math.max(0, h.debt - 60); tagHome(h, 'EMBARGAMENT: UN CAMP', 'bad'); }
+          else { h.debt = 0; h.creditor = null; continue; }
+          S.st.seized = (S.st.seized || 0) + 1;
+          logOnce('seize', `Els ${h.surname} no han tornat el préstec a temps i els ${c.surname} els embarguen.`, 'bad');
+        }
+      } else if (daysOf(h) < 3 && h.members.length) {
+        const c = lenders.find(o => o !== h && daysOf(o) > 60); if (!c) continue;
+        const loan = need(h) * 6; c.food -= loan; h.food += loan; h.debt = loan * 1.4; h.creditor = c; h.loanDay = S.day;
+        S.st.loans = (S.st.loans || 0) + 1; c.lent = (c.lent || 0) + loan;
+        logOnce('loan', `Els ${h.surname} demanen ${fmt(loan)} de menjar en préstec als ${c.surname}. N'hauran de tornar ${fmt(loan * 1.4)}.`, 'amber');
+      }
+    }
+  }
+  // tools in the cloud: they never wear out, but every tool pays 0.05 of food a day to the platform's lord, and a house
+  // that cannot pay loses it
+  if (L.cloud) {
+    const lord = lordOf('lord');
+    for (const p of S.people) {
+      if (p.leaving || p.h.gone) continue;
+      for (const k of ['hoe', 'pick', 'plow', 'rod']) {
+        if (!(p[k] > S.day)) continue;
+        if (p.h === lord) { p[k] = Math.max(p[k], S.day + 30); continue; }
+        if (p.h.food >= 0.05) { p.h.food -= 0.05; payLord(p.h, 0.05); p[k] = Math.max(p[k], S.day + 30); }
+        else { p[k] = 0; logOnce('cloudCut', `Els ${p.h.surname} no poden pagar la quota de les eines i el senyor de la plataforma les desactiva.`, 'bad'); }
+      }
+    }
+  }
+  // vassalage: every house without fields owes its lord half a food per adult a day; in return the lord feeds it when hungry
+  if (L.vassal) {
+    const lord = lordOf('lord');
+    if (lord) for (const h of active) {
+      if (h === lord || h.fields.length) continue;
+      const due = Math.min(Math.max(0, h.food), 0.5 * adultsOf(h).length); h.food -= due; payLord(h, due); h.vassal = S.day;
+      if (daysOf(h) < 2 && daysOf(lord) > 20) { const g = need(h) * 2; lord.food -= g; h.food += g; h.got += g; logOnce('vassalFed', `Els ${lord.surname} alimenten els seus vassalls, els ${h.surname}.`, 'amber'); }
     }
   }
   // sharing law
@@ -1578,7 +1664,7 @@ function daily() {
   // newcomers
   if (season !== 3 && active.length) {
     const nd = active.reduce((s2, h) => s2 + need(h), 0), fd = active.reduce((s2, h) => s2 + h.food, 0);
-    if (nd && fd / nd > 25 && R() < 0.012) arrive();
+    if (!L.closed && nd && fd / nd > 25 && R() < 0.012) arrive();
   }
 
   // trees regrow
@@ -1625,7 +1711,8 @@ function forage(h, p, eff, sf, season) {
     }
   }
   const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1);
-  h.food += g; p.gain = g; p.gainDay = S.day; if (fish) S.st.fish += g;
+  const net = fish ? g : forestToll(h, 'food', g);
+  h.food += net; p.gain = net; p.gainDay = S.day; if (fish) S.st.fish += g;
 }
 function burnCoal(h, p, eff) {
   if (!h.kiln || h.kilnBroken) {
@@ -1639,7 +1726,7 @@ function burnCoal(h, p, eff) {
   setTask(p, 'carbo', t % W + 0.5, Math.floor(t / W) + 1.2, 1.5);
   h.kilnWood = (h.kilnWood || 0) + 2.5 * eff * (0.6 + 0.8 * p.str) * (L.forest ? 0.7 : 1);
   if (R() < (L.forest ? 0.05 : 0.12)) { S.tree[t] = 0; S.dirty = true; }
-  const c = Math.floor(h.kilnWood / 2); h.coal += c; h.kilnWood -= c * 2;
+  const c = Math.floor(h.kilnWood / 2); h.coal += forestToll(h, 'coal', c); h.kilnWood -= c * 2;
   h.food += 0.2;
 }
 function doWood(h, p, eff, hx) {
@@ -1647,7 +1734,7 @@ function doWood(h, p, eff, hx) {
   const t = h.woodTree;
   if (t < 0) return;
   setTask(p, 'wood', t % W + 0.5, Math.floor(t / W) + 1.2, 1);
-  h.wood += 1.6 * eff * (0.6 + 0.8 * p.str) * (L.forest ? 0.7 : 1);
+  h.wood += forestToll(h, 'wood', 1.6 * eff * (0.6 + 0.8 * p.str) * (L.forest ? 0.7 : 1));
   h.food += 0.2;
   if (R() < (L.forest ? 0.02 : 0.05)) { S.tree[t] = 0; S.dirty = true; h.woodTree = -1; }
 }
@@ -2134,10 +2221,11 @@ function renderLaws() {
     t.innerHTML = `<b>#${i + 1}</b>`; t.append(l.text);
     const x = document.createElement('button'); x.className = 'x'; x.textContent = 'Deroga'; x.type = 'button';
     x.setAttribute('aria-label', `Deroga la llei ${i + 1}`);
-    x.onclick = () => { laws.splice(i, 1); recomputeLaws(); renderLaws(); log(`Es deroga la llei «${l.text}».`, 'amber'); updateHud(); };
+    x.onclick = () => { repeal(i); updateHud(); };
     const fx = document.createElement('div');
     fx.className = 'fx' + (l.fx.length ? '' : ' none');
-    fx.textContent = l.fx.length ? l.fx.map(f => f === 'limit' ? LIMIT_TXT : f === 'nocoal' ? NOCOAL_TXT : LAWDEFS[f].txt).join(' ') : 'El poble no sap com aplicar-la, així que no canvia res.';
+    const who = l.fx.some(f => ['platform', 'cloud', 'tribute', 'vassal'].includes(f)) && S.lord ? ` Senyors de la plataforma: els ${S.lord.surname}.` : l.fx.includes('enclosure') && S.forestLord ? ` Amos del bosc: els ${S.forestLord.surname}.` : '';
+    fx.textContent = l.fx.length ? l.fx.map(f => LAWDEFS[f].txt).join(' ') + who : 'El poble no sap com aplicar-la, així que no canvia res.';
     li.append(t, x, fx); list.append(li);
   });
   $('lawEmpty').hidden = laws.length > 0;
@@ -2148,23 +2236,41 @@ function renderLaws() {
   laws.forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${i + 1}] ${l.text}`; con.append(d); });
   $('hLaws').textContent = laws.length;
 }
-$('lawForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const text = $('lawInput').value.trim();
-  if (!text) { $('lawMsg').textContent = 'Escriu alguna cosa primer.'; return; }
-  const fx = interpret(text);
-  laws.push({ text, fx, day: S.day }); recomputeLaws(); renderLaws();
-  $('lawInput').value = '';
-  $('lawMsg').textContent = fx.length ? 'Proclamada.' : 'Proclamada, però el poble no l\'entén.';
-  log(`Nova llei: «${text}».`, 'amber');
-  if (!fx.length) log('Ningú sap què vol dir. Prova amb paraules com fortunes, herències, renda bàsica, la terra, topall als lloguers, habitatge, robar, compartir, graner, treballar, arbres, preus, jornals o escola.', 'info');
-  setTimeout(() => $('lawMsg').textContent = '', 3000);
-});
-for (const s of SUGGEST) {
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = s;
-  b.onclick = () => { $('lawInput').value = s; $('lawInput').focus(); };
-  $('chips').append(b);
+function repeal(i) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); log(`Es deroga la llei «${l.text}».`, 'amber'); }
+function proclaim(k) {
+  const d = LAWDEFS[k];
+  for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => (d.excl || []).includes(f))) repeal(i);
+  laws.push({ text: d.name, fx: [k], day: S.day }); recomputeLaws();
+  log(`Nova llei: «${d.name}».`, 'amber');
+  // laws that hand something over the moment they come in
+  if (k === 'notax' && S.granary > 0) {
+    const act = S.homes.filter(h => !h.gone && h.members.length), ws = act.map(wealth), tot = ws.reduce((t, v) => t + v, 0) || 1;
+    act.forEach((h, i) => { h.food += S.granary * ws[i] / tot; });
+    log(`Es tanca el graner comú: els seus ${fmt(S.granary)} de menjar es reparteixen segons el que ja té cada casa.`, 'amber'); S.granary = 0;
+  }
+  if (['platform', 'cloud', 'tribute', 'vassal'].includes(k)) lordOf('lord');
+  if (k === 'enclosure') lordOf('forestLord');
+  renderLaws(); updateHud();
 }
+function renderLawPick() {
+  const on = k => laws.findIndex(l => l.fx.includes(k));
+  $('lawPickBody').innerHTML = LAW_CATS.map(([cat, ks]) => `<section class="cat"><h3>${cat}</h3><ul>${ks.map(k => {
+    const d = LAWDEFS[k], i = on(k), clash = (d.excl || []).filter(o => on(o) >= 0).map(o => LAWDEFS[o].name);
+    return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}">${i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
+  }).join('')}</ul></section>`).join('');
+}
+$('lawPickBody').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  const k = b.dataset.k, i = laws.findIndex(l => l.fx.includes(k));
+  if (i >= 0) { repeal(i); updateHud(); } else proclaim(k);
+  const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top;
+  $('lawPickBody').querySelector(`button[data-k="${k}"]`)?.focus();
+  $('lawMsg').textContent = i >= 0 ? 'Derogada.' : 'Proclamada.'; setTimeout(() => $('lawMsg').textContent = '', 3000);
+});
+$('lawPickBtn').onclick = () => { renderLawPick(); $('lawPick').hidden = false; $('lawPickBody').scrollTop = 0; $('lawPickClose').focus(); };
+$('lawPickClose').onclick = () => { $('lawPick').hidden = true; $('lawPickBtn').focus(); };
+$('lawPick').addEventListener('click', e => { if (e.target.id === 'lawPick') $('lawPickClose').click(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lawPick').hidden) $('lawPickClose').click(); });
 
 // ---------- controls ----------
 let running = false, speed = 3;
@@ -2381,10 +2487,9 @@ const RULES = [
 ];
 function renderHelp() {
   const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-  const lawTxt = Object.entries(LAWDEFS).map(([k, d]) => [k, d.txt]).concat([['limit', LIMIT_TXT], ['nocoal', NOCOAL_TXT]]);
   const on = k => laws.some(l => l.fx.includes(k));
   $('helpBody').innerHTML = RULES.map(([t, items]) => `<h3>${t}</h3><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('') +
-    `<h3>LLEIS QUE ES PODEN PROCLAMAR</h3><ul>${lawTxt.map(([k, t]) => `<li>${esc(t)}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`).join('')}</ul>`;
+    LAW_CATS.map(([cat, ks]) => `<h3>LLEIS ${cat}</h3><ul>${ks.map(k => `<li>${esc(LAWDEFS[k].txt)}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`).join('')}</ul>`).join('');
 }
 $('helpBtn').onclick = () => { renderHelp(); $('help').hidden = false; $('help').querySelector('.scroller').scrollTop = 0; $('helpClose').focus(); };
 $('helpClose').onclick = () => { $('help').hidden = true; $('helpBtn').focus(); };
