@@ -17,7 +17,7 @@ Basat en la idea de [@an_ai_tries_youtube](https://www.youtube.com/@an_ai_tries_
 
 A la pantalla d'inici, **Juga amb amics** crea una sala amb un codi de 5 lletres (o un enllaç) per passar als amics. Cada jugador porta una família del mateix poble i les lleis s'aproven per votació entre tots; la política dinàmica funciona igual.
 
-Els navegadors es connecten directament entre ells amb WebRTC. El servei gratuït de [PeerJS](https://peerjs.com/) només els ajuda a trobar-se, així que no cal cap servidor propi ni cap compte. L'amfitrió ha de tenir el joc obert mentre dura la partida. Per fer servir un altre servidor PeerJS: `?peer=host:port`.
+Els missatges entre jugadors passen per un petit repetidor a Cloudflare ([`worker/sales`](worker/sales/README.md)), que funciona des de qualsevol xarxa i es desplega sol amb GitHub Actions. Si el repetidor no respon, els navegadors es connecten directament amb WebRTC ([PeerJS](https://peerjs.com/)). L'amfitrió ha de tenir el joc obert mentre dura la partida. Per provar-ho amb un altre repetidor: `?relay=URL` (o `?relay=no` per anar directe); amb un altre servidor PeerJS: `?peer=host:port`.
 
 ## Publicar amb GitHub Pages
 

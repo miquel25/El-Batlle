@@ -3642,12 +3642,14 @@ cv.addEventListener('click', e => {
   if (h) { tagHome(h, `${h.surname.toUpperCase()} · ${h.members.length} PERS · ${Math.floor(daysOf(h))} DIES`, 'amber'); if (!$('houses').hidden) { openHouse.add(h.id); renderHouses(true, h.id); } }
 });
 // ---------- shared village (multiplayer) ----------
-// Friends play the same village, each from their own browser. The browsers talk to each other directly (WebRTC,
-// through PeerJS, whose free public server only introduces them), so the game still needs no server of its own.
+// Friends play the same village, each from their own browser. Their messages go through a small relay on Cloudflare
+// (worker/sales), which works from any network; if the relay can't be reached, the browsers talk to each other
+// directly (WebRTC, through PeerJS, whose free public server only introduces them).
 // The host's browser keeps the clock: it tells everyone how far the village has run and at which moment each choice
 // takes effect, and every browser runs the very same simulation with the same dice. Every few days the host sends
 // the state of its dice; a browser that has drifted apart gets a full copy of the village.
 const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
+const RELAY = 'https://el-batlle-sales.miquel-delaiglesia.workers.dev'; // ?relay=URL uses another one, ?relay=no goes direct
 const ROOM_PREFIX = 'elbatlle-', MAX_PLAYERS = 10, VOTE_SECS = 60, CHECK_EVERY = 150, SILENT_MS = 30000;
 const homeOf = slot => S.homes.find(h => h.human === slot && !h.gone) || null;
 function playerName(slot) { const p = NET && NET.players.find(p => p.slot === slot); return p ? p.name : 'Algú'; }
@@ -3666,6 +3668,46 @@ function peerOpts() {
   if (!q) return { debug: 0 };
   const [host, port] = q.split(':');
   return { host, port: +port || 443, path: '/', secure: !/^(localhost|127\.)/.test(host), debug: 0 };
+}
+// the relay looks like PeerJS to the rest of the game: a host "peer" that gets connections, and connections with
+// send(), close() and 'open', 'data' and 'close' events
+const relayUrl = () => { const q = new URLSearchParams(location.search).get('relay'); return q === 'no' ? '' : q || RELAY; };
+function emitter(o) { const h = {}; o.on = (e, f) => { (h[e] ||= []).push(f); return o; }; o.emit = (e, ...a) => (h[e] || []).slice().forEach(f => f(...a)); return o; }
+function relaySocket(code, role) {
+  const u = new URL(relayUrl()); u.protocol = u.protocol === 'http:' ? 'ws:' : 'wss:';
+  u.pathname = '/sala/' + code; u.search = '?role=' + role;
+  return new WebSocket(u);
+}
+// the relay couldn't be reached at all (as opposed to answering that there's no such room)
+const unreachable = () => Object.assign(new Error('relay'), { type: 'relay' });
+function relayHost(code) {
+  return new Promise((ok, ko) => {
+    const ws = relaySocket(code, 'host'), conns = new Map();
+    const peer = emitter({ destroyed: false, destroy() { this.destroyed = true; ws.close(); }, reconnect() {} });
+    const t = setTimeout(() => { ws.close(); ko(unreachable()); }, 8000);
+    ws.onmessage = e => {
+      const d = JSON.parse(e.data);
+      if (d.sys === 'ready') { clearTimeout(t); peer.ready = true; ok(peer); }
+      else if (d.sys === 'join') {
+        const c = emitter({ send: m => { if (ws.readyState === 1) ws.send(JSON.stringify({ to: d.id, m })); }, close: () => { if (ws.readyState === 1) ws.send(JSON.stringify({ kick: d.id })); } });
+        conns.set(d.id, c); peer.emit('connection', c);
+      } else if (d.sys === 'leave') { const c = conns.get(d.id); conns.delete(d.id); if (c) c.emit('close'); }
+      else if (d.from != null) { const c = conns.get(d.from); if (c) c.emit('data', d.m); }
+    };
+    ws.onclose = e => {
+      clearTimeout(t);
+      if (!peer.ready) { ko(e.code === 4001 ? { type: 'unavailable-id' } : unreachable()); return; }
+      for (const c of conns.values()) c.emit('close');
+      conns.clear(); if (!peer.destroyed) peer.emit('lost');
+    };
+  });
+}
+function relayGuest(code) {
+  const ws = relaySocket(code, 'guest');
+  const c = emitter({ send: m => { if (ws.readyState === 1) ws.send(JSON.stringify(m)); }, close: () => ws.close() });
+  ws.onmessage = e => { const d = JSON.parse(e.data); if (d.sys === 'ready') { c.ready = true; c.emit('open'); } else c.emit('data', d); };
+  ws.onclose = e => c.emit(c.ready ? 'close' : e.code === 4004 ? 'nohost' : 'unreachable', e.reason);
+  return c;
 }
 function openPeer(id) {
   return new Promise((ok, ko) => {
@@ -3759,14 +3801,24 @@ const waitingOn = () => NET && NET.live && NET.opts.wait ? S.homes.filter(h => h
 
 // --- host ---
 async function hostRoom(name) {
-  await loadPeer();
   NET = { role: 'host', slot: 0, name, players: [{ slot: 0, name, on: true, host: true }], conns: new Map(), live: false,
     opts: { pol: POLITICS, dis: DISASTERS, wait: true }, pend: [], out: [], votes: [], voteId: 0, lastHome: {}, nextSlot: 1, sentF: -1 };
+  let relay = !!relayUrl();
   for (let tries = 0; ; tries++) {
     const code = newCode();
-    try { NET.peer = await openPeer(ROOM_PREFIX + code); NET.code = code; break; }
-    catch (e) { if (e.type !== 'unavailable-id' || tries > 4) { NET = null; throw e; } }
+    try {
+      if (relay) NET.peer = await relayHost(code); else { await loadPeer(); NET.peer = await openPeer(ROOM_PREFIX + code); }
+      NET.code = code; NET.relay = relay; break;
+    } catch (e) {
+      if (e.type === 'relay') { relay = false; tries--; continue; } // no relay: the browsers will connect directly
+      if (e.type !== 'unavailable-id' || tries > 4) { NET = null; throw e; }
+    }
   }
+  NET.peer.on('lost', () => { // the relay dropped the host: the room is over for everyone
+    if (!NET || NET.leaving) return;
+    popup('S\'HA PERDUT LA CONNEXIÓ', 'La sala s\'ha tancat perquè s\'ha perdut la connexió amb el repetidor.', 'Pots continuar sol amb la teva família.',
+      [['Continua sol', () => { closeAsk(false); goSolo(); }, true], ['Torna a l\'inici', () => { location.href = location.pathname; }]]);
+  });
   NET.peer.on('connection', c => {
     c.on('data', m => {
       if (!m || typeof m !== 'object') return;
@@ -3840,8 +3892,9 @@ function applyPending() {
   for (const m of NET.pend) { m.at = S.frame; applyInput(m); NET.out.push(m); }
   NET.pend = [];
 }
-function hostFlush() {
+function hostFlush(force) {
   applyPending();
+  if (NET.relay && !force && Date.now() - NET.sentAt < 66) return; // through the relay, about 15 messages a second are plenty
   if (!NET.live || (!NET.out.length && NET.sentF === S.frame && NET.sentRun === running && NET.sentSp === speed && Date.now() - NET.sentAt < 2000)) return;
   toAll({ t: 'tick', f: S.frame, run: running, sp: speed, ins: NET.out });
   NET.out = []; NET.sentF = S.frame; NET.sentRun = running; NET.sentSp = speed; NET.sentAt = Date.now();
@@ -3856,7 +3909,7 @@ function hostRun(steps) {
 }
 // everything already sent goes first, so the copy is exactly the village that follows it
 function sendSnap(cs, start) {
-  hostFlush();
+  hostFlush(true);
   const data = snapshot();
   for (const c of cs) try { c.send({ t: 'snap', data, start: !!start, run: running, sp: speed }); } catch (e) {}
 }
@@ -3912,21 +3965,34 @@ function broadcastVotes() {
 
 // --- guest ---
 async function joinRoom(name, code) {
-  await loadPeer();
   NET = { role: 'guest', name, code, slot: null, players: [], opts: {}, live: false, q: [], target: 0, shown: [] };
   try {
-    NET.peer = await openPeer();
-    const c = NET.conn = NET.peer.connect(ROOM_PREFIX + code, { reliable: true });
-    await new Promise((ok, ko) => {
-      const t = setTimeout(() => ko(new Error('La sala no respon. Potser la xarxa no deixa connectar directament els navegadors.')), 20000);
-      c.on('open', () => { clearTimeout(t); ok(); });
-      NET.peer.on('error', e => { clearTimeout(t); ko(e); });
-    });
+    let c = null;
+    if (relayUrl()) {
+      c = relayGuest(code);
+      const how = await new Promise(ok => { const t = setTimeout(() => ok('unreachable'), 8000); for (const e of ['open', 'nohost', 'unreachable']) c.on(e, () => { clearTimeout(t); ok(e); }); });
+      if (how === 'open') { NET.relay = true; NET.peer = { destroy: () => c.close() }; }
+      else { c.close(); c = null; }
+      if (how === 'nohost') { // maybe the host couldn't reach the relay and is waiting for a direct connection
+        try { c = await joinDirect(code, 8000); } catch (e) { throw { type: 'peer-unavailable' }; }
+      }
+    }
+    if (!c) c = await joinDirect(code, 20000);
+    NET.conn = c;
     NET.seen = Date.now();
     c.on('data', guestMsg);
     c.on('close', hostGone);
     c.send({ t: 'hello', name });
   } catch (e) { if (NET && NET.peer) NET.peer.destroy(); NET = null; throw e; }
+}
+function joinDirect(code, wait) {
+  return loadPeer().then(() => openPeer()).then(peer => new Promise((ok, ko) => {
+    NET.peer = peer;
+    const c = peer.connect(ROOM_PREFIX + code, { reliable: true });
+    const t = setTimeout(() => ko(new Error('La sala no respon. Potser la xarxa no deixa connectar directament els navegadors.')), wait);
+    c.on('open', () => { clearTimeout(t); ok(c); });
+    peer.on('error', e => { clearTimeout(t); ko(e); });
+  }));
 }
 function guestMsg(m) {
   if (!m || typeof m !== 'object' || !NET) return;
@@ -4007,7 +4073,7 @@ function begin(start) { // the shared village starts (or this player arrives in 
   if (others.length) log(others.map(h => `${playerName(h.human)} porta els ${h.surname}`).join(', ') + '.', 'info');
   syncPlay(); netUI(); updateFamily(); renderLaws();
 }
-const roomLink = () => { const u = new URL(location.href); u.search = ''; const pr = new URLSearchParams(location.search).get('peer'); if (pr) u.searchParams.set('peer', pr); u.searchParams.set('sala', NET.code); return u.toString(); };
+const roomLink = () => { const u = new URL(location.href), q = new URLSearchParams(location.search); u.search = ''; for (const k of ['peer', 'relay']) if (q.get(k)) u.searchParams.set(k, q.get(k)); u.searchParams.set('sala', NET.code); return u.toString(); };
 function copyLink(btn) {
   const t = roomLink(), done = () => { const o = btn.textContent; btn.textContent = 'Copiat!'; setTimeout(() => btn.textContent = o, 1800); };
   if (navigator.share && matchMedia('(pointer:coarse)').matches) { navigator.share({ title: 'El batlle', text: `Juguem a El batlle! Codi de la sala: ${NET.code}`, url: t }).catch(() => {}); return; }
@@ -4387,9 +4453,9 @@ const HELP_TABS = [
       'Si l\'amfitrió marxa, la sala es tanca i cadascú pot continuar sol amb la seva família.',
     ]],
     ['COM FUNCIONA', [
-      'Els navegadors es connecten directament entre ells, sense cap servidor del joc: un servei gratuït (PeerJS) només els ajuda a trobar-se. L\'amfitrió marca el ritme i tots els navegadors calculen exactament el mateix poble, amb els mateixos daus.',
+      'Els missatges entre jugadors passen per un petit repetidor a Cloudflare, que funciona des de qualsevol xarxa. Si el repetidor no respon, els navegadors proven de connectar-se directament (amb PeerJS). L\'amfitrió marca el ritme i tots els navegadors calculen exactament el mateix poble, amb els mateixos daus.',
       'L\'amfitrió ha de tenir el joc obert: si tanca la pestanya, la sala s\'acaba. Si la deixa en segon pla, el poble va més a poc a poc.',
-      'Algunes xarxes (de feina, d\'escola o de dades mòbils) no deixen connectar dos navegadors directament. Si no podeu entrar a la sala, proveu-ho des d\'una altra xarxa.',
+
     ]],
   ]],
 ];
@@ -4428,7 +4494,7 @@ setInterval(() => {
 }, 800);
 
 function frame() {
-  if (NET && NET.live) NET.role === 'host' ? hostRun(speed) : guestRun(Math.max(60, speed * 4));
+  if (NET && NET.live) NET.role === 'host' ? hostRun(speed) : guestRun(Math.max(Math.ceil(speed * 1.25), NET.target - S.frame - speed * 8)); // a little faster than the host, and all at once when far behind
   else for (let k = 0; k < speed && running; k++) step();
   render();
   requestAnimationFrame(frame);
