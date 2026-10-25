@@ -248,6 +248,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       </div>
       <button class="btn" id="resetBtn">Poble nou</button>
       <button class="btn" id="housesBtn">Cases del poble</button>
+      <button class="btn" id="polBtn" aria-pressed="true">Política dinàmica: sí</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
       <button class="btn" id="quakeBtn">Terratrèmol!</button>
       <button class="btn" id="helpBtn">Ajuda</button>
@@ -279,7 +280,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <button class="btn forget" type="button" id="forgetBtn">Oblida les respostes recordades</button>
     </section>
 
-    <section class="sec">
+    <section class="sec" id="uSec">
       <h3>MALESTAR SOCIAL</h3>
       <div class="unrest" role="meter" aria-label="Malestar social" aria-valuemin="0" aria-valuemax="100" id="uMeter"><i id="uBar"></i><b id="uBase"></b><span class="t1"></span><span class="t2"></span></div>
       <p class="gnote"><b id="uNow">0%</b> · <span id="uWhy">Ningú no passa gana.</span></p>
@@ -315,8 +316,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Dies (mitjana)</span><b id="sDays">0</b></div>
         <div><span>Graner comú</span><b id="sGran">0</b></div>
         <div><span>Peix pescat</span><b id="sFish">0</b></div>
+        <div><span>Peixos al riu</span><b id="sFishStock">0</b></div>
         <div class="good"><span>Menjar repartit</span><b id="sRedist">0</b></div>
-        <div class="pad"></div>
         <h4>FEINA I PREUS</h4>
         <div><span>Preu del jornal</span><b id="sWage">0</b></div>
         <div><span>Jornals</span><b id="sJobs">0</b></div>
@@ -1128,6 +1129,7 @@ function daily() {
   if (vis !== (S.visDis || 0)) { S.visDis = vis; S.dirty = true; }
   const sf = [1.3, 1.4, 1.1, 0.18][season] * (dry() ? DROUGHT_FORAGE : 1);
   const active = S.homes.filter(h => !h.gone);
+  breedFish(season);
   unrest(active);
   // yesterday's crowd at the river and in the woods sets today's share of the wild; what a day in the wild yields is
   // what a labourer gives up to take a job, and so the least a day's wage can fall to
@@ -1893,7 +1895,16 @@ function daily() {
   updateHud();
 }
 
-const RIVER_FISHERS = 45, TREES_PER_GATHERER = 30;
+// the river holds a population of fish (counted in days of food) that breeds towards what the river can hold: fast in
+// spring, slowly in summer and autumn, hardly at all in winter, at half pace in a drought and not at all in a bitter
+// winter. A full river lets a fisher catch all they can; the emptier it is, the less each one brings home
+const FISH_CAP = 24000, FISH_BREED = [0.035, 0.012, 0.006, 0.002], FISH_EASY = 0.7, TREES_PER_GATHERER = 30;
+function breedFish(season) {
+  const f = S.fishStock ??= FISH_CAP;
+  const r = FISH_BREED[season] * (dry() ? 0.5 : 1) * (freezing() ? 0 : 1);
+  S.fishStock = Math.min(FISH_CAP, f + r * f * (1 - f / FISH_CAP) + 2); // a few always swim down from upstream
+}
+const fishLeft = () => Math.min(1, (S.fishStock ?? FISH_CAP) / (FISH_CAP * FISH_EASY));
 function forage(h, p, eff, sf, season) {
   const hx = homeXY(h);
   const fish = p.id % 2 || hasRod(p); // whoever owns a rod goes fishing
@@ -1906,14 +1917,14 @@ function forage(h, p, eff, sf, season) {
       if (t >= 0) setTask(p, 'forage', t % W, Math.floor(t / W) + 1, 2);
     }
   }
-  // the wild has limits: the river feeds about RIVER_FISHERS people fully and the forest one gatherer for every
-  // TREES_PER_GATHERER trees; with more people at it (counted yesterday), everyone gets a smaller share, and a
-  // forest that has been cut down gives nothing at all
-  const wild = fish ? Math.min(1, RIVER_FISHERS / Math.max(1, S.wildY.fish)) : Math.min(1, treeList().length / (TREES_PER_GATHERER * Math.max(1, S.wildY.forage)));
+  // the wild has limits: the catch shrinks as the river empties of fish, and the forest feeds one gatherer for every
+  // TREES_PER_GATHERER trees; with more gatherers (counted yesterday) each gets a smaller share, and a forest that has
+  // been cut down gives nothing at all
+  const wild = fish ? fishLeft() : Math.min(1, treeList().length / (TREES_PER_GATHERER * Math.max(1, S.wildY.forage)));
   S.wild[fish ? 'fish' : 'forage']++;
   const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1) * wild;
   const net = fish ? g : forestToll(h, 'food', g);
-  h.food += net; p.gain = net; p.gainDay = S.day; if (fish) S.st.fish += g;
+  h.food += net; p.gain = net; p.gainDay = S.day; if (fish) { S.st.fish += g; S.fishStock = Math.max(0, S.fishStock - g); }
   S.wild.got += net;
 }
 function burnCoal(h, p, eff) {
@@ -2516,6 +2527,7 @@ function updateHud() {
   put('sRodPrice', S.rodPrice.toFixed(1));
   put('sRods', S.st.rodsSold);
   put('sFish', fmt(S.st.fish));
+  put('sFishStock', Math.round(100 * (S.fishStock ?? FISH_CAP) / FISH_CAP) + '%');
   put('sBequests', S.st.bequests);
   put('sExtinct', S.homes.filter(h => h.gone).length);
   put('sOldest', alive.length ? Math.floor(Math.max(...alive.map(p => p.age)) / YEAR) + ' anys' : '—');
@@ -2614,6 +2626,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lawPic
 // and loot the richest pantries; at 100% there is a revolution
 const UNREST_HUNGER = 3, UNREST_DEATH = 600, UNREST_CALM = 0.5, RIOT_AT = 75, REVOLT_GAP = 2 * YEAR;
 function unrest(active) {
+  if (!POLITICS) { S.unrest = 0; return; } // with dynamic politics off the village never protests
   const alive = S.people.filter(p => !p.leaving), n = alive.length || 1;
   const hs = alive.filter(p => p.hunger >= 3).length / n, died = S.st.died - (S.uDied ?? S.st.died);
   S.uDied = S.st.died; S.hungryShare = hs;
@@ -2781,7 +2794,8 @@ function drawDisasterTerrain(s) {
 // ---------- natural disasters ----------
 // droughts, floods, hard winters, epidemics, wolves, forest fires and, very rarely, earthquakes. They can be switched
 // off; with them off no dice are rolled for them, and the village runs exactly as it did before they existed
-let DISASTERS = true;
+let DISASTERS = true, POLITICS = true;
+try { POLITICS = localStorage.getItem('batlle.politics') !== '0'; } catch (e) {}
 try { DISASTERS = localStorage.getItem('batlle.disasters') !== '0'; } catch (e) {}
 const DROUGHT_P = 0.1, DROUGHT_YIELD = 0.45, DROUGHT_FORAGE = 0.7; // a dry summer: half a harvest, less to gather
 const FLOOD_P = 0.0015, FLOOD_YIELD = 0.3, FLOOD_REACH = 3;        // spring floods drown fields close to the river
@@ -2866,6 +2880,7 @@ function fire() {
   if (n < 3) return; // a few trees burning is no disaster
   disaster(`Un incendi crema ${n} arbres del bosc${dry() ? ', sec per la sequera' : ''}.`, 'INCENDI', x0, y0);
 }
+function syncPol() { $('polBtn').textContent = 'Política dinàmica: ' + (POLITICS ? 'sí' : 'no'); $('polBtn').setAttribute('aria-pressed', POLITICS); $('uSec').hidden = !POLITICS; }
 function syncDis() { $('disBtn').textContent = 'Desastres: ' + (DISASTERS ? 'sí' : 'no'); $('disBtn').setAttribute('aria-pressed', DISASTERS); }
 
 // ---------- family mode ----------
@@ -3008,13 +3023,19 @@ $('quakeBtn').onclick = () => { // works even with natural disasters switched of
   quake(); updateHud(); if (!$('houses').hidden) renderHouses(true);
 };
 $('logAll').onchange = e => { logAll = e.target.checked; };
+$('polBtn').onclick = () => {
+  POLITICS = !POLITICS; syncPol();
+  try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
+  if (!POLITICS) { S.unrest = 0; updateHud(); }
+  log(POLITICS ? 'Política dinàmica activada: la gent pot protestar, fer aldarulls i revolucions.' : 'Política dinàmica desactivada: no hi haurà malestar, aldarulls ni revolucions.', 'info');
+};
 $('disBtn').onclick = () => {
   DISASTERS = !DISASTERS; syncDis();
   try { localStorage.setItem('batlle.disasters', DISASTERS ? '1' : '0'); } catch (e) {}
   if (!DISASTERS && S.dis) { S.dis = {}; updateHud(); } // switching them off also ends a drought or a hard winter under way
   log(DISASTERS ? 'Desastres naturals activats.' : 'Desastres naturals desactivats.', 'info');
 };
-syncDis();
+syncDis(); syncPol();
 function syncPlay() { $('playBtn').textContent = running ? 'Pausa' : 'Continua'; }
 document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
   speed = +b.dataset.speed;
@@ -3139,6 +3160,7 @@ $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('
 // help window: every rule the simulation follows
 const RULES = [
   ['MALESTAR SOCIAL', [
+    'Només n\'hi ha amb el botó «Política dinàmica: sí». Si està en «no», no hi ha malestar, ni aldarulls, ni revolucions, i la barra no es mostra.',
     'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
     'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
     'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
@@ -3200,7 +3222,7 @@ const RULES = [
   ['MENJAR', [
     'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
     'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
-    'El bosc i el riu tenen un límit. El riu alimenta bé unes 45 persones pescant: si n\'hi ha més, cadascú pesca menys. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
+    'El bosc i el riu tenen un límit. Al riu hi ha una població de peixos que es reprodueix: molt a la primavera, poc a l\'estiu i a la tardor, gairebé gens a l\'hivern, a mig ritme durant una sequera i gens durant un hivern de fred extrem. Cada peix pescat en treu un del riu. Mentre el riu està ple, cadascú pesca tot el que pot; si se n\'ha pescat massa i baixa del 70%, cadascú pesca menys. L\'estadística «Peixos al riu» diu com de ple està. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
     'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
     'Un camp que no es fa servir durant un any desapareix i hi torna a créixer l\'herba. Un corral millorat que passa un any sense ovelles torna a ser un corral normal, i un corral normal que passa un any sense ovelles desapareix.',
   ]],
