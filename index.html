@@ -372,7 +372,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div class="good"><span>Ferro estalviat</span><b id="sIronSaved">0</b></div>
         <div><span>Molins</span><b id="sMills">0</b></div>
         <div><span>Moliners</span><b id="sMillers">0</b></div>
-        <div><span>Sèquies</span><b id="sCanals">0</b></div>
+        <div><span>Collita pel saber</span><b id="sKnow">0</b></div>
         <h4>BESTIAR</h4>
         <div><span>Ovelles</span><b id="sHerd">0</b></div>
         <div><span>Corrals</span><b id="sPens">0</b></div>
@@ -484,7 +484,6 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <tbody id="housesBody"></tbody>
       </table>
     </div>
-    <footer id="housesFoot"></footer>
   </div>
 </div>
 
@@ -542,7 +541,7 @@ const LAWDEFS = {
   wealthtax: { name: 'Impost a les grans fortunes', txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.', excl: ['notax'] },
   inhtax: { name: 'Impost sobre les herències', txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.', excl: ['notax'] },
   basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax', 'collective'] },
-  redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: totes les propietats (cases, blocs de pisos, corrals, carboneres, fargues i molins) es reparteixen equitativament entre totes les famílies. Cada llogater passa a ser amo del seu pis i ja no paga lloguer, les famílies sense casa ocupen de franc els pisos buits, i les cases que tenen més corrals, carboneres, fargues o molins en cedeixen a les que no en tenen. Es torna a repartir cada any.' },
+  redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: el dia que s\'aprova, es reparteix tot. Els blocs de pisos no es divideixen: qui té més d\'una casa o bloc es queda la més gran i perd les altres, que passen a les famílies llogateres (i després a les que no tenen casa). Els camps es reparteixen a parts iguals. Ningú no pot tenir més d\'un d\'aquests edificis: corral, carbonera, farga o molí; qui en té més es queda el del seu ofici i els altres passen a famílies que no en tenen cap. El menjar, la fusta, el carbó, la pedra, el ferro i les eines es reparteixen a parts iguals entre totes les cases, i les ovelles entre tots els corrals.' },
   agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
   prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
   wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
@@ -568,7 +567,7 @@ const clashes = (a, b) => (LAWDEFS[a].excl || []).includes(b) || (LAWDEFS[b].exc
 // for three years after a revolution nobody can repeal a socialist law, so nor can anyone pass a law that would push
 // one out (for the council, any law of the right, since it clears the other side first)
 const SOC_LOCK = 3 * YEAR;
-const socLocked = () => S.revDay !== undefined && S.day - S.revDay < SOC_LOCK;
+const socLocked = () => POLITICS && S.revDay !== undefined && S.day - S.revDay < SOC_LOCK;
 const lockedLaw = l => socLocked() && l.fx.some(f => LAW_CATS[3][1].includes(f));
 const blockers = (k, council) => laws.filter(l => lockedLaw(l) && l.fx.some(f => clashes(k, f) || (council && sideOf(k) && sideOf(k) !== sideOf(f))));
 const lockEnd = () => dateLong(S.revDay + SOC_LOCK);
@@ -874,8 +873,7 @@ const COAL_START = 1.5, COAL_MIN = 0.6, COAL_MAX = 5, KILN_COST = 30;
 // miller keeps a fifth of it (dynamic under the free market). A mill grinds at most MILL_CAP of grain a year
 const MANURE = 1.2; // a family with sheep manures its own fields
 const MILL_WOOD = 120, MILL_STONE = 80, MILL_FOOD = 300, MILL_MAX = 3, MILL_BOOST = 1.5, MILL_FEE = 0.2, MILL_SUB = 0.1, MILL_CAP = 12000;
-// irrigation channels: a rich house digs one from the river to its fields; every field along it loses much less in a drought
-const CANAL_FOOD = 120, CANAL_STONE = 10, CANAL_MAX = 12, CANAL_DROUGHT = 0.85;
+
 // kilns and forges belong to one family. Left idle for a year they crumble, and then they belong to whoever repairs them
 // first, for half the cost of building one. A family that needs one looks for a crumbled one before building
 const PLANT = {
@@ -950,51 +948,110 @@ function knowFactor() {
   const a = avg(ad.map(p => p.int)); S.int0 ??= a;
   return Math.max(0.8, Math.min(1.6, 1 + 1.5 * (a - S.int0)));
 }
-const irrigated = f => (S.canals || []).some(c => c.y >= f.y - 1 && c.y <= f.y + 2 && f.x <= c.x1);
-// a rich family digs a channel from the river to a dry field of its own; a left-wing council pays one from the granary
-function digCanals(active) {
-  S.canals ||= [];
-  if (S.canals.length >= CANAL_MAX) return;
-  const dry = h => h.fields.find(f => !irrigated(f));
-  const h = active.filter(o => o.fields.length >= 2 && o.food > 400 + CANAL_FOOD && dry(o)).sort((a, b) => b.food - a.food)[0];
-  const council = !h && POLITICS && (S.council || 0) < -0.15 && S.granary > 400 + CANAL_FOOD ? active.filter(o => dry(o)).sort((a, b) => b.fields.length - a.fields.length)[0] : null;
-  const who = h || council; if (!who) return;
-  if (h && !ask(h, 'canal', `Teniu ${fmt(h.food)} de menjar. Feu una sèquia des del riu fins als vostres camps? Costa ${CANAL_FOOD} de menjar i ${CANAL_STONE} de pedra, i a la sequera els camps que hi toquen perden molt menys collita.`, 'Fem-la', 'No', 60)) return;
-  if (h && h.stone < CANAL_STONE) { h.food -= CANAL_STONE * S.stonePrice; } else if (h) h.stone -= CANAL_STONE;
-  const f = dry(who), y = f.y + 1, x0 = Math.ceil(S.riverX(y)), x1 = f.x + 2;
-  if (h) h.food -= CANAL_FOOD; else S.granary -= CANAL_FOOD;
-  const c = { y, x0, x1 }; S.canals.push(c); S.dirty = true;
-  const n = active.reduce((t, o) => t + o.fields.filter(g => irrigated(g)).length, 0);
-  log(h ? `Els ${h.surname} fan una sèquia des del riu fins als seus camps. Ara ${n} camps tenen reg.` : `El consell ${councilType(S.council)} fa una sèquia amb menjar del graner fins als camps dels ${who.surname}. Ara ${n} camps tenen reg.`, 'good');
-}
-// redistribution of goods: tenants own their flats, homeless families move into empty flats for free, and families with
-// more pens, kilns, forges or mills than others hand them over until no family has more than one more than another
-const PROPS = [['pen', null, 'el corral'], ['kiln', 'carboner', 'la carbonera'], ['forge', 'ferrer', 'la farga'], ['mill', 'moliner', 'el molí']];
-function redistribute(first) {
+// redistribution of goods, the day the law is passed. Houses: blocks of flats can't be split, so a family with more than
+// one house or block keeps the biggest and the rest go, with no owner, first to tenant families and then to families
+// with no home. Fields: shared out equally. Pens, kilns, forges and mills: one each at most; a family keeps the one of
+// its trade and hands over the rest to families that have none. Food, wood, coal, stone, iron and tools: equal shares
+// for every house. Sheep: equal shares for every pen
+const PROPS = [['kiln', 'carboner', 'la carbonera'], ['forge', 'ferrer', 'la farga'], ['mill', 'moliner', 'el molí'], ['pen', null, 'el corral']];
+const hutSize = u => (u.floors || 0) * 2 + (u.lvl ? 1 : 0);
+function redistribute() {
   const fam = S.homes.filter(h => !h.gone && h.members.length);
-  let flats = 0;
-  for (const h of fam) if (h.tenant && !h.ownFlat) { h.ownFlat = true; flats++; }
-  for (const o of S.homes) if (o.hut && o.hut.landlord) o.hut.landlord = null;
-  const n = h => PROPS.filter(([k]) => h[k]).length, moved = [];
-  for (let guard = 0; guard < 200; guard++) {
-    const ws = new Map(fam.map((h, i) => [h, wealthsOf([h])[0]]));
-    const rich = fam.slice().sort((a, b) => n(b) - n(a) || ws.get(b) - ws.get(a))[0];
-    const poor = fam.slice().sort((a, b) => n(a) - n(b) || ws.get(a) - ws.get(b))[0];
-    if (!rich || n(rich) - n(poor) <= 1) break;
-    const p = PROPS.find(([k]) => rich[k] && !poor[k]); if (!p) break;
-    const [k, job, name] = p;
-    poor[k] = rich[k]; rich[k] = null;
-    if (k === 'pen') { poor.herd += rich.herd; rich.herd = 0; syncHerd(rich); syncHerd(poor); }
-    else {
-      for (const x of ['Broken', 'BrokenDay', 'Used', 'Fee', 'Load', 'In']) { poor[k + x] = rich[k + x]; delete rich[k + x]; }
-      if (k === 'forge') { for (const t of ['hoes', 'picks', 'plows', 'rods']) { poor[t] += rich[t]; rich[t] = 0; } for (const t of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) poor[t].push(...rich[t].splice(0)); }
-      for (const m of rich.members) if (m.job === job) m.job = null;
-      const w = poor.members.find(m => m.age >= 360 && !m.job && !m.leaving); if (w) w.job = job;
+  const poorFirst = fam.slice().sort((a, b) => wealthsOf([a])[0] - wealthsOf([b])[0]);
+  const sum = []; let houses = 0;
+  // houses: everything a family owns, the one it lives in and the blocks it lets whole
+  const pool = [];
+  for (const h of fam) {
+    const own = [...(h.hut && !h.tenant ? [h.hut] : []), ...new Set(S.homes.filter(o => o.hut && o.hut.landlord === h && o.hut !== h.hut).map(o => o.hut))];
+    if (own.length < 2) continue;
+    const keep = own.slice().sort((a, b) => hutSize(b) - hutSize(a))[0];
+    for (const u of own) if (u !== keep) { u.landlord = null; pool.push(u); }
+    if (keep !== h.hut) { // the biggest is a block they let: they move into it, and the house they lived in goes
+      keep.landlord = null;
+      if (keep.ground && keep.ground !== h) { const t = keep.ground; leaveFlat(t); }
+      h.hut = keep; h.tenant = false; h.flatIdx = -1;
     }
-    moved.push(`${name} dels ${rich.surname} als ${poor.surname}`);
+    houses += own.length - 1;
   }
+  // empty houses nobody owns go into the pool too
+  for (const o of S.homes) if (o.gone && o.hut && !o.taken && o.hut.ruin == null && !pool.includes(o.hut) && !fam.some(h => h.hut === o.hut && !h.tenant)) { pool.push(o.hut); o.taken = true; }
+  pool.sort((a, b) => hutSize(b) - hutSize(a));
+  let given = 0;
+  const takers = [...poorFirst.filter(h => h.tenant), ...poorFirst.filter(h => !h.hut)];
+  for (const u of pool) {
+    if (fam.some(h => h.hut === u && !h.tenant)) continue;
+    const t = takers.shift(); if (!t) break;
+    if (t.tenant) leaveFlat(t);
+    if (u.ground && u.ground !== t) { const g = u.ground; leaveFlat(g); takers.push(g); }
+    u.landlord = null; t.hut = u; t.tenant = false; t.flatIdx = -1; given++;
+  }
+  if (houses || given) sum.push(`${houses ? `${houses} cases i blocs canvien de mans` : 'cap família no tenia més d\'una casa'}${given ? `, i ${given} ${given > 1 ? 'famílies llogateres o sense casa en reben una' : 'família llogatera o sense casa en rep una'}` : ''}`);
+  // fields
+  const n = fam.length, nf = fam.reduce((t, h) => t + h.fields.length, 0);
+  let moved = 0;
+  for (let g = 0; g < 2000; g++) {
+    const hi = fam.reduce((a, b) => b.fields.length > a.fields.length ? b : a), lo = poorFirst.reduce((a, b) => b.fields.length < a.fields.length ? b : a);
+    if (hi.fields.length - lo.fields.length <= 1) break;
+    const f = hi.fields.pop(); f.used = S.day; lo.fields.push(f); moved++;
+  }
+  if (moved) sum.push(`${moved} camps canvien de mans (${(nf / n).toFixed(1).replace('.', ',')} per família)`);
+  // pens, kilns, forges and mills: one each
+  const spare = [];
+  for (const h of fam) {
+    const has = PROPS.filter(([k]) => h[k]);
+    if (has.length < 2) continue;
+    const keep = has.find(([, job]) => job && h.members.some(m => m.job === job && !m.leaving)) || has.find(([k]) => k === 'pen' && h.herd > 0) || has[0];
+    for (const p of has) if (p !== keep) {
+      const [k, job] = p, b = { k, job, at: h[k] };
+      for (const x of ['Broken', 'BrokenDay', 'Used', 'Fee', 'Load', 'In']) { b[x] = h[k + x]; delete h[k + x]; }
+      if (k === 'forge') { b.tools = {}; for (const t of ['hoes', 'picks', 'plows', 'rods']) { b.tools[t] = h[t]; h[t] = 0; } for (const t of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) b.tools[t] = h[t].splice(0); }
+      h[k] = null; if (job) for (const m of h.members) if (m.job === job) m.job = null;
+      spare.push(b);
+    }
+  }
+  let handed = 0, lost = 0;
+  for (const b of spare) {
+    const none = poorFirst.filter(h => !PROPS.some(([k]) => h[k]));
+    const to = (b.job && none.find(h => h.members.some(m => m.job === b.job))) || none.find(h => h.hut) || none[0];
+    if (!to) { // nobody can take it: it's left to crumble (a pen is pulled down)
+      if (b.k === 'pen') mark(b.at.x, b.at.y, 3, 3, 0);
+      else { const o = S.homes.find(x => x.gone && !x[b.k]) || null; if (o) { o[b.k] = b.at; o[b.k + 'Broken'] = true; o[b.k + 'BrokenDay'] = S.day; } else mark(b.at.x, b.at.y, 2, 2, 0); }
+      lost++; continue;
+    }
+    to[b.k] = b.at; for (const x of ['Broken', 'BrokenDay', 'Used', 'Fee', 'Load', 'In']) if (b[x] !== undefined) to[b.k + x] = b[x];
+    if (b.k === 'pen') to.penUsed = S.day;
+    if (b.tools) { for (const t of ['hoes', 'picks', 'plows', 'rods']) to[t] = (to[t] || 0) + b.tools[t]; for (const t of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) (to[t] ||= []).push(...b.tools[t]); }
+    if (b.job && !to.members.some(m => m.job === b.job)) { const w = to.members.find(m => m.age >= 360 && !m.job && !m.leaving); if (w) w.job = b.job; }
+    handed++;
+  }
+  if (handed || lost) sum.push(`${handed} corrals, carboneres, fargues o molins passen a famílies que no en tenien${lost ? ` i ${lost} queden abandonats` : ''}`);
+  // sheep: equal shares for every pen; what doesn't fit is slaughtered and its meat shared with the rest of the food
+  const pens = fam.filter(h => h.pen), sheep = fam.reduce((t, h) => t + h.herd, 0);
+  let meat = 0;
+  if (pens.length) {
+    pens.forEach((h, i) => { h.herd = Math.floor(sheep / pens.length) + (i < sheep % pens.length ? 1 : 0); });
+    for (const h of pens) if (h.herd > herdMax(h)) { meat += (h.herd - herdMax(h)) * MEAT; h.herd = herdMax(h); }
+  } else meat = sheep * MEAT;
+  for (const h of fam) if (!h.pen) h.herd = 0;
+  for (const h of S.homes) syncHerd(h);
+  // goods: equal shares for every house
+  for (const k of ['food', 'wood', 'coal', 'stone', 'iron']) {
+    const tot = fam.reduce((t, h) => t + Math.max(0, h[k]), 0) + (k === 'food' ? meat : 0);
+    for (const h of fam) h[k] = tot / n;
+  }
+  // tools: every tool still in use goes round the houses, the poorest first, to an adult who hasn't got that kind
+  for (const t of ['hoe', 'pick', 'plow', 'rod']) {
+    const left = fam.flatMap(h => h.members).filter(p => p[t] > S.day).map(p => { const d = p[t]; p[t] = 0; return d; }).sort((a, b) => b - a);
+    const tn = left.length;
+    for (let r = 0; left.length && r < 8; r++) for (const h of poorFirst) {
+      if (!left.length) break;
+      const w = h.members.find(m => m.age >= 360 && !m.leaving && !(m[t] > S.day)); if (w) w[t] = left.shift();
+    }
+    for (const h of poorFirst) { if (!left.length) break; const w = h.members.find(m => !(m[t] > S.day)); if (w) w[t] = left.shift(); }
+  }
+  sum.push(`el menjar, la fusta, el carbó, la pedra, el ferro i les eines es reparteixen a parts iguals entre les ${n} cases${pens.length ? `, i les ${sheep} ovelles entre els ${pens.length} corrals` : ''}`);
   S.dirty = true;
-  if (first || flats || moved.length) log(`Redistribució de béns: ${flats ? `${flats} ${flats > 1 ? 'famílies llogateres passen' : 'família llogatera passa'} a ser ${flats > 1 ? 'amos dels seus pisos' : 'ama del seu pis'}` : 'cap pis canvia de mans'}${moved.length ? `, i ${moved.length > 1 ? 'passen' : 'passa'} ${moved.slice(0, 6).join(', ')}${moved.length > 6 ? ` i ${moved.length - 6} més` : ''}` : ''}.`, 'good');
+  log(`Redistribució de béns: ${sum.join('; ')}.`, 'good');
 }
 function coalValue(h, season) { const n = need(h); return n * (1 - 1 / 1.2) + (season === 3 ? n * 0.25 : 0); }
 const WAGE = 2.5, MIN_WAGE = 3.5, SHEEP_COST = 40, MILK = 0.7, FODDER = 0.3, MEAT = 30, HERD_MAX = 8;
@@ -1028,7 +1085,6 @@ const hutOwner = hut => S.homes.find(o => o.hut === hut && !o.gone && !o.tenant)
 // a block inherited by a family that already has a home is let out whole, ground floor included: rent goes to that landlord
 const landlord = hut => hut.landlord && !hut.landlord.gone ? hut.landlord : null;
 const rentTo = hut => hutOwner(hut) || landlord(hut);
-const ownFlats = hut => (hut.flats || []).filter(f => f && f.ownFlat).length + (hut.ground && hut.ground.ownFlat ? 1 : 0);
 // what a household owns, in food: stores, materials at market prices, sheep, and the houses it owns
 function wealth(h) { return wealthsOf([h])[0]; }
 // the wealth of many houses at once: the blocks each one lets out are looked up in a single pass
@@ -1037,8 +1093,7 @@ function wealthsOf(list) {
   for (const o of S.homes) { const u = o.hut, l = u && u.landlord; if (l) { const s = lets.get(l) || lets.set(l, new Set()).get(l); s.add(u); } }
   return list.map(h => {
     let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
-    if (h.hut && !h.tenant) w += Math.max(0, housePrice(h.hut) - FLOOR_VAL * S.houseIdx * ownFlats(h.hut));
-    if (h.hut && h.tenant && h.ownFlat) w += FLOOR_VAL * S.houseIdx;
+    if (h.hut && !h.tenant) w += housePrice(h.hut);
     for (const u of lets.get(h) || []) w += housePrice(u);
     return w;
   });
@@ -1057,7 +1112,7 @@ const housePrice = hut => { const f = hut.floors || 0; return (HUT_VAL + (hut.lv
 const wantFloor = h => !h.gone && h.hut && !h.tenant && (h.hut.floors || 0) < MAX_FLOORS && daysOf(h) > 60 && h.food > 250
   && !S.vacant && (S.homeless > 0 || S.rent > 0.6) && S.rent * 730 > floorCost(h.hut).wood + floorCost(h.hut).stone * S.stonePrice + 20;
 function moveIn(h, hut, i) { h.hut = hut; h.tenant = true; h.flatIdx = i; if (i === 'g') hut.ground = h; else hut.flats[i] = h; S.dirty = true; }
-function leaveFlat(h) { if (!h.tenant) return; if (h.flatIdx === 'g') h.hut.ground = null; else h.hut.flats[h.flatIdx] = null; S.dirty = true; h.hut = null; h.tenant = false; h.ownFlat = false; h.flatIdx = -1; h.arrears = 0; }
+function leaveFlat(h) { if (!h.tenant) return; if (h.flatIdx === 'g') h.hut.ground = null; else h.hut.flats[h.flatIdx] = null; S.dirty = true; h.hut = null; h.tenant = false; h.flatIdx = -1; h.arrears = 0; }
 const wantUp = h => !h.gone && h.hut && !h.tenant && !h.hut.lvl && daysOf(h) > 60 && h.food > 300 && adultsOf(h).length >= 2;
 // what a new charcoal burner or smith has to do before starting
 function plantTxt(c, kind, job) {
@@ -1297,7 +1352,7 @@ function daily() {
     if (doy === 95 && f.stage === 0) f.stage = 1;
     if (doy === 175 && f.stage === 1) {
       f.stage = 2;
-      f.yield = 230 * (0.55 + 0.75 * Math.min(1, f.care / 140)) * rr(0.8, 1.2) * (dry() ? (irrigated(f) ? CANAL_DROUGHT : DROUGHT_YIELD) : 1) * (f.flood ? FLOOD_YIELD : 1)
+      f.yield = 230 * (0.55 + 0.75 * Math.min(1, f.care / 140)) * rr(0.8, 1.2) * (dry() ? DROUGHT_YIELD : 1) * (f.flood ? FLOOD_YIELD : 1)
         * (h.herd > 0 ? MANURE : 1) * know;
       f.flood = false;
     }
@@ -1607,7 +1662,6 @@ function daily() {
     o.millFee = L.laissez ? Math.max(0.05, Math.min(0.6, (o.millFee ?? MILL_FEE) + (load > 0.9 ? 0.05 : load < 0.5 ? -0.05 : 0))) : MILL_FEE;
     o.millLoad = 0;
   }
-  if (doy % 30 === 12 && (season === 3 || season === 0)) digCanals(active);
   // iron market: smiths buy from miners
   {
     let unmet = 0;
@@ -1688,7 +1742,7 @@ function daily() {
     const huts = [...new Set(S.homes.filter(o => o.hut).map(o => o.hut))];
     for (const hut of huts) if (!hut.flats) { hut.flats = []; hut.floors = 0; }
     for (const t of active.filter(o => o.tenant)) {
-      const due = L.norent || t.ownFlat ? 0 : S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
+      const due = L.norent || !rentTo(t.hut) ? 0 : S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
       const own = rentTo(t.hut), pay = Math.min(due, Math.max(0, t.food));
       t.food -= pay; t.rentPaid = (t.rentPaid || 0) + pay; S.st.rents += pay;
       if (own) { const cut = L.platform ? payLord(own, pay * 0.15) : 0; own.food += pay - cut; own.rentIn = (own.rentIn || 0) + pay - cut; }
@@ -1701,10 +1755,10 @@ function daily() {
     const vac = [];
     for (const hut of huts) { hut.flats.forEach((f, i) => { if (!f) vac.push([hut, i]); }); if (landlord(hut) && !hutOwner(hut) && !hut.ground) vac.push([hut, 'g']); }
     let unmet = 0;
-    for (const h of active.filter(o => !o.hut && (L.housing || L.redist || o.food > S.rent * 15)).sort((a, b) => b.food - a.food)) {
+    for (const h of active.filter(o => !o.hut && (L.housing || o.food > S.rent * 15)).sort((a, b) => b.food - a.food)) {
       const v = vac.shift();
       if (!v) { unmet++; continue; }
-      moveIn(h, v[0], v[1]); if (L.redist) h.ownFlat = true;
+      moveIn(h, v[0], v[1]);
       const own = rentTo(v[0]);
       logOnce('rent', `Els ${h.surname} lloguen un pis${own ? ` a casa dels ${own.surname}` : ''} per ${S.rent.toFixed(1)} de menjar al dia.`, 'amber');
     }
@@ -2171,7 +2225,6 @@ function yearEnd() {
   log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${wed} casaments, ${S.yr.died} morts${starved ? ` (${starved} de gana)` : ''}, ${S.yr.left} han marxat, ${S.yr.thefts} robatoris${banished ? `, ${banished} desterrats` : ''}.`, 'amber');
   S.yr0 = { died: S.st.died, banished: S.st.banished || 0, weddings: S.st.weddings };
   S.yr = { thefts: 0, births: 0, left: 0, died: 0 };
-  if (L.redist) redistribute(false);
 }
 function seasonChange(doy) {
   S.dirty = true;
@@ -2242,12 +2295,6 @@ function drawTerrain() {
   if (!bases[s]) bases[s] = buildBase(s);
   tctx.putImageData(bases[s], 0, 0);
   drawDisasterTerrain(s);
-  // irrigation channels: a thin line of water from the river, under the fields
-  for (const c of S.canals || []) {
-    tctx.fillStyle = s === 3 ? '#9fc4d8' : '#3f86b0';
-    for (let x = c.x0; x <= c.x1; x++) if (!S.water[idx(x, c.y)]) tctx.fillRect(x * T, c.y * T + 2, T, 1);
-    tctx.fillStyle = 'rgba(0,0,0,.15)'; tctx.fillRect(c.x0 * T, c.y * T + 3, (c.x1 - c.x0 + 1) * T, 1);
-  }
   // fields
   for (const h of S.homes) for (const f of h.fields) drawField(f, s, h.gone);
   for (const h of S.homes) if (h.pending && !h.gone) {
@@ -2308,7 +2355,10 @@ function drawTerrain() {
     tctx.fillStyle = 'rgba(0,0,0,.3)'; tctx.fillRect(px + 2, py + 2, 10, 9);
     tctx.fillStyle = '#8c8a84'; tctx.fillRect(px, py + 3, 10, 7);
     tctx.fillStyle = '#6e6c66'; for (let k = 0; k < 3; k++) tctx.fillRect(px, py + 4 + k * 2, 10, 1);
-    tctx.fillStyle = s === 3 ? '#eef1f4' : '#4a4038'; tctx.fillRect(px - 1, py + 1, 12, 3);
+    const fr = h.gone ? [120, 108, 96] : h.rgb.map(v => v * 0.85 + 20); // the roof in the owners' colour
+    tctx.fillStyle = rgb(fr); tctx.fillRect(px - 1, py + 1, 12, 3);
+    tctx.fillStyle = rgb(fr, 1.12); tctx.fillRect(px, py + 1, 10, 1);
+    if (s === 3) { tctx.fillStyle = '#eef1f4'; tctx.fillRect(px - 1, py + 1, 12, 1); }
     tctx.fillStyle = '#5a5650'; tctx.fillRect(px + 7, py - 2, 2, 4);
     tctx.fillStyle = '#1a1512'; tctx.fillRect(px + 3, py + 6, 3, 4);
   }
@@ -2325,6 +2375,10 @@ function drawTerrain() {
     tctx.fillStyle = '#3b3029'; tctx.fillRect(px + 1, py + 2, 8, 7); tctx.fillRect(px + 2, py + 1, 6, 9);
     tctx.fillStyle = '#5a4a3c'; tctx.fillRect(px + 3, py + 2, 3, 2);
     tctx.fillStyle = '#241b16'; tctx.fillRect(px + 4, py + 7, 2, 1); // the mouth; it glows only while lit (see render)
+    if (!h.gone) { // a pennant in the owners' colour on a stick by the mound
+      tctx.fillStyle = '#4a3220'; tctx.fillRect(px + 9, py - 1, 1, 6);
+      tctx.fillStyle = h.color; tctx.fillRect(px + 10, py - 1, 2, 2);
+    }
   }
   // water mills: a stone mill house with a wooden roof by the river; the wheel turns in render()
   for (const h of S.homes) if (h.mill) {
@@ -2338,7 +2392,10 @@ function drawTerrain() {
     tctx.fillStyle = 'rgba(0,0,0,.3)'; tctx.fillRect(px + 1, py + 2, 10, 9);
     tctx.fillStyle = '#a8a294'; tctx.fillRect(px, py + 3, 10, 7);
     tctx.fillStyle = '#8c867a'; for (let k = 0; k < 3; k++) tctx.fillRect(px + (k % 2) * 3, py + 4 + k * 2, 10 - (k % 2) * 3, 1);
-    tctx.fillStyle = s === 3 ? '#eef1f4' : '#7a4a2a'; tctx.fillRect(px - 1, py, 12, 3); tctx.fillRect(px + 1, py - 1, 8, 1);
+    const mr = h.gone ? [120, 108, 96] : h.rgb.map(v => v * 0.85 + 20); // the roof in the owners' colour
+    tctx.fillStyle = rgb(mr); tctx.fillRect(px - 1, py, 12, 3); tctx.fillRect(px + 1, py - 1, 8, 1);
+    tctx.fillStyle = rgb(mr, 0.8); tctx.fillRect(px - 1, py + 2, 12, 1);
+    if (s === 3) { tctx.fillStyle = '#eef1f4'; tctx.fillRect(px + 1, py - 1, 8, 1); }
     tctx.fillStyle = '#2a1d14'; tctx.fillRect(px + 6, py + 6, 2, 4);
     tctx.fillStyle = '#3a2a1c'; tctx.fillRect(px + 2, py + 5, 2, 2);
     // the wheel's rim and axle, half in the water; its spokes turn in render()
@@ -2765,7 +2822,7 @@ function updateHud() {
   put('sSmiths', S.people.filter(p => p.job === 'ferrer' && !p.leaving).length);
   { const ms = S.homes.filter(o => o.mill), br = ms.filter(o => o.millBroken).length; put('sMills', ms.length ? `${ms.length - br}${br ? ` (+${br} en ruïnes)` : ''}${L.laissez && ms.some(millWorks) ? ` · ${Math.round(100 * Math.min(...ms.filter(millWorks).map(o => o.millFee ?? MILL_FEE)))}%` : ''}` : 0); }
   put('sMillers', S.people.filter(p => p.job === 'moliner' && !p.leaving).length);
-  put('sCanals', (S.canals || []).length);
+  put('sKnow', `${(S.know ?? 1) >= 1 ? '+' : ''}${Math.round(100 * ((S.know ?? 1) - 1))}%`);
   put('sHoePrice', S.hoePrice.toFixed(1));
   put('sPickPrice', S.pickPrice.toFixed(1));
   put('sWage', S.wage.toFixed(2));
@@ -2859,7 +2916,7 @@ function proclaim(k, quiet) {
   }
   if (['platform', 'cloud', 'tribute', 'vassal'].includes(k)) lordOf('lord');
   if (k === 'enclosure') lordOf('forestLord');
-  if (k === 'redist') redistribute(true);
+  if (k === 'redist') redistribute();
   renderLaws(); updateHud(); return true;
 }
 function renderLawPick() {
@@ -3012,17 +3069,22 @@ function civicLaws(active, c) {
 // far to the right never protects them, and one far to the left never lifts the protection
 function ecoLaws(c) {
   const trees = treeList().length / Math.max(1, S.trees0 || 1), fish = (S.fishStock ?? FISH_CAP) / FISH_CAP;
+  // to judge whether the forest has come back, the forest on land where houses and fields can go (east of the river)
+  // doesn't count: only the original forest across the river, where nobody builds but charcoal burners
+  let wild = 0, grown = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < S.riverX(y); x++) { const i = idx(x, y); if (S.forest[i] && !S.water[i]) { wild++; if (S.tree[i]) grown++; } }
+  const back = wild ? grown / wild : 1;
   // a left-wing council bans charcoal when the forest is nearly gone; whatever its colour, it lifts the ban once the
   // forest is back to half of what it was
   const nc = laws.findIndex(l => l.fx.includes('nocoal'));
   if (nc < 0 && trees < 0.25 && c < -0.15 && R() < 0.5) { log(`Gairebé no queda bosc i el consell ${councilType(c)} prohibeix fer carbó.`, 'good'); proclaim('nocoal', true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
-  else if (nc >= 0 && trees > 0.5 && R() < 0.5) { log('El bosc s\'ha refet i el consell torna a permetre fer carbó.', 'amber'); repeal(nc, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
-  for (const [k, level, what] of [['forest', trees, 'el bosc'], ['fishing', fish, 'el riu']]) {
+  else if (nc >= 0 && back > 0.5 && R() < 0.5) { log('El bosc s\'ha refet i el consell torna a permetre fer carbó.', 'amber'); repeal(nc, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
+  for (const [k, level, what, up] of [['forest', trees, 'el bosc', back], ['fishing', fish, 'el riu', fish]]) {
     const i = laws.findIndex(l => l.fx.includes(k));
     if (i < 0 && level < 0.4 && c < 0.6 && R() < 0.5) {
       log(`Queda poc ${k === 'forest' ? 'bosc' : 'peix'} i el consell decideix protegir ${what}: s'aprova «${LAWDEFS[k].name}».`, 'good');
       proclaim(k, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
-    } else if (i >= 0 && level > (k === 'forest' ? 0.55 : 0.85) && c > -0.6 && R() < 0.5) {
+    } else if (i >= 0 && up > (k === 'forest' ? 0.7 : 0.85) && c > -0.6 && R() < 0.5) {
       log(`${k === 'forest' ? 'El bosc' : 'El riu'} s'ha recuperat i el consell aixeca la protecció.`, 'amber');
       repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
     }
@@ -3418,7 +3480,7 @@ $('quakeBtn').onclick = () => { // works even with natural disasters switched of
 };
 $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
-  POLITICS = !POLITICS; syncPol(); updateHud();
+  POLITICS = !POLITICS; syncPol(); updateHud(); renderLaws();
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
   log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
@@ -3449,34 +3511,50 @@ cv.addEventListener('click', e => {
   if (h) { tagHome(h, `${h.surname.toUpperCase()} · ${h.members.length} PERS · ${Math.floor(daysOf(h))} DIES`, 'amber'); if (!$('houses').hidden) { openHouse.add(h.id); renderHouses(true, h.id); } }
 });
 // ---------- houses register ----------
+// the houses a family owns: the one it lives in (unless it rents) and the blocks it lets whole
+const ownedHuts = h => [...new Set([...(h.hut && !h.tenant ? [h.hut] : []), ...S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut)])].filter(u => u.ruin == null);
+const blocksOf = h => ownedHuts(h).filter(u => u.floors);
+const letFlats = h => ownedHuts(h).reduce((t, u) => t + (u.flats || []).filter(f => f && f !== h).length + (u.ground && u.ground !== h ? 1 : 0), 0);
+const toolsTxt = h => [['plow', hasPlow, 'arada', 'arades'], ['hoe', hasHoe, 'aixada', 'aixades'], ['pick', hasPick, 'pic', 'pics'], ['rod', hasRod, 'canya', 'canyes']]
+  .map(([, f, a, b]) => { const n = h.members.filter(f).length; return n ? `${n} ${n > 1 ? b : a}` : ''; }).filter(Boolean).join(' · ') || '—';
+const dash = (v, txt = v) => v ? txt : '<span class="dim">—</span>';
+// each column: key, title, the value it sorts by, and the cell it shows
 const COLS = [
-  ['surname', 'Família', h => h.surname],
-  ['members', 'Membres / màx.', h => h.members.length],
-  ['wealth', 'Riquesa', h => wealth(h)],
-  ['food', 'Menjar', h => h.food],
-  ['days', 'Dies', h => daysOf(h)],
-  ['hunger', 'Gana', h => avg(h.members.map(m => m.hunger))],
-  ['greed', 'Cobdícia', h => avg(adultsOf(h).map(m => m.greed))],
-  ['lazy', 'Mandra', h => avg(adultsOf(h).map(m => m.lazy))],
-  ['str', 'Força', h => avg(adultsOf(h).map(m => m.str))],
-  ['int', 'Intel·ligència màx.', h => famInt(h)],
-  ['health', 'Salut', h => avg(h.members.map(m => m.health))],
-  ['fields', 'Camps', h => h.fields.length],
-  ['wood', 'Fusta', h => h.wood],
-  ['coal', 'Carbó', h => h.coal],
-  ['stone', 'Pedra', h => h.stone],
-  ['iron', 'Ferro', h => h.iron],
-  ['tools', 'Eines', h => h.members.filter(m => hasHoe(m) || hasPick(m) || hasPlow(m) || hasRod(m)).length],
-  ['stole', 'Ha robat', h => h.stole],
-  ['robbed', 'Li han robat', h => h.robbed],
-  ['gave', 'Ha donat', h => h.gave],
-  ['got', 'Ha rebut', h => h.got],
-  ['spoiled', 'Fet malbé', h => h.spoiled],
-  ['herd', 'Ovelles', h => h.herd],
-  ['milk', 'Guany ramat', h => h.milk],
-  ['worked', 'Jornals fets', h => h.worked],
-  ['hired', 'Jornals pagats', h => h.hired],
-  ['rent', 'Lloguer', h => (h.rentIn || 0) - (h.rentPaid || 0)],
+  ['surname', 'Família', h => h.surname, h => `<td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === S.player ? '<b class="you">TU</b>' : ''}</td>`],
+  ['members', 'Membres / màx.', h => h.members.length, h => { const kids = h.members.length - h.members.filter(m => m.age >= 360).length; return `<td>${h.members.length}<span class="dim">/${famLimit(h)}</span>${kids ? ` <span class="dim">(${kids} ${kids > 1 ? 'nens' : 'nen'})</span>` : ''}</td>`; }],
+  ['wealth', 'Riquesa', h => wealth(h), h => `<td title="menjar, materials, ovelles i cases">${fmt(wealth(h))}</td>`],
+  ['food', 'Menjar', h => h.food, h => `<td>${fmt(h.food)}</td>`],
+  ['days', 'Dies', h => daysOf(h), h => { const d = daysOf(h); return `<td class="${d < 5 ? 'bad' : d > 40 ? 'good' : ''}">${Math.floor(d)}</td>`; }],
+  ['hunger', 'Gana', h => avg(h.members.map(m => m.hunger)), h => { const hg = avg(h.members.map(m => m.hunger)); return `<td class="${hg >= 2 ? 'bad' : 'dim'}">${hg >= 0.5 ? hg.toFixed(1) : '—'}</td>`; }],
+  ['fields', 'Camps', h => h.fields.length, h => `<td>${dash(h.fields.length)}</td>`],
+  ['herd', 'Ovelles', h => h.herd, h => `<td>${dash(h.herd)}${h.pen && h.pen.lvl ? ' <span class="dim">· corral millorat</span>' : ''}</td>`],
+  ['milk', 'Guany ramat', h => h.milk, h => `<td class="${h.milk > 0 ? 'good' : h.milk < 0 ? 'bad' : 'dim'}">${h.pen ? fmt(h.milk) : '—'}</td>`],
+  ['huts', 'Cabanes', h => ownedHuts(h).filter(u => !u.floors && !u.lvl).length, h => `<td>${dash(ownedHuts(h).filter(u => !u.floors && !u.lvl).length)}</td>`],
+  ['stonehouses', 'Cases de pedra', h => ownedHuts(h).filter(u => !u.floors && u.lvl).length, h => `<td>${dash(ownedHuts(h).filter(u => !u.floors && u.lvl).length)}</td>`],
+  ['blocks', 'Blocs de pisos', h => blocksOf(h).reduce((t, u) => t + 1 + (u.floors + 1) / 10, 0), h => {
+    const by = {}; for (const u of blocksOf(h)) by[u.floors + 1] = (by[u.floors + 1] || 0) + 1;
+    const txt = Object.keys(by).sort((a, b) => b - a).map(p => `${by[p]}-${p}`).join(' · ');
+    return `<td title="nombre de blocs - plantes de cada bloc">${dash(txt)}</td>`; }],
+  ['flats', 'Pisos llogats', h => letFlats(h), h => `<td>${dash(letFlats(h))}</td>`],
+  ['mills', 'Molins', h => h.mill ? 1 : 0, h => `<td>${h.mill ? (h.millBroken ? '<span class="dim">en ruïnes</span>' : '1') : '<span class="dim">—</span>'}</td>`],
+  ['rent', 'Lloguer', h => (h.rentIn || 0) - (h.rentPaid || 0), h => `<td class="${h.rentIn ? 'good' : h.rentPaid ? 'bad' : 'dim'}">${h.rentIn ? '+' + fmt(h.rentIn) : h.rentPaid ? '−' + fmt(h.rentPaid) : '—'}</td>`],
+  ['worked', 'Jornals fets', h => h.worked, h => `<td class="${h.worked ? '' : 'dim'}" title="${fmt(h.earned)} de menjar guanyat">${h.worked}</td>`],
+  ['hired', 'Jornals pagats', h => h.hired, h => `<td class="${h.hired ? '' : 'dim'}" title="${fmt(h.paid)} de menjar pagat">${h.hired}</td>`],
+  ['wood', 'Fusta', h => h.wood, h => `<td>${fmt(h.wood)}</td>`],
+  ['coal', 'Carbó', h => h.coal, h => `<td class="${h.coal >= 1 ? '' : 'dim'}">${fmt(h.coal)}</td>`],
+  ['stone', 'Pedra', h => h.stone, h => `<td class="${h.stone >= 1 ? '' : 'dim'}">${fmt(h.stone)}</td>`],
+  ['iron', 'Ferro', h => h.iron, h => `<td class="${h.iron >= 1 ? '' : 'dim'}">${fmt(h.iron)}</td>`],
+  ['tools', 'Eines', h => h.members.filter(m => hasHoe(m) || hasPick(m) || hasPlow(m) || hasRod(m)).length, h => `<td class="dim">${toolsTxt(h)}</td>`],
+  ['spoiled', 'Fet malbé', h => h.spoiled, h => `<td class="dim">${fmt(h.spoiled)}</td>`],
+  ['stole', 'Ha robat', h => h.stole, h => `<td class="${h.stole ? 'bad' : 'dim'}">${fmt(h.stole)}</td>`],
+  ['robbed', 'Li han robat', h => h.robbed, h => `<td class="${h.robbed ? 'bad' : 'dim'}">${fmt(h.robbed)}</td>`],
+  ['gave', 'Ha donat', h => h.gave, h => `<td class="${h.gave ? 'good' : 'dim'}">${fmt(h.gave)}</td>`],
+  ['got', 'Ha rebut', h => h.got, h => `<td class="dim">${fmt(h.got)}</td>`],
+  ['greed', 'Cobdícia', h => avg(adultsOf(h).map(m => m.greed)), h => `<td>${bar(avg(adultsOf(h).map(m => m.greed)), 'g')}</td>`],
+  ['lazy', 'Mandra', h => avg(adultsOf(h).map(m => m.lazy)), h => `<td>${bar(avg(adultsOf(h).map(m => m.lazy)), 'l')}</td>`],
+  ['str', 'Força', h => avg(adultsOf(h).map(m => m.str)), h => `<td>${bar(avg(adultsOf(h).map(m => m.str)), 's')}</td>`],
+  ['int', 'Intel·ligència màx.', h => famInt(h), h => `<td>${bar(famInt(h), 'i')}</td>`],
+  ['health', 'Salut', h => avg(h.members.map(m => m.health)), h => `<td>${bar(avg(h.members.map(m => m.health)), 'h')}</td>`],
 ];
 let sortKey = 'surname', sortDir = 1;
 const openHouse = new Set();
@@ -3493,35 +3571,9 @@ function renderHouses(force, focusId) {
     const va = key.get(a), vb = key.get(b);
     return (typeof va === 'string' ? va.localeCompare(vb, 'ca') : va - vb) * sortDir || a.id - b.id;
   });
-  const branch = {}, seen = {};
-  for (const h of homes.slice().sort((a, b) => a.id - b.id)) { seen[h.surname] = (seen[h.surname] || 0) + 1; branch[h.id] = seen[h.surname]; }
   let html = '';
   for (const h of homes) {
-    const d = daysOf(h), hg = avg(h.members.map(m => m.hunger)), ad = adultsOf(h);
-    const kids = h.members.length - h.members.filter(m => m.age >= 360).length;
-    const own = h.tenant && rentTo(h.hut), fl = h.hut && !h.tenant ? h.hut.floors || 0 : 0;
-    const owns = S.homes.filter(o => o.hut && o.hut.landlord === h && !hutOwner(o.hut)).map(o => o.hut).filter((u, i, a) => a.indexOf(u) === i);
-    const tagTxt = !h.hut ? 'sense casa' : [h.tenant ? `lloga ${h.flatIdx === 'g' ? 'la planta baixa' : 'un pis'}${own ? ' als ' + own.surname : ''}` : fl ? `bloc de ${fl + 1} plantes · ${h.hut.flats.filter(Boolean).length} llogats` : '',
-      !h.tenant && stoneHouse(h) ? 'casa de pedra' : '', owns.length ? `lloga ${owns.length > 1 ? owns.length + ' blocs' : 'un bloc'} sencer` : '', branch[h.id] > 1 ? `branca ${branch[h.id]}` : ''].filter(Boolean).join(' · ');
-    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}${h === S.player ? ' me' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">
-      <td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === S.player ? '<b class="you">TU</b>' : ''}${tagTxt ? `<small>${tagTxt}</small>` : ''}</td>
-      <td>${h.members.length}<span class="dim">/${famLimit(h)}</span>${kids ? ` <span class="dim">(${kids} ${kids > 1 ? 'nens' : 'nen'})</span>` : ''}</td>
-      <td title="menjar, materials, ovelles i cases">${fmt(wealth(h))}</td>
-      <td>${fmt(h.food)}</td>
-      <td class="${d < 5 ? 'bad' : d > 40 ? 'good' : ''}">${Math.floor(d)}</td>
-      <td class="${hg >= 2 ? 'bad' : 'dim'}">${hg >= 0.5 ? hg.toFixed(1) : '—'}</td>
-      <td>${bar(avg(ad.map(m => m.greed)), 'g')}</td>
-      <td>${bar(avg(ad.map(m => m.lazy)), 'l')}</td>
-      <td>${bar(avg(ad.map(m => m.str)), 's')}</td>
-      <td>${bar(famInt(h), 'i')}</td>
-      <td>${bar(avg(h.members.map(m => m.health)), 'h')}</td>
-      <td>${h.fields.length}</td><td>${fmt(h.wood)}</td><td class="${h.coal >= 1 ? '' : 'dim'}">${fmt(h.coal)}</td><td class="${h.stone >= 1 ? '' : 'dim'}">${fmt(h.stone)}</td><td class="${h.iron >= 1 ? '' : 'dim'}">${fmt(h.iron)}</td>
-      <td class="dim">${[h.members.filter(hasPlow).length ? h.members.filter(hasPlow).length + (h.members.filter(hasPlow).length > 1 ? ' arades' : ' arada') : '', h.members.filter(hasHoe).length ? h.members.filter(hasHoe).length + (h.members.filter(hasHoe).length > 1 ? ' aixades' : ' aixada') : '', h.members.filter(hasPick).length ? h.members.filter(hasPick).length + ' pic' + (h.members.filter(hasPick).length > 1 ? 's' : '') : '', h.members.filter(hasRod).length ? h.members.filter(hasRod).length + (h.members.filter(hasRod).length > 1 ? ' canyes' : ' canya') : '', h.forge ? `a la venda: ${h.hoes} aix. ${h.picks} pic ${h.plows} ar. ${h.rods} can.` : ''].filter(Boolean).join(' · ') || '—'}</td>
-      <td class="${h.stole ? 'bad' : 'dim'}">${fmt(h.stole)}</td><td class="${h.robbed ? 'bad' : 'dim'}">${fmt(h.robbed)}</td>
-      <td class="${h.gave ? 'good' : 'dim'}">${fmt(h.gave)}</td><td class="dim">${fmt(h.got)}</td><td class="dim">${fmt(h.spoiled)}</td>
-      <td>${h.herd || '<span class="dim">—</span>'}${h.pen && h.pen.lvl ? ' <span class="dim">· corral millorat</span>' : ''}</td><td class="${h.milk > 0 ? 'good' : h.milk < 0 ? 'bad' : 'dim'}">${h.pen ? fmt(h.milk) : '—'}</td>
-      <td class="${h.worked ? '' : 'dim'}" title="${fmt(h.earned)} de menjar guanyat">${h.worked}</td><td class="${h.hired ? '' : 'dim'}" title="${fmt(h.paid)} de menjar pagat">${h.hired}</td>
-      <td class="${h.rentIn ? 'good' : h.rentPaid ? 'bad' : 'dim'}">${h.rentIn ? '+' + fmt(h.rentIn) : h.rentPaid ? '−' + fmt(h.rentPaid) : '—'}</td></tr>`;
+    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}${h === S.player ? ' me' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">${COLS.map(c => c[3](h)).join('')}</tr>`;
     if (openHouse.has(h.id)) {
       const ms = h.members.slice().sort((a, b) => b.age - a.age).map(m => `<div class="member"><div class="n">${esc(fullName(m))}</div>
         <div class="meta">${m.job ? m.job + ' · ' : ''}${hasPlow(m) ? 'arada · ' : ''}${hasRod(m) ? 'canya · ' : ''}${hasHoe(m) ? 'aixada · ' : ''}${hasPick(m) ? 'pic · ' : ''}${ageTxt(m)}${m.married ? (m.sex === 'f' ? ' · casada' : ' · casat') : m.widow != null ? (m.sex === 'f' ? ' · vídua' : ' · vidu') : m.age >= 360 ? (m.sex === 'f' ? ' · soltera' : ' · solter') : ''}${m.parents ? ` · ${esc(parentsTxt(m))}` : ''}${m.hunger ? ` · <span class="bad">${m.hunger} dies amb gana</span>` : ''}</div>
@@ -3536,8 +3588,6 @@ function renderHouses(force, focusId) {
   if (!sel.options.length) sel.innerHTML = COLS.map(([k, t]) => `<option value="${k}">${t}</option>`).join('');
   sel.value = sortKey; $('housesDir').textContent = sortDir > 0 ? '▲' : '▼';
   $('housesSub').textContent = `${dateLong(S.day)} · ${homes.length} famílies · toca una família per veure qui hi viu`;
-  const gone = [...new Set(S.homes.filter(h => h.gone).map(h => h.surname))].filter(c => !homes.some(h => h.surname === c));
-  $('housesFoot').textContent = gone.length ? `Famílies que ja no hi són: ${gone.join(', ')}.` : 'Encara no ha desaparegut cap família del poble.';
   if (focusId != null) { const r = $('housesBody').querySelector(`tr[data-id="${focusId}"]`); if (r) r.scrollIntoView({ block: 'center' }); }
 }
 $('housesHead').addEventListener('click', e => {
@@ -3600,7 +3650,6 @@ const HELP_TABS = [
       'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
       'Fems: les cases que tenen ovelles abonen els seus camps, que donen un 20% més de collita.',
       'Saber: la collita de tots els camps creix o baixa segons la intel·ligència mitjana dels adults del poble, comparada amb la dels primers pobladors: cada 0,1 més d\'intel·ligència mitjana dona un 15% més de collita (entre un 20% menys i un 60% més). Com que l\'escola fa néixer els nens més llestos, amb els anys l\'escola fa créixer les collites.',
-      'Sèquies: a l\'hivern i a la primavera, una casa rica (amb dos camps o més i més de 520 de menjar) pot fer una sèquia des del riu fins a un camp seu que no en tingui. Costa 120 de menjar i 10 de pedra. Si el consell és d\'esquerres i la política dinàmica està activada, també en pot fer una amb menjar del graner. Tots els camps que toquen una sèquia, siguin de qui siguin, a la sequera perden només un 15% de la collita en lloc de més de la meitat. Hi pot haver fins a 12 sèquies.',
       'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
       'Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
       'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
@@ -3682,7 +3731,7 @@ const HELP_TABS = [
     ['MALESTAR SOCIAL', [
       'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
       'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. Si es desactiva la política dinàmica, aquesta protecció deixa d\'actuar i el batlle pot derogar qualsevol llei. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
     ]],
     ['EL CONSELL I LES PRESSIONS', [
       'Els rics i els pobres pressionen el consell, i la pressió depèn només de com està repartida la riquesa. Els rics empenyen cap a la dreta com més riquesa té el 10% de cases més riques: comencen quan en tenen el 25% del total i pressionen al màxim quan en tenen el 65%. Els pobres empenyen cap a l\'esquerra com més riquesa té, sumada, la meitat més pobre de les cases: comencen quan en té el 25% i pressionen al màxim quan en té el 50% (un poble del tot igualitari).',
@@ -3690,7 +3739,7 @@ const HELP_TABS = [
       'Cada deu dies el consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
       'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
       'Abans d\'aprovar una llei d\'un bàndol (socialista o socialdemòcrata a l\'esquerra, turbocapitalista o tecnofeudal a la dreta), el consell deroga totes les lleis de l\'altre bàndol que encara hi hagi.',
-      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar. L\'única excepció són les lleis socialistes durant els tres anys després d\'una revolució.',
+      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar. L\'única excepció són les lleis socialistes durant els tres anys després d\'una revolució, mentre la política dinàmica estigui activada.',
     ]],
     ['LLEIS ECONÒMIQUES', [
       'Qui pressiona més pot aconseguir aprovar una llei. Com més pressió, més probable és.',
@@ -3701,8 +3750,8 @@ const HELP_TABS = [
     ]],
     ['LLEIS DE MEDI AMBIENT', [
       'Si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc. Si al riu queden menys del 40% dels peixos, la Pesca regulada.',
-      'Les pot derogar quan el bosc torna al 55% o el riu al 85%. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
-      'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc torna a la meitat, qualsevol consell aixeca la prohibició.',
+      'Les pot derogar quan el riu torna al 85% o quan el bosc torna al 70%. Per saber si el bosc s\'ha recuperat només es compta el bosc de l\'altra banda del riu, on no s\'hi pot construir: el de la banda del poble es tala per fer cases i camps i no torna mai del tot. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
+      'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc de l\'altra banda del riu torna a la meitat, qualsevol consell aixeca la prohibició.',
     ]],
     ['LLEIS GENERALS I DE SEGURETAT', [
       'Escola: un consell d\'esquerres aprova l\'Escola pública i un de dretes l\'Escola privada. Un de centre no en toca cap.',
