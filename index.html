@@ -364,7 +364,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div class="bad"><span>Aldarulls</span><b id="sRiots">0</b></div>
         <div class="bad"><span>Revolucions</span><b id="sRevolutions">0</b></div>
         <div class="bad"><span>Desastres</span><b id="sDisasters">0</b></div>
-        <div class="pad"></div>
+        <div><span>Lleis aprovades soles</span><b id="sAutoLaws">0</b></div>
       </div>
     </section>
 
@@ -2544,6 +2544,7 @@ function updateHud() {
   put('sHousePrice', fmt(HUT_VAL * S.houseIdx));
   put('sHealth', alive.length ? Math.round(100 * avg(alive.map(p => p.health))) : '—');
   put('sDisasters', S.st.disasters || 0);
+  put('sAutoLaws', S.st.autoLaws || 0);
   put('sRiots', S.st.riots || 0); put('sRevolutions', S.st.revolutions || 0);
   { // unrest meter
     const u = S.unrest || 0, lvl = u >= 75 ? 'high' : u >= 50 ? 'mid' : '';
@@ -2626,7 +2627,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lawPic
 // and loot the richest pantries; at 100% there is a revolution
 const UNREST_HUNGER = 3, UNREST_DEATH = 600, UNREST_CALM = 0.5, RIOT_AT = 75, REVOLT_GAP = 2 * YEAR;
 function unrest(active) {
-  if (!POLITICS) { S.unrest = 0; return; } // with dynamic politics off the village never protests
   const alive = S.people.filter(p => !p.leaving), n = alive.length || 1;
   const hs = alive.filter(p => p.hunger >= 3).length / n, died = S.st.died - (S.uDied ?? S.st.died);
   S.uDied = S.st.died; S.hungryShare = hs;
@@ -2636,8 +2636,34 @@ function unrest(active) {
   const base = unrestBase();
   u += UNREST_HUNGER * hs + died * Math.max(3, UNREST_DEATH / n) - (hs < 0.05 ? UNREST_CALM : 0.15);
   S.unrest = u = Math.max(base, Math.min(100, u)); // inequality alone keeps people from ever being quite content
+  if (!POLITICS) return; // the meter still moves, but with dynamic politics off nobody acts on it
+  if (S.day % LOBBY_EVERY === 0) lobby(active, u);
   if (u >= 100 && !(S.day - (S.revDay ?? -1e9) < REVOLT_GAP)) revolution(active);
   else if (u >= RIOT_AT && R() < 0.01 + 0.05 * (u - RIOT_AT) / (100 - RIOT_AT)) riot(active);
+}
+// laws that pass by themselves: every two months the village weighs who pushes harder. The rich push in proportion
+// to how much of the wealth the richest tenth of homes hold (from 30% up); the poor in proportion to the unrest (from
+// 40%). The stronger side may get one of its laws through: the poor a socialist one, the rich a turbocapitalist one,
+// or a technofeudal one when they hold more than half of everything
+const LOBBY_EVERY = 60;
+function topShare(active) {
+  const ws = wealthsOf(active.filter(h => h.members.length)).sort((a, b) => b - a), tot = ws.reduce((t, v) => t + v, 0);
+  return tot > 0 ? ws.slice(0, Math.max(1, Math.ceil(ws.length / 10))).reduce((t, v) => t + v, 0) / tot : 0;
+}
+function lobby(active, u) {
+  const top = topShare(active);
+  const rich = Math.max(0, Math.min(1, (top - 0.3) * 2.5)), poor = Math.max(0, Math.min(1, (u - 40) / 60));
+  const push = Math.max(rich, poor);
+  if (push <= 0 || R() > push * 0.6) return;
+  const cat = poor >= rich ? 'SOCIALISTES' : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
+  const options = LAW_CATS.find(c => c[0] === cat)[1].filter(k => !L[k]);
+  if (!options.length) return;
+  const k = options[Math.floor(R() * options.length)];
+  log(poor >= rich
+    ? `La gent que passa gana omple la plaça i el consell cedeix: s'aprova «${LAWDEFS[k].name}».`
+    : `Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell aprovi «${LAWDEFS[k].name}».`, poor >= rich ? 'good' : 'bad');
+  proclaim(k);
+  S.st.autoLaws = (S.st.autoLaws || 0) + 1;
 }
 // the floor set by inequality: nothing below a Gini of 0.25, then 1.4 points for every hundredth, up to 70
 function unrestBase() { const g = S.gini.length ? S.gini[S.gini.length - 1][1] : 0; return Math.max(0, Math.min(70, (g - 0.25) * 140)); }
@@ -2880,7 +2906,7 @@ function fire() {
   if (n < 3) return; // a few trees burning is no disaster
   disaster(`Un incendi crema ${n} arbres del bosc${dry() ? ', sec per la sequera' : ''}.`, 'INCENDI', x0, y0);
 }
-function syncPol() { $('polBtn').textContent = 'Política dinàmica: ' + (POLITICS ? 'sí' : 'no'); $('polBtn').setAttribute('aria-pressed', POLITICS); $('uSec').hidden = !POLITICS; }
+function syncPol() { $('polBtn').textContent = 'Política dinàmica: ' + (POLITICS ? 'sí' : 'no'); $('polBtn').setAttribute('aria-pressed', POLITICS); }
 function syncDis() { $('disBtn').textContent = 'Desastres: ' + (DISASTERS ? 'sí' : 'no'); $('disBtn').setAttribute('aria-pressed', DISASTERS); }
 
 // ---------- family mode ----------
@@ -3026,8 +3052,7 @@ $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
   POLITICS = !POLITICS; syncPol();
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
-  if (!POLITICS) { S.unrest = 0; updateHud(); }
-  log(POLITICS ? 'Política dinàmica activada: la gent pot protestar, fer aldarulls i revolucions.' : 'Política dinàmica desactivada: no hi haurà malestar, aldarulls ni revolucions.', 'info');
+  log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
 $('disBtn').onclick = () => {
   DISASTERS = !DISASTERS; syncDis();
@@ -3160,7 +3185,8 @@ $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('
 // help window: every rule the simulation follows
 const RULES = [
   ['MALESTAR SOCIAL', [
-    'Només n\'hi ha amb el botó «Política dinàmica: sí». Si està en «no», no hi ha malestar, ni aldarulls, ni revolucions, i la barra no es mostra.',
+    'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
+    'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialista; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
     'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
     'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
     'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
