@@ -494,7 +494,7 @@ const CLOTHES = ['#b0402f', '#96593a', '#c97a3c', '#7a3d29', '#bf9670', '#5f4a3c
 
 // every law the batlle can proclaim, by category. A law that contradicts another one repeals it
 const LAW_CATS = [
-  ['GENERAL', ['work', 'natal', 'limit', 'ration', 'school', 'pasture']],
+  ['GENERAL', ['work', 'natal', 'limit', 'ration', 'pubschool', 'privschool']],
   ['MEDI AMBIENT', ['forest', 'fishing', 'nocoal']],
   ['SEGURETAT', ['theft', 'stay', 'closed']],
   ['SOCIALISTES', ['collective', 'nowage', 'norent', 'agrarian', 'share']],
@@ -510,8 +510,8 @@ const LAWDEFS = {
   natal: { name: 'Foment de la natalitat', txt: 'Es fomenten les famílies: neixen més nadons.', excl: ['limit'] },
   limit: { name: 'Límit de naixements', txt: 'Es limiten els naixements: neixen molts menys nadons.', excl: ['natal'] },
   ration: { name: 'Racionament', txt: 'El menjar es raciona: tothom menja un 20% menys.' },
-  school: { name: 'Escola per a la canalla', txt: 'Escola per a la canalla: els nens neixen més llestos que els seus pares, però cada casa paga el mestre amb menjar.' },
-  pasture: { name: 'Pastures comunals', txt: 'Pastures comunals: a l\'hivern les ovelles necessiten un 40% menys de farratge, però cap casa pot tenir més de 5 ovelles.' },
+  pubschool: { name: 'Escola pública', txt: 'Escola pública: tots els nens van a l\'escola i neixen més llestos que els seus pares. El mestre el paguen totes les cases, cadascuna segons el menjar que té.', excl: ['privschool'] },
+  privschool: { name: 'Escola privada', txt: 'Escola privada: només van a l\'escola els nens de les cases que poden pagar el mestre (les que tenen menjar per a més de 30 dies). Aquests nens neixen més llestos que els seus pares; els altres, no.', excl: ['pubschool'] },
   theft: { name: 'Llei contra els robatoris', txt: 'Robar està prohibit: hi ha molts menys robatoris i hi ha guàrdia, que atrapa el doble de lladres.' },
   stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
   closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
@@ -645,7 +645,7 @@ function newPerson(h, age, parents, sex, surname) {
   const p = { id: S.nextId++, h, age, sex, name: pickName(sex === 'f' ? NOMS_F : NOMS_M), surname: surname || h.surname,
     x: 0, y: 0, tx: 0, ty: 0, bx: 0, by: 0, wait: 0, task: 'idle',
     greed: inherit(parents, 'greed', () => Math.pow(R(), 1.6)), lazy: inherit(parents, 'lazy', () => R() * 0.8),
-    health: age > 0 ? rr(0.8, 1) : 1, str: inherit(parents, 'str', R), int: clamp01(inherit(parents, 'int', R) + (L.school && parents ? 0.08 : 0)),
+    health: age > 0 ? rr(0.8, 1) : 1, str: inherit(parents, 'str', R), int: clamp01(inherit(parents, 'int', R) + (parents && (L.pubschool || (L.privschool && daysOf(h) > 30)) ? 0.08 : 0)),
     parents: parents ? parents.map(q => q.name) : null, hunger: 0, leaving: false, color: CLOTHES[ri(0, CLOTHES.length - 1)] };
   p.parentIds = parents ? parents.map(q => q.id) : null;
   h.members.push(p); (h.lived ||= []).push(p.id); S.people.push(p); return p;
@@ -875,7 +875,7 @@ function syncHerd(h) {
 }
 // a pen can be improved with wood and iron (a shed and a stronger fence): more milk, more lambs, fewer losses and room for more sheep
 const PEN_WOOD = 40, PEN_IRON = 8, PEN_MILK = 1.3;
-const herdMax = h => (L.pasture ? 5 : HERD_MAX) + (h && h.pen && h.pen.lvl ? 4 : 0);
+const herdMax = h => HERD_MAX + (h && h.pen && h.pen.lvl ? 4 : 0);
 const wantPen = h => !h.gone && h.pen && !h.pen.lvl && h.herd >= 3 && daysOf(h) > 60 && h.food > 250;
 // a small household needs a smaller fire
 const hearth = h => Math.min(1.2, 0.4 + 0.15 * h.members.length) * (stoneHouse(h) ? UP_HEAT : 1);
@@ -1313,7 +1313,7 @@ function daily() {
       if (doy < 80 && h.herd >= 2 && h.herd < herdMax(h) + 2 && R() < 0.006 * h.herd * (h.pen.lvl ? 1.3 : 1)) { h.herd++; tagHome(h, 'NEIX UN XAI', 'good'); }
     } else {
       // winter: the sheep eat hay from the family's stores
-      const fodder = FODDER * h.herd * (L.pasture ? 0.6 : 1);
+      const fodder = FODDER * h.herd;
       if (h.food >= fodder) { h.food -= fodder; h.milk -= fodder; }
       else if (R() < 0.15) { h.herd--; S.st.lostHerd++; tagHome(h, 'MOR UNA OVELLA', 'bad'); logOnce('herdStarve', `Els ${h.surname} no tenen farratge i una ovella mor de gana.`, 'bad'); }
     }
@@ -1328,7 +1328,11 @@ function daily() {
   for (const h of active) {
     const loss = h.food * (season === 1 ? 0.003 : 0.0015) * (1.3 - famInt(h)) * (stoneHouse(h) ? UP_SPOIL : 1);
     h.food -= loss; h.spoiled += loss;
-    if (L.school) h.food -= 0.05 * h.members.filter(m => m.age < 360).length; // the teacher is paid in food
+    if (L.privschool && daysOf(h) > 30) h.food -= 0.08 * h.members.filter(m => m.age < 360).length; // a private teacher, paid by those who can
+  }
+  if (L.pubschool) { // the public teacher is paid by every house in proportion to its food
+    const kids = S.people.filter(m => m.age < 360 && !m.leaving).length, tot = active.reduce((t, h) => t + Math.max(0, h.food), 0);
+    if (tot > 0) for (const h of active) h.food -= 0.05 * kids * Math.max(0, h.food) / tot;
   }
 
   // kilns and forges: idle for a year they crumble; a ruin nobody repairs for another year is cleared away
@@ -2583,7 +2587,7 @@ function updateHud() {
     const c = S.council || 0, pr = S.press;
     $('cDot').style.left = (50 + 50 * c).toFixed(1) + '%'; $('cMeter').setAttribute('aria-valuenow', Math.round(100 * c));
     put('cWhy', S.day < YEAR ? 'El primer any el consell encara no té cap orientació.'
-      : `${Math.abs(c) < 0.15 ? 'Al centre' : c < 0 ? (c < -0.5 ? 'Molt d\'esquerres' : 'D\'esquerres') : (c > 0.5 ? 'Molt de dretes' : 'De dretes')}. ` +
+      : `Consell ${councilType(c)}. ` +
         (pr ? `El 10% més ric té el ${Math.round(pr.top * 100)}% de la riquesa${pr.rich > 0 ? ' i pressiona cap a la dreta' : ''}; ${pr.poor > 0 ? 'el malestar empeny cap a l\'esquerra' : 'el malestar no és prou alt per empènyer cap a l\'esquerra'}.` : ''));
   }
   { // unrest meter
@@ -2625,7 +2629,7 @@ function renderLaws() {
   laws.forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${i + 1}] ${l.text}`; con.append(d); });
   $('hLaws').textContent = laws.length;
 }
-function repeal(i) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); log(`Es deroga la llei «${l.text}».`, 'amber'); }
+function repeal(i, quiet) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); if (!quiet) log(`Es deroga la llei «${l.text}».`, 'amber'); }
 function proclaim(k, quiet) {
   const d = LAWDEFS[k];
   for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => (d.excl || []).includes(f))) repeal(i);
@@ -2692,9 +2696,12 @@ function topShare(active) {
   const ws = wealthsOf(active.filter(h => h.members.length)).sort((a, b) => b - a), tot = ws.reduce((t, v) => t + v, 0);
   return tot > 0 ? ws.slice(0, Math.max(1, Math.ceil(ws.length / 10))).reduce((t, v) => t + v, 0) / tot : 0;
 }
+// the council's colour follows its position: socialist far left, social-democrat left, centre, turbocapitalist right
+// and technofeudal far right
+const councilType = c => c < -0.5 ? 'socialista' : c < -0.15 ? 'socialdemòcrata' : c <= 0.15 ? 'de centre' : c <= 0.5 ? 'turbocapitalista' : 'tecnofeudal';
 function lobby(active, u) {
   const { rich, poor, top } = S.press || pressures(active, u), c = S.council || 0;
-  ecoLaws(c);
+  ecoLaws(c); civicLaws(active, c);
   const push = Math.max(rich, poor);
   if (push <= 0 || R() > push * 0.6) return;
   // the poor ask for reforms, and for socialism outright once anger is high or the council already leans far left;
@@ -2714,6 +2721,40 @@ function lobby(active, u) {
 function pressures(active, u) {
   const top = topShare(active);
   return { top, rich: Math.max(0, Math.min(1, (top - 0.3) * 2.5)), poor: Math.max(0, Math.min(1, (u - 40) / 60)) };
+}
+// general and security laws, voted by the council as things happen in the village (every two months): the left wants a
+// public school and the right a private one; socialists and technofeudals close the borders when the village goes
+// hungry and stop people leaving when many go, and only they touch births; social-democrats and turbocapitalists open
+// the borders and let people go again
+function civicLaws(active, c) {
+  const t = councilType(c), left = c < -0.15, right = c > 0.15, hard = t === 'socialista' || t === 'tecnofeudal', soft = t === 'socialdemòcrata' || t === 'turbocapitalista';
+  const n = S.people.filter(p => !p.leaving).length || 1, hs = S.hungryShare || 0;
+  const gone = S.st.left - (S.c60?.left ?? S.st.left), thefts = S.st.thefts - (S.c60?.thefts ?? S.st.thefts), grew = n / (S.c60?.n || n);
+  const food = active.reduce((a, h) => a + Math.max(0, h.food), 0) + S.granary, nd = active.reduce((a, h) => a + need(h), 0) || 1;
+  S.c60 = { left: S.st.left, thefts: S.st.thefts, n };
+  const vote = (k, on, why) => {
+    const i = laws.findIndex(l => l.fx.includes(k));
+    if (on && i < 0) { log(`El consell ${t} aprova «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); proclaim(k, true); }
+    else if (!on && i >= 0) { log(`El consell ${t} deroga «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); repeal(i, true); }
+    else return;
+    S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+  };
+  const chance = p => R() < p;
+  if (chance(0.25)) { if (left && !L.pubschool) vote('pubschool', true, 'l\'escola ha de ser de tothom'); else if (right && !L.privschool) vote('privschool', true, 'qui vulgui escola, que la pagui'); }
+  if (hard && hs > 0.1 && chance(0.5)) vote('closed', true, 'no hi ha menjar per a més gent');
+  else if (soft && L.closed && chance(0.5)) vote('closed', false, 'el poble torna a obrir les portes');
+  if (hard && gone > n * 0.03 && chance(0.5)) vote('stay', true, `${gone} persones han marxat en dos mesos`);
+  else if (soft && L.stay && chance(0.5)) vote('stay', false, 'qui vulgui marxar, que marxi');
+  if (hard && hs > 0.1 && !L.limit && chance(0.4)) vote('limit', true, 'hi ha massa boques per alimentar');
+  else if (L.limit && hs < 0.02 && chance(0.4)) vote('limit', false, 'ja no hi ha gana');
+  if (hard && grew < 0.97 && hs < 0.05 && !L.natal && chance(0.4)) vote('natal', true, 'el poble s\'està buidant');
+  else if (L.natal && grew > 1.05 && chance(0.4)) vote('natal', false, 'el poble ja creix prou');
+  if (thefts > n * 0.05 && !L.theft && chance(left ? 0.3 : right ? 0.7 : 0.5)) vote('theft', true, `hi ha hagut ${thefts} robatoris en dos mesos`);
+  else if (L.theft && thefts === 0 && left && chance(0.2)) vote('theft', false, 'ja no hi ha robatoris');
+  if (food / nd < 8 && !L.ration && chance(0.5)) vote('ration', true, 'el menjar del poble s\'acaba');
+  else if (L.ration && food / nd > 40 && chance(0.5)) vote('ration', false, 'tornen a haver-hi reserves');
+  if (hs > 0.05 && !L.work && (t === 'socialista' || t === 'turbocapitalista') && chance(0.4)) vote('work', true, 'cal treballar més per no passar gana');
+  else if (L.work && hs < 0.01 && chance(0.15)) vote('work', false, 'ja no cal');
 }
 // the council looks after the forest and the river when they run short, and lifts the rules once they recover; a council
 // far to the right never protects them, and one far to the left never lifts the protection
@@ -3253,6 +3294,8 @@ $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('
 // help window: every rule the simulation follows
 const RULES = [
   ['MALESTAR SOCIAL', [
+    'Tipus de consell (amb política dinàmica): segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Un consell de centre no aprova cap escola ni obre ni tanca fronteres.',
+    'Lleis generals i de seguretat (amb política dinàmica), cada dos mesos: un consell d\'esquerres pot aprovar l\'Escola pública i un de dretes l\'Escola privada. Els consells socialistes i tecnofeudals tanquen les fronteres si més del 10% de la gent passa gana, prohibeixen marxar del poble si en dos mesos marxa més del 3% de la gent, limiten els naixements si hi ha gana i fomenten la natalitat si el poble s\'encongeix. Els socialdemòcrates i els turbocapitalistes tornen a obrir les fronteres i deixen marxar la gent, i mai aproven lleis sobre els naixements. Qualsevol consell pot aprovar la llei contra els robatoris si n\'hi ha molts (els de dretes, més fàcilment), el racionament si el menjar del poble s\'acaba, i els socialistes i turbocapitalistes Tothom a treballar si hi ha gana. Quan el problema desapareix, les poden derogar.',
     'Medi ambient (amb política dinàmica): si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc, i si al riu queden menys del 40% dels peixos, la Pesca regulada. Quan el bosc torna al 70% o el riu al 85%, les pot derogar. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
     'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
     'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Segons qui pressiona més, el consell es mou cap a l\'esquerra o cap a la dreta (l\'indicador «Orientació del consell»). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
