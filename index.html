@@ -197,6 +197,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .help .htabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px 4px;border-bottom:1px solid var(--line)}
 .help .htabs .btn{padding:4px 10px;font-size:12px}
 .help .htabs .btn[aria-selected="true"]{background:var(--amber);color:#1d1406;border-color:var(--amber)}
+.help .rules .dim{color:var(--muted);font-size:12px}
 .help .rules .lead{color:var(--muted);margin:14px 0 0}
 .help .rules .on{color:var(--good);font-size:11px;margin-left:6px}
 .houses .hsort{display:none}
@@ -543,6 +544,12 @@ const LAWDEFS = {
   tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.', excl: ['collective'] },
   vassal: { name: 'Vassallatge', txt: 'Vassallatge: les cases sense camps es tornen vassalles del senyor de la plataforma. Cada adult li paga cada dia mig de menjar, i a canvi el senyor les alimenta quan passen gana, si pot.' },
 };
+// the two sides of politics: left (socialist and social-democrat) and right (turbocapitalist and technofeudal). A
+// socialist law cannot live with any law of the right, and exclusions work both ways
+const sideCats = side => LAW_CATS.filter(c => (side === 'left' ? ['SOCIALISTES', 'SOCIALDEMÒCRATES'] : ['TURBOCAPITALISTES', 'TECNOFEUDALS']).includes(c[0])).flatMap(c => c[1]);
+const sideOf = k => sideCats('left').includes(k) ? 'left' : sideCats('right').includes(k) ? 'right' : null;
+for (const k of LAW_CATS.find(c => c[0] === 'SOCIALISTES')[1]) LAWDEFS[k].excl = [...new Set([...(LAWDEFS[k].excl || []), ...sideCats('right')])];
+const clashes = (a, b) => (LAWDEFS[a].excl || []).includes(b) || (LAWDEFS[b].excl || []).includes(a);
 
 // ---------- rng / noise ----------
 let seed = 1, rng;
@@ -2646,7 +2653,7 @@ function renderLaws() {
 function repeal(i, quiet) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); if (!quiet) log(`Es deroga la llei «${l.text}».`, 'amber'); }
 function proclaim(k, quiet) {
   const d = LAWDEFS[k];
-  for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => (d.excl || []).includes(f))) repeal(i);
+  for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => clashes(k, f))) repeal(i);
   laws.push({ text: d.name, fx: [k], day: S.day }); recomputeLaws();
   if (!quiet) log(`Nova llei: «${d.name}».`, 'amber');
   // laws that hand something over the moment they come in
@@ -2662,7 +2669,7 @@ function proclaim(k, quiet) {
 function renderLawPick() {
   const on = k => laws.findIndex(l => l.fx.includes(k));
   $('lawPickBody').innerHTML = LAW_CATS.map(([cat, ks]) => `<section class="cat"><h3>${cat}</h3><ul>${ks.map(k => {
-    const d = LAWDEFS[k], i = on(k), clash = (d.excl || []).filter(o => on(o) >= 0).map(o => LAWDEFS[o].name);
+    const d = LAWDEFS[k], i = on(k), clash = laws.filter(l => l.fx.some(f => clashes(k, f))).map(l => l.text);
     return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}">${i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
   }).join('')}</ul></section>`).join('');
 }
@@ -2713,6 +2720,16 @@ function topShare(active) {
 // the council's colour follows its position: socialist far left, social-democrat left, centre, turbocapitalist right
 // and technofeudal far right
 const councilType = c => c < -0.5 ? 'socialista' : c < -0.15 ? 'socialdemòcrata' : c <= 0.15 ? 'de centre' : c <= 0.5 ? 'turbocapitalista' : 'tecnofeudal';
+// before the council passes a law of one side, it repeals every law of the other side still standing
+function councilProclaim(k) {
+  const side = sideOf(k);
+  if (side) {
+    const other = new Set(sideCats(side === 'left' ? 'right' : 'left')), gone = [];
+    for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => other.has(f))) { gone.unshift(laws[i].text); repeal(i, true); }
+    if (gone.length) log(`Abans, el consell deroga ${gone.length > 1 ? 'les lleis' : 'la llei'} de l'altra banda: ${gone.map(t => '«' + t + '»').join(', ')}.`, 'amber');
+  }
+  proclaim(k, true);
+}
 function lobby(active, u) {
   const { rich, poor, top } = S.press || pressures(active, u), c = S.council || 0;
   ecoLaws(c); civicLaws(active, c);
@@ -2739,7 +2756,7 @@ function lobby(active, u) {
   log(poor >= rich
     ? `La gent que passa gana omple la plaça i el consell cedeix: s'aprova «${LAWDEFS[k].name}».`
     : `Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell aprovi «${LAWDEFS[k].name}».`, poor >= rich ? 'good' : 'bad');
-  proclaim(k, true);
+  councilProclaim(k);
   S.st.autoLaws = (S.st.autoLaws || 0) + 1;
 }
 // how hard each side pushes: the rich from the share of wealth the richest tenth hold (from 30%), the poor from the
@@ -2760,7 +2777,7 @@ function civicLaws(active, c) {
   S.c60 = { left: S.st.left, thefts: S.st.thefts, n };
   const vote = (k, on, why) => {
     const i = laws.findIndex(l => l.fx.includes(k));
-    if (on && i < 0) { log(`El consell ${t} aprova «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); proclaim(k, true); }
+    if (on && i < 0) { log(`El consell ${t} aprova «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); councilProclaim(k); }
     else if (!on && i >= 0) { log(`El consell ${t} deroga «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); repeal(i, true); }
     else return;
     S.st.autoLaws = (S.st.autoLaws || 0) + 1;
@@ -3459,6 +3476,7 @@ const HELP_TABS = [
       'Cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques, a partir del 30% del total. Els pobres pressionen més com més malestar hi ha, a partir del 40%.',
       'El consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
       'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
+      'Abans d\'aprovar una llei d\'un bàndol (socialista o socialdemòcrata a l\'esquerra, turbocapitalista o tecnofeudal a la dreta), el consell deroga totes les lleis de l\'altre bàndol que encara hi hagi.',
       'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar.',
     ]],
     ['LLEIS ECONÒMIQUES', [
@@ -3517,7 +3535,8 @@ function renderHelp() {
   const secs = HELP_TABS[helpTab][1];
   $('helpBody').innerHTML = secs ? secs.map(([t, items]) => `<h3>${t}</h3><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('')
     : `<p class="lead">Cada llei fa exactament el que diu aquí. Les marcades com a VIGENT són les que hi ha ara al poble. Algunes no poden conviure i, en proclamar-ne una, es deroga l'altra.</p>` +
-      LAW_CATS.map(([cat, ks]) => `<h3>LLEIS ${cat}</h3><ul>${ks.map(k => `<li>${esc(LAWDEFS[k].txt)}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`).join('')}</ul>`).join('');
+      LAW_CATS.map(([cat, ks]) => `<h3>LLEIS ${cat}</h3><ul>${ks.map(k => { const no = Object.keys(LAWDEFS).filter(o => o !== k && clashes(k, o)).map(o => LAWDEFS[o].name);
+        return `<li>${esc(LAWDEFS[k].txt)}${no.length ? `<br><span class="dim">No pot conviure amb: ${esc(no.join(', '))}.</span>` : ''}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`; }).join('')}</ul>`).join('');
   $('helpBody').parentElement.scrollTop = 0;
 }
 $('helpTabs').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { helpTab = +b.dataset.i; renderHelp(); } });
