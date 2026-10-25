@@ -104,6 +104,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .houses tr.row.me td{background:rgba(90,160,238,.1)}
 .houses tr.row.me td:first-child{box-shadow:inset 3px 0 0 #5aa0ee}
 .houses .you{display:inline-block;margin-left:8px;padding:0 5px;border-radius:3px;background:#5aa0ee;color:#0d1620;font:600 10px/16px var(--f-mono);letter-spacing:.06em;vertical-align:2px}
+#famSec .famCard{cursor:pointer;border-radius:6px;transition:background .15s}
+#famSec .famCard:hover,#famSec .famCard:focus-visible{background:rgba(90,160,238,.1);outline:1px solid #5aa0ee}
 #famSec .forget{margin-top:8px;font-size:12px;background:var(--panel);color:var(--ink);border-color:var(--line)}
 #famSec .forget:disabled{opacity:.5;cursor:default}
 .btn:disabled,.laws .x:disabled{opacity:.5;cursor:not-allowed}
@@ -288,7 +290,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 
     <section class="sec" id="famSec" hidden>
       <h3 id="famTitle">LA TEVA FAMÍLIA</h3>
-      <div class="stats">
+      <div class="stats famCard" id="famCard" role="button" tabindex="0" title="Obre la teva família a Cases del poble" aria-label="Obre la teva família a Cases del poble">
         <div><span>Membres</span><b id="fMembers">0</b></div>
         <div><span>Menjar</span><b id="fFood">0</b></div>
         <div><span>Dies</span><b id="fDays">0</b></div>
@@ -3819,6 +3821,13 @@ $('helpClose').onclick = () => { $('help').hidden = true; $('helpBtn').focus(); 
 $('help').addEventListener('click', e => { if (e.target.id === 'help') $('helpClose').click(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('help').hidden) $('helpClose').click(); });
 $('housesBtn').onclick = () => { $('houses').hidden = false; renderHouses(); $('housesClose').focus(); };
+const openMyHouse = () => { // the family panel opens the village houses on the player's own family, unfolded
+  if (!S.player || S.player.gone) return;
+  openHouse.add(S.player.id); $('houses').hidden = false; renderHouses(true, S.player.id);
+  const r = $('housesBody').querySelector(`tr[data-id="${S.player.id}"]`); (r || $('housesClose')).focus({ preventScroll: true });
+};
+$('famCard').onclick = openMyHouse;
+$('famCard').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMyHouse(); } };
 $('housesClose').onclick = () => { $('houses').hidden = true; $('housesBtn').focus(); };
 $('houses').addEventListener('click', e => { if (e.target.id === 'houses') $('housesClose').click(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('houses').hidden) $('housesClose').click(); });
