@@ -99,6 +99,11 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .laws .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 2px;align-self:start}
 .laws .x:hover{color:var(--bad)}
 .empty{color:var(--muted);font-size:12px;margin:0}
+.houses tr.row.me td{background:rgba(90,160,238,.1)}
+.houses tr.row.me td:first-child{box-shadow:inset 3px 0 0 #5aa0ee}
+.houses .you{display:inline-block;margin-left:8px;padding:0 5px;border-radius:3px;background:#5aa0ee;color:#0d1620;font:600 10px/16px var(--f-mono);letter-spacing:.06em;vertical-align:2px}
+#famSec .forget{margin-top:8px;font-size:12px;background:var(--panel);color:var(--ink);border-color:var(--line)}
+#famSec .forget:disabled{opacity:.5;cursor:default}
 .credit{margin:0;padding:14px 4px 18px;font-size:11px;color:var(--muted);text-align:center}
 .gini{position:relative;height:120px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
 .gini canvas{display:block;width:100%;height:100%;cursor:crosshair}
@@ -251,6 +256,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Ovelles</span><b id="fHerd">0</b></div>
       </div>
       <p class="empty" id="fWho"></p>
+      <button class="btn forget" type="button" id="forgetBtn">Oblida les respostes recordades</button>
     </section>
 
     <section class="sec">
@@ -1137,10 +1143,10 @@ function daily() {
   const pool = [];
   for (const h of active) if (daysOf(h) < 8 + 2 * S.wage) for (const p of h.members)
     if (p.age >= 360 && !p.leaving && p.gainDay === S.day && (p.task === 'forage' || p.task === 'fish')
-      && ask(p.h, 'work', `Hi ha cases que busquen jornalers a ${S.wage.toFixed(1)} de menjar al dia. Els vostres adults hi poden anar a treballar en lloc de collir o pescar?`, 'Sí, durant un mes', 'No', 30, 30)) pool.push(p);
+      && ask(p.h, 'work', `Hi ha cases que busquen jornalers a ${S.wage.toFixed(1)} de menjar al dia. Els vostres adults hi poden anar a treballar en lloc de collir o pescar?`, 'Sí, durant tres mesos', 'No', 90, 90)) pool.push(p);
   pool.sort((u, v) => v.str - u.str);
   const employers = active.filter(h => h.hut && h.members.length && daysOf(h) > 40 && h.food > Math.max(100, 40 * S.wage)
-    && ask(h, 'hire', `Teniu menjar de sobres. Contracteu jornalers d'altres cases per treballar els vostres camps i el ramat? El jornal és de ${S.wage.toFixed(1)} de menjar al dia.`, 'Sí, durant un mes', 'No', 30, 30)).sort((a, b) => b.food - a.food);
+    && ask(h, 'hire', `Teniu menjar de sobres. Contracteu jornalers d'altres cases per treballar els vostres camps i el ramat? El jornal és de ${S.wage.toFixed(1)} de menjar al dia.`, 'Sí, durant tres mesos', 'No', 90, 90)).sort((a, b) => b.food - a.food);
   let short = false; // some job went without a worker
   for (const e of employers) {
     if (!pool.length) { short = true; break; }
@@ -1192,7 +1198,7 @@ function daily() {
   for (const h of active) {
     if (!h.herd) {
       // a well-off family trades food for a pair of sheep and builds a pen
-      if (h.hut && season !== 3 && h.members.filter(m => m.age >= 360).length >= 2 && daysOf(h) > 120 && h.food > 400 && R() < 0.01
+      if (h.hut && season !== 3 && h.members.filter(m => m.age >= 360).length >= 2 && daysOf(h) > 120 && h.food > 400 && (R() < 0.01 || want(h, 'sheep'))
         && ask(h, 'sheep', `Teniu ${fmt(h.food)} de menjar guardat. Compreu dues ovelles per ${SHEEP_COST * 2} de menjar i feu un corral? Donen llet, però algú les ha de pasturar.`, 'Sí', 'No', 90)) {
         if (!h.pen) { const hx = homeXY(h); h.pen = findSite(hx.x, hx.y, 3, 3, 4); if (h.pen) mark(h.pen.x, h.pen.y, 3, 3, 4); h.penUsed = S.day; }
         if (h.pen) {
@@ -1458,7 +1464,7 @@ function daily() {
     // sellers: owners short of food, and small families (one or two people) living in a stone house or a block
     for (const sl of active.filter(o => o.hut && !o.tenant && ((daysOf(o) < 8 && o.food < 40) || (o.members.length <= 2 && (o.hut.lvl || o.hut.floors))))) {
       const needy = daysOf(sl) < 8 && sl.food < 40;
-      if (R() > (needy ? 0.05 : 0.005)) continue;
+      if (R() > (needy ? 0.05 : 0.005) && !want(sl, 'sell')) continue;
       const hut = sl.hut, price = housePrice(hut);
       if (!ask(sl, 'sell', needy ? `Passeu gana. Veneu ${houseName(hut)} per uns ${fmt(price)} de menjar i aneu a viure de lloguer o a una casa més petita?`
         : `Sou pocs per a ${houseName(hut)}. La veneu per uns ${fmt(price)} de menjar si algú la vol?`, 'Sí, si hi ha comprador', 'No', 60, 30)) continue;
@@ -1692,7 +1698,7 @@ function daily() {
       .map(o => ({ o, d: Math.hypot(o.hut.x - hx.x, o.hut.y - hx.y) }))
       .sort((u, v) => u.d - v.d).slice(0, 8).map(u => u.o);
     if (!others.length) continue;
-    if (R() < p && ask(h, 'steal', `Passeu gana. ${fullName(a)} pot anar a robar menjar als ${others.reduce((m, o) => o.food > m.food ? o : m, others[0]).surname}. Si l'atrapen, el primer cop queda avisat i el segon és desterrat.`, 'Que robi', 'No', 7)) {
+    if ((R() < p || want(h, 'steal')) && ask(h, 'steal', `Passeu gana. ${fullName(a)} pot anar a robar menjar als ${others.reduce((m, o) => o.food > m.food ? o : m, others[0]).surname}. Si l'atrapen, el primer cop queda avisat i el segon és desterrat.`, 'Que robi', 'No', 7)) {
       const v = others.reduce((m, o) => o.food > m.food ? o : m, others[0]);
       const amt = Math.round(Math.min(v.food * 0.12, rr(3, 4 + h.members.length * 3)));
       if (amt < 1) continue;
@@ -1726,7 +1732,7 @@ function daily() {
   // hunger: leave or die
   for (const p of S.people.slice()) {
     if (p.leaving) continue;
-    if (p.hunger >= 9 && !L.stay && p.age >= 360 && R() < 0.07 && ask(p.h, 'leave' + p.id, `${fullName(p)} fa ${p.hunger} dies que passa gana. Marxa del poble a buscar-se la vida? Hi haurà una boca menys per alimentar.`, 'Que marxi', 'Que es quedi', 20)) {
+    if (p.hunger >= 9 && !L.stay && p.age >= 360 && (R() < 0.07 || want(p.h, 'leave' + p.id)) && ask(p.h, 'leave' + p.id, `${fullName(p)} fa ${p.hunger} dies que passa gana. Marxa del poble a buscar-se la vida? Hi haurà una boca menys per alimentar.`, 'Que marxi', 'Que es quedi', 20)) {
       leave(p);
       log(`${fullName(p)} ha marxat caminant del poble. No hi havia res per menjar a casa.`, 'bad');
     } else if (p.age > 2 * YEAR && R() < oldRisk(p)) {
@@ -2500,6 +2506,9 @@ function ask(h, key, text, yes = 'Sí', no = 'No', ttl = 30, yesDays = 0) {
   if (!S.asks.some(q => q.key === key)) { S.asks.push({ key, text, yes, no, ttl, yesDays }); showAsk(); }
   return false;
 }
+// the player said yes and the family hasn't acted on it yet: chance checks that would hold the action back are skipped
+// (the dice are still rolled, so a village with no player runs exactly as before)
+function want(h, key) { const q = h === S.player && S.pol && S.pol[key]; return !!(q && q.yes && q.until >= S.day); }
 let askOpen = null, askWasRunning = false;
 function pauseFor() { if (askOpen === null) askWasRunning = running || askWasRunning; running = false; syncPlay(); }
 function showAsk() {
@@ -2522,7 +2531,8 @@ function showAsk() {
 }
 function answer(yes) {
   const q = S.asks.shift(), keep = $('askRemember').checked;
-  S.pol[q.key] = yes ? { yes, until: keep ? Infinity : S.day + (q.yesDays || 3), once: !keep && !q.yesDays }
+  // a one-off yes waits until the family next faces that choice (up to two months), and is used up then
+  S.pol[q.key] = yes ? { yes, until: keep ? Infinity : S.day + (q.yesDays || 60), once: !keep && !q.yesDays }
                      : { yes, until: keep ? Infinity : S.day + q.ttl };
   askOpen = null;
   if (S.asks.length) { showAsk(); return; }
@@ -2580,9 +2590,15 @@ function updateFamily() {
   put('fMembers', h.members.length); put('fFood', fmt(h.food)); put('fDays', Math.floor(daysOf(h)));
   put('fWealth', fmt(wealth(h))); put('fFields', h.fields.length); put('fHerd', h.herd);
   const ad = h.members.filter(m => m.age >= 360).length;
+  const kept = Object.values(S.pol || {}).filter(q => q.until === Infinity).length;
+  put('forgetBtn', kept ? `Oblida les respostes recordades (${kept})` : 'Cap resposta recordada');
+  $('forgetBtn').disabled = !kept;
   put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${h.hut ? (stoneHouse(h) ? 'Casa de pedra' : h.tenant ? 'Viuen de lloguer en un pis' : 'Cabana pròpia') : 'Encara sense casa'}.`);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ask').hidden) e.stopImmediatePropagation(); }, true);
+$('forgetBtn').onclick = () => { // every answer is forgotten, the remembered ones and the recent ones: the family asks again
+  S.pol = {}; updateFamily(); log('Has oblidat totes les respostes: la família et tornarà a preguntar cada decisió.', 'info');
+};
 
 // ---------- controls ----------
 let running = false, speed = 3;
@@ -2600,8 +2616,9 @@ $('resetBtn').onclick = () => {
   bases = {}; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
-  if (!$('intro').hidden) { $('intro').hidden = true; } running = true; syncPlay();
-  closeAsk(); if (MODE === 'familia') pickPlayer();
+  // back to the start screen, where the player picks how to play the new village
+  closeAsk(false); S.player = null; updateFamily(); MODE = 'batlle';
+  $('intro').hidden = false; running = false; syncPlay(); $('startBtn').focus();
 };
 cv.addEventListener('click', e => {
   const r = cv.getBoundingClientRect();
@@ -2665,8 +2682,8 @@ function renderHouses(force, focusId) {
     const owns = S.homes.filter(o => o.hut && o.hut.landlord === h && !hutOwner(o.hut)).map(o => o.hut).filter((u, i, a) => a.indexOf(u) === i);
     const tagTxt = !h.hut ? 'sense casa' : [h.tenant ? `lloga ${h.flatIdx === 'g' ? 'la planta baixa' : 'un pis'}${own ? ' als ' + own.surname : ''}` : fl ? `bloc de ${fl + 1} plantes · ${h.hut.flats.filter(Boolean).length} llogats` : '',
       !h.tenant && stoneHouse(h) ? 'casa de pedra' : '', owns.length ? `lloga ${owns.length > 1 ? owns.length + ' blocs' : 'un bloc'} sencer` : '', branch[h.id] > 1 ? `branca ${branch[h.id]}` : ''].filter(Boolean).join(' · ');
-    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">
-      <td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${tagTxt ? `<small>${tagTxt}</small>` : ''}</td>
+    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}${h === S.player ? ' me' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">
+      <td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === S.player ? '<b class="you">TU</b>' : ''}${tagTxt ? `<small>${tagTxt}</small>` : ''}</td>
       <td>${h.members.length}<span class="dim">/${famLimit(h)}</span>${kids ? ` <span class="dim">(${kids} ${kids > 1 ? 'nens' : 'nen'})</span>` : ''}</td>
       <td title="menjar, materials, ovelles i cases">${fmt(wealth(h))}</td>
       <td>${fmt(h.food)}</td>
@@ -2719,7 +2736,8 @@ const RULES = [
     'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. En aquest mode també pots proclamar lleis.',
     'La teva casa porta un marcador groc al mapa, i el panell LA TEVA FAMÍLIA mostra els seus membres, el menjar, els dies que els durarà, la riquesa, els camps i les ovelles.',
     'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar o marxar del poble), el joc es pausa i surt una finestra perquè triïs.',
-    'Si dius que sí, la família ho fa (una sola vegada, o durant un mes si és un jornal o un ofici). Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més.',
+    'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
+    'A la taula de Cases del poble, la teva família surt marcada en blau amb l\'etiqueta TU.',
     'Les altres famílies decideixen soles, com sempre.',
     'Si la teva família es queda sense ningú, passes a portar la família hereva que es queda la casa. Si l\'últim membre es casa i se\'n va, passes a la família amb qui s\'ha casat.',
     'Si no hi ha hereus, la partida s\'acaba. Pots començar un poble nou o continuar mirant el poble.',
