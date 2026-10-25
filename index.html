@@ -110,6 +110,11 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .unrest b{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 3px,transparent 3px 6px)}
 .unrest i.mid{background:var(--amber)}.unrest i.high{background:var(--bad)}
 .unrest span{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35)}
+.council{position:relative;height:10px;margin:4px 6px 0;border-radius:5px;background:linear-gradient(90deg,#c0503c,#4a4f57 50%,#3f78c8)}
+.council .mid{position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:rgba(255,255,255,.4)}
+.council i{position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--ink);border:2px solid var(--night);transition:left .4s}
+.cends{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-top:3px}
+.sec h3.sub{margin:12px 0 4px}
 .unrest .t1{left:75%}.unrest .t2{left:calc(100% - 1px)}
 #uNow.mid{color:var(--amber)}#uNow.high{color:var(--bad)}
 .credit{margin:0;padding:14px 4px 18px;font-size:11px;color:var(--muted);text-align:center}
@@ -248,6 +253,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       </div>
       <button class="btn" id="resetBtn">Poble nou</button>
       <button class="btn" id="housesBtn">Cases del poble</button>
+      <button class="btn" id="polBtn" aria-pressed="true">Política dinàmica: sí</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
       <button class="btn" id="quakeBtn">Terratrèmol!</button>
       <button class="btn" id="helpBtn">Ajuda</button>
@@ -279,10 +285,16 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <button class="btn forget" type="button" id="forgetBtn">Oblida les respostes recordades</button>
     </section>
 
-    <section class="sec">
+    <section class="sec" id="uSec">
       <h3>MALESTAR SOCIAL</h3>
       <div class="unrest" role="meter" aria-label="Malestar social" aria-valuemin="0" aria-valuemax="100" id="uMeter"><i id="uBar"></i><b id="uBase"></b><span class="t1"></span><span class="t2"></span></div>
       <p class="gnote"><b id="uNow">0%</b> · <span id="uWhy">Ningú no passa gana.</span></p>
+      <div id="cBox">
+        <h3 class="sub">ORIENTACIÓ DEL CONSELL</h3>
+        <div class="council" role="meter" aria-label="Orientació del consell, d'esquerres a dretes" aria-valuemin="-100" aria-valuemax="100" id="cMeter"><span class="mid"></span><i id="cDot"></i></div>
+        <div class="cends"><span>Esquerres</span><span>Centre</span><span>Dretes</span></div>
+        <p class="gnote" id="cWhy"></p>
+      </div>
     </section>
 
     <section class="sec">
@@ -315,8 +327,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Dies (mitjana)</span><b id="sDays">0</b></div>
         <div><span>Graner comú</span><b id="sGran">0</b></div>
         <div><span>Peix pescat</span><b id="sFish">0</b></div>
+        <div><span>Peixos al riu</span><b id="sFishStock">0</b></div>
         <div class="good"><span>Menjar repartit</span><b id="sRedist">0</b></div>
-        <div class="pad"></div>
         <h4>FEINA I PREUS</h4>
         <div><span>Preu del jornal</span><b id="sWage">0</b></div>
         <div><span>Jornals</span><b id="sJobs">0</b></div>
@@ -363,7 +375,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div class="bad"><span>Aldarulls</span><b id="sRiots">0</b></div>
         <div class="bad"><span>Revolucions</span><b id="sRevolutions">0</b></div>
         <div class="bad"><span>Desastres</span><b id="sDisasters">0</b></div>
-        <div class="pad"></div>
+        <div><span>Lleis aprovades soles</span><b id="sAutoLaws">0</b></div>
       </div>
     </section>
 
@@ -482,15 +494,18 @@ const CLOTHES = ['#b0402f', '#96593a', '#c97a3c', '#7a3d29', '#bf9670', '#5f4a3c
 
 // every law the batlle can proclaim, by category. A law that contradicts another one repeals it
 const LAW_CATS = [
-  ['GENERAL', ['work', 'forest', 'nocoal', 'natal', 'limit', 'ration', 'school', 'pasture']],
+  ['GENERAL', ['work', 'natal', 'limit', 'ration', 'school', 'pasture']],
+  ['MEDI AMBIENT', ['forest', 'fishing', 'nocoal']],
   ['SEGURETAT', ['theft', 'stay', 'closed']],
-  ['SOCIALISTES', ['share', 'granary', 'wealthtax', 'inhtax', 'basic', 'agrarian', 'prices', 'wage', 'tools', 'rentcap', 'housing']],
+  ['SOCIALISTES', ['collective', 'nowage', 'norent', 'agrarian', 'share']],
+  ['SOCIALDEMÒCRATES', ['granary', 'wealthtax', 'inhtax', 'basic', 'prices', 'wage', 'tools', 'rentcap', 'housing']],
   ['TURBOCAPITALISTES', ['laissez', 'notax', 'usury', 'enclosure']],
   ['TECNOFEUDALS', ['platform', 'cloud', 'tribute', 'vassal']],
 ];
 const LAWDEFS = {
   work: { name: 'Tothom a treballar', txt: 'Tothom treballa més: més camps per casa i menys mandra.' },
   forest: { name: 'Protecció del bosc', txt: 'El bosc es protegeix: es talen menys arbres i en tornen a créixer, però hi ha menys fusta.' },
+  fishing: { name: 'Pesca regulada', txt: 'Pesca regulada: cada pescador només pot treure el 60% del que pescaria, i a la primavera, quan els peixos fresen, no es pot pescar i la gent va al bosc. Els peixos es recuperen abans, però es pesca menys.' },
   nocoal: { name: 'Prohibit fer carbó', txt: 'Prohibit fer carbó: les carboneres s\'apaguen i es talen menys arbres, però els hiverns costen més de passar.' },
   natal: { name: 'Foment de la natalitat', txt: 'Es fomenten les famílies: neixen més nadons.', excl: ['limit'] },
   limit: { name: 'Límit de naixements', txt: 'Es limiten els naixements: neixen molts menys nadons.', excl: ['natal'] },
@@ -500,24 +515,27 @@ const LAWDEFS = {
   theft: { name: 'Llei contra els robatoris', txt: 'Robar està prohibit: hi ha molts menys robatoris i hi ha guàrdia, que atrapa el doble de lladres.' },
   stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
   closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
-  share: { name: 'Solidaritat obligatòria', txt: 'Les cases amb molt de menjar en donen a les que passen gana.' },
-  granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax'] },
+  share: { name: 'A cadascú segons les seves necessitats', txt: 'A cadascú segons les seves necessitats: les cases amb molt de menjar han de donar el que sobra a les que passen gana.' },
+  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita va al magatzem col·lectiu, que la reparteix a parts iguals entre totes les persones del poble.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
+  nowage: { name: 'Abolició del treball assalariat', txt: 'Abolició del treball assalariat: ningú pot treballar per a una altra casa a canvi d\'un jornal. Cada família treballa només el que és seu.', excl: ['laissez', 'platform'] },
+  norent: { name: 'Abolició de la renda', txt: 'Abolició de la renda: ningú paga lloguer per viure en un pis, i ningú no pot ser desnonat. Els propietaris ja no en treuen res, així que no se\'n fan de nous.', excl: ['laissez', 'rentcap', 'housing'] },
+  granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax', 'collective'] },
   wealthtax: { name: 'Impost a les grans fortunes', txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.', excl: ['notax'] },
   inhtax: { name: 'Impost sobre les herències', txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.', excl: ['notax'] },
-  basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax'] },
+  basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax', 'collective'] },
   agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
   prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
   wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
   tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
-  rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez'] },
-  housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez'] },
-  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage'] },
+  rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez', 'norent'] },
+  housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez', 'norent'] },
+  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage', 'collective', 'nowage', 'norent'] },
   notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
   usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Només en poden demanar les cases que tenen alguna cosa per empenyorar: casa pròpia, camps o corral. Si al cap d\'un any no han pagat, el creditor els embarga, una cosa cada mes fins a cobrar: primer el corral amb les ovelles, després els camps, un per un, i al final la casa, que llogarà.' },
-  enclosure: { name: 'Privatització del bosc', txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
-  platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament.' },
+  enclosure: { name: 'Privatització del bosc', excl: ['collective'], txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
+  platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament.', excl: ['nowage'] },
   cloud: { name: 'Eines al núvol', txt: 'Eines al núvol: les eines ja no es gasten, però cada eina paga una quota diària al senyor de la plataforma. Qui no pot pagar la quota es queda sense l\'eina.' },
-  tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.' },
+  tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.', excl: ['collective'] },
   vassal: { name: 'Vassallatge', txt: 'Vassallatge: les cases sense camps es tornen vassalles del senyor de la plataforma. Cada adult li paga cada dia mig de menjar, i a canvi el senyor les alimenta quan passen gana, si pot.' },
 };
 
@@ -1128,6 +1146,7 @@ function daily() {
   if (vis !== (S.visDis || 0)) { S.visDis = vis; S.dirty = true; }
   const sf = [1.3, 1.4, 1.1, 0.18][season] * (dry() ? DROUGHT_FORAGE : 1);
   const active = S.homes.filter(h => !h.gone);
+  breedFish(season);
   unrest(active);
   // yesterday's crowd at the river and in the woods sets today's share of the wild; what a day in the wild yields is
   // what a labourer gives up to take a job, and so the least a day's wage can fall to
@@ -1172,6 +1191,7 @@ function daily() {
           if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
           if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
           if (L.tribute) got -= payLord(h, got * 0.1);
+          if (L.collective) { S.commune = (S.commune || 0) + got; got = 0; }
           h.food += got; f.stage = 3; S.dirty = true;
           if (!S.flags.harvest) { S.flags.harvest = 1; log('Primera collita. Les cases s\'omplen de gra.', 'good'); }
         } else ripe.push(f);
@@ -1216,7 +1236,7 @@ function daily() {
     if (p.age >= 360 && !p.leaving && p.gainDay === S.day && (p.task === 'forage' || p.task === 'fish')
       && ask(p.h, 'work', `Hi ha cases que busquen jornalers a ${S.wage.toFixed(1)} de menjar al dia. Els vostres adults hi poden anar a treballar en lloc de collir o pescar?`, 'Sí, durant tres mesos', 'No', 90, 90)) pool.push(p);
   pool.sort((u, v) => v.str - u.str);
-  const employers = active.filter(h => h.hut && h.members.length && daysOf(h) > 40 && h.food > Math.max(100, 40 * S.wage)
+  const employers = L.nowage ? [] : active.filter(h => h.hut && h.members.length && daysOf(h) > 40 && h.food > Math.max(100, 40 * S.wage)
     && ask(h, 'hire', `Teniu menjar de sobres. Contracteu jornalers d'altres cases per treballar els vostres camps i el ramat? El jornal és de ${S.wage.toFixed(1)} de menjar al dia.`, 'Sí, durant tres mesos', 'No', 90, 90)).sort((a, b) => b.food - a.food);
   let short = false; // some job went without a worker
   for (const e of employers) {
@@ -1237,6 +1257,7 @@ function daily() {
         if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
         if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
         if (L.tribute) got -= payLord(e, got * 0.1);
+        if (L.collective) { S.commune = (S.commune || 0) + got; got = 0; }
         e.food += got; f.stage = 3; S.dirty = true;
         setTask(w, 'jornal', f.x + 1.5, f.y + 1, 1.5);
       } else if (kind === 'farm') {
@@ -1496,7 +1517,7 @@ function daily() {
     const huts = [...new Set(S.homes.filter(o => o.hut).map(o => o.hut))];
     for (const hut of huts) if (!hut.flats) { hut.flats = []; hut.floors = 0; }
     for (const t of active.filter(o => o.tenant)) {
-      const due = S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
+      const due = L.norent ? 0 : S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
       const own = rentTo(t.hut), pay = Math.min(due, Math.max(0, t.food));
       t.food -= pay; t.rentPaid = (t.rentPaid || 0) + pay; S.st.rents += pay;
       if (own) { const cut = L.platform ? payLord(own, pay * 0.15) : 0; own.food += pay - cut; own.rentIn = (own.rentIn || 0) + pay - cut; }
@@ -1602,6 +1623,10 @@ function daily() {
   if (L.basic && S.basicFund > 0) { // basic income: the granary pays out what the harvest tax brought in, equally to every house
     const pay = Math.min(S.basicFund, S.granary), each = pay / active.length; S.basicFund = 0; S.granary -= pay;
     for (const h of active) { h.food += each; h.helped = (h.helped || 0) + each; } S.st.redist += pay;
+  }
+  if (S.commune > 0) { // collectivised harvest: the common store shares it out the same day, equally per head
+    const heads = active.reduce((t, h) => t + h.members.length, 0);
+    if (heads) { for (const h of active) { const g = S.commune * h.members.length / heads; h.food += g; h.helped = (h.helped || 0) + g; } S.st.redist += S.commune; S.commune = 0; }
   }
   if (L.agrarian && doy === 300) {
     // land reform: every winter, houses with more than three fields hand one over to a house with one or none
@@ -1893,10 +1918,19 @@ function daily() {
   updateHud();
 }
 
-const RIVER_FISHERS = 45, TREES_PER_GATHERER = 30;
+// the river holds a population of fish (counted in days of food) that breeds towards what the river can hold: fast in
+// spring, slowly in summer and autumn, hardly at all in winter, at half pace in a drought and not at all in a bitter
+// winter. A full river lets a fisher catch all they can; the emptier it is, the less each one brings home
+const FISH_CAP = 24000, FISH_BREED = [0.035, 0.012, 0.006, 0.002], FISH_EASY = 0.7, TREES_PER_GATHERER = 30;
+function breedFish(season) {
+  const f = S.fishStock ??= FISH_CAP;
+  const r = FISH_BREED[season] * (dry() ? 0.5 : 1) * (freezing() ? 0 : 1);
+  S.fishStock = Math.min(FISH_CAP, f + r * f * (1 - f / FISH_CAP) + 2); // a few always swim down from upstream
+}
+const fishLeft = () => Math.min(1, (S.fishStock ?? FISH_CAP) / (FISH_CAP * FISH_EASY));
 function forage(h, p, eff, sf, season) {
   const hx = homeXY(h);
-  const fish = p.id % 2 || hasRod(p); // whoever owns a rod goes fishing
+  const fish = (p.id % 2 || hasRod(p)) && !(L.fishing && season === 0); // whoever owns a rod goes fishing, except in a closed season
   if (fish) {
     const y = clampY(hx.y + ((p.id * 7) % 30) - 15);
     setTask(p, 'fish', S.riverX(y) + 3, y, 1.2);
@@ -1906,14 +1940,14 @@ function forage(h, p, eff, sf, season) {
       if (t >= 0) setTask(p, 'forage', t % W, Math.floor(t / W) + 1, 2);
     }
   }
-  // the wild has limits: the river feeds about RIVER_FISHERS people fully and the forest one gatherer for every
-  // TREES_PER_GATHERER trees; with more people at it (counted yesterday), everyone gets a smaller share, and a
-  // forest that has been cut down gives nothing at all
-  const wild = fish ? Math.min(1, RIVER_FISHERS / Math.max(1, S.wildY.fish)) : Math.min(1, treeList().length / (TREES_PER_GATHERER * Math.max(1, S.wildY.forage)));
+  // the wild has limits: the catch shrinks as the river empties of fish, and the forest feeds one gatherer for every
+  // TREES_PER_GATHERER trees; with more gatherers (counted yesterday) each gets a smaller share, and a forest that has
+  // been cut down gives nothing at all
+  const wild = fish ? fishLeft() : Math.min(1, treeList().length / (TREES_PER_GATHERER * Math.max(1, S.wildY.forage)));
   S.wild[fish ? 'fish' : 'forage']++;
-  const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1) * wild;
+  const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1) * (fish && L.fishing ? 0.6 : 1) * wild;
   const net = fish ? g : forestToll(h, 'food', g);
-  h.food += net; p.gain = net; p.gainDay = S.day; if (fish) S.st.fish += g;
+  h.food += net; p.gain = net; p.gainDay = S.day; if (fish) { S.st.fish += g; S.fishStock = Math.max(0, S.fishStock - g); }
   S.wild.got += net;
 }
 function burnCoal(h, p, eff) {
@@ -2222,6 +2256,15 @@ function render() {
   // every pen (so no pen looks empty) and the people whose id falls on the stride
   const pens = new Set(S.animals.map(a => a.h)).size, perPen = S.animals.length > MAX_SHEEP_DRAWN ? Math.max(2, Math.floor(MAX_SHEEP_DRAWN / pens)) : 99;
   const pStep = Math.ceil(S.people.length / MAX_PEOPLE_DRAWN);
+  { // fish in the river, one for every twenty-fifth of a full river
+    const nf = Math.round(25 * (S.fishStock ?? FISH_CAP) / FISH_CAP), ft = reduceMotion ? 0 : S.frame / 50;
+    for (let i = 0; i < nf; i++) {
+      const fy = ((i * 37) % 25 + 0.5) * H / 25 + Math.sin(ft + i * 1.7) * 1.2, dir = Math.cos(ft + i * 1.7) > 0 ? 1 : -1;
+      const x = Math.round((S.riverX(fy) + 0.5 + Math.sin(i * 2.3) * 0.5) * T), y = Math.round(fy * T);
+      ctx.fillStyle = '#c9d6dc'; ctx.fillRect(x - 1, y, 3, 1);
+      ctx.fillStyle = '#8fa3ad'; ctx.fillRect(dir > 0 ? x - 2 : x + 2, y - 1, 1, 3);
+    }
+  }
   for (const a of S.animals) {
     if (a.n >= perPen) continue;
     const x = Math.round(a.x * T), y = Math.round(a.y * T);
@@ -2516,6 +2559,7 @@ function updateHud() {
   put('sRodPrice', S.rodPrice.toFixed(1));
   put('sRods', S.st.rodsSold);
   put('sFish', fmt(S.st.fish));
+  put('sFishStock', Math.round(100 * (S.fishStock ?? FISH_CAP) / FISH_CAP) + '%');
   put('sBequests', S.st.bequests);
   put('sExtinct', S.homes.filter(h => h.gone).length);
   put('sOldest', alive.length ? Math.floor(Math.max(...alive.map(p => p.age)) / YEAR) + ' anys' : '—');
@@ -2532,7 +2576,16 @@ function updateHud() {
   put('sHousePrice', fmt(HUT_VAL * S.houseIdx));
   put('sHealth', alive.length ? Math.round(100 * avg(alive.map(p => p.health))) : '—');
   put('sDisasters', S.st.disasters || 0);
+  put('sAutoLaws', S.st.autoLaws || 0);
   put('sRiots', S.st.riots || 0); put('sRevolutions', S.st.revolutions || 0);
+  { // council orientation: only with dynamic politics
+    $('cBox').hidden = !POLITICS;
+    const c = S.council || 0, pr = S.press;
+    $('cDot').style.left = (50 + 50 * c).toFixed(1) + '%'; $('cMeter').setAttribute('aria-valuenow', Math.round(100 * c));
+    put('cWhy', S.day < YEAR ? 'El primer any el consell encara no té cap orientació.'
+      : `${Math.abs(c) < 0.15 ? 'Al centre' : c < 0 ? (c < -0.5 ? 'Molt d\'esquerres' : 'D\'esquerres') : (c > 0.5 ? 'Molt de dretes' : 'De dretes')}. ` +
+        (pr ? `El 10% més ric té el ${Math.round(pr.top * 100)}% de la riquesa${pr.rich > 0 ? ' i pressiona cap a la dreta' : ''}; ${pr.poor > 0 ? 'el malestar empeny cap a l\'esquerra' : 'el malestar no és prou alt per empènyer cap a l\'esquerra'}.` : ''));
+  }
   { // unrest meter
     const u = S.unrest || 0, lvl = u >= 75 ? 'high' : u >= 50 ? 'mid' : '';
     $('uBar').style.width = u.toFixed(1) + '%'; $('uBar').className = lvl; $('uNow').className = lvl;
@@ -2617,14 +2670,65 @@ function unrest(active) {
   const alive = S.people.filter(p => !p.leaving), n = alive.length || 1;
   const hs = alive.filter(p => p.hunger >= 3).length / n, died = S.st.died - (S.uDied ?? S.st.died);
   S.uDied = S.st.died; S.hungryShare = hs;
+  S.trees0 ??= treeList().length; // the forest as the first settlers found it
   S.unrest ||= 0;
   if (S.day < YEAR) return; // the first year everyone has just arrived and nobody blames anyone yet
   let u = S.unrest || 0;
   const base = unrestBase();
   u += UNREST_HUNGER * hs + died * Math.max(3, UNREST_DEATH / n) - (hs < 0.05 ? UNREST_CALM : 0.15);
   S.unrest = u = Math.max(base, Math.min(100, u)); // inequality alone keeps people from ever being quite content
+  if (!POLITICS) return; // the meter still moves, but with dynamic politics off nobody acts on it
+  if (S.day % 10 === 0) { S.press = pressures(active, u); S.council = (S.council || 0) + 0.1 * (S.press.rich - S.press.poor - (S.council || 0)); }
+  if (S.day % LOBBY_EVERY === 0) lobby(active, u);
   if (u >= 100 && !(S.day - (S.revDay ?? -1e9) < REVOLT_GAP)) revolution(active);
   else if (u >= RIOT_AT && R() < 0.01 + 0.05 * (u - RIOT_AT) / (100 - RIOT_AT)) riot(active);
+}
+// laws that pass by themselves: every two months the village weighs who pushes harder. The rich push in proportion
+// to how much of the wealth the richest tenth of homes hold (from 30% up); the poor in proportion to the unrest (from
+// 40%). The stronger side may get one of its laws through: the poor a socialist one, the rich a turbocapitalist one,
+// or a technofeudal one when they hold more than half of everything
+const LOBBY_EVERY = 60;
+function topShare(active) {
+  const ws = wealthsOf(active.filter(h => h.members.length)).sort((a, b) => b - a), tot = ws.reduce((t, v) => t + v, 0);
+  return tot > 0 ? ws.slice(0, Math.max(1, Math.ceil(ws.length / 10))).reduce((t, v) => t + v, 0) / tot : 0;
+}
+function lobby(active, u) {
+  const { rich, poor, top } = S.press || pressures(active, u), c = S.council || 0;
+  ecoLaws(c);
+  const push = Math.max(rich, poor);
+  if (push <= 0 || R() > push * 0.6) return;
+  // the poor ask for reforms, and for socialism outright once anger is high or the council already leans far left;
+  // the rich for the free market, and for technofeudalism once they own more than half of everything
+  const cat = poor >= rich ? (u >= 75 || c < -0.5 ? 'SOCIALISTES' : 'SOCIALDEMÒCRATES') : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
+  const options = LAW_CATS.find(x => x[0] === cat)[1].filter(k => !L[k]);
+  if (!options.length) return;
+  const k = options[Math.floor(R() * options.length)];
+  log(poor >= rich
+    ? `La gent que passa gana omple la plaça i el consell cedeix: s'aprova «${LAWDEFS[k].name}».`
+    : `Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell aprovi «${LAWDEFS[k].name}».`, poor >= rich ? 'good' : 'bad');
+  proclaim(k);
+  S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+}
+// how hard each side pushes: the rich from the share of wealth the richest tenth hold (from 30%), the poor from the
+// unrest (from 40%). The council drifts towards the side that pushes harder: -1 far left, +1 far right
+function pressures(active, u) {
+  const top = topShare(active);
+  return { top, rich: Math.max(0, Math.min(1, (top - 0.3) * 2.5)), poor: Math.max(0, Math.min(1, (u - 40) / 60)) };
+}
+// the council looks after the forest and the river when they run short, and lifts the rules once they recover; a council
+// far to the right never protects them, and one far to the left never lifts the protection
+function ecoLaws(c) {
+  const trees = treeList().length / Math.max(1, S.trees0 || 1), fish = (S.fishStock ?? FISH_CAP) / FISH_CAP;
+  for (const [k, level, what] of [['forest', trees, 'el bosc'], ['fishing', fish, 'el riu']]) {
+    const i = laws.findIndex(l => l.fx.includes(k));
+    if (i < 0 && level < 0.4 && c < 0.6 && R() < 0.5) {
+      log(`Queda poc ${k === 'forest' ? 'bosc' : 'peix'} i el consell decideix protegir ${what}: s'aprova «${LAWDEFS[k].name}».`, 'good');
+      proclaim(k); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+    } else if (i >= 0 && level > (k === 'forest' ? 0.7 : 0.85) && c > -0.6 && R() < 0.5) {
+      log(`${k === 'forest' ? 'El bosc' : 'El riu'} s'ha recuperat i el consell aixeca la protecció.`, 'amber');
+      repeal(i); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+    }
+  }
 }
 // the floor set by inequality: nothing below a Gini of 0.25, then 1.4 points for every hundredth, up to 70
 function unrestBase() { const g = S.gini.length ? S.gini[S.gini.length - 1][1] : 0; return Math.max(0, Math.min(70, (g - 0.25) * 140)); }
@@ -2689,10 +2793,11 @@ function revolution(active) {
   // the materials go to the poorest quarter, in equal shares
   const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
   for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
-  for (const k of ['granary', 'share', 'agrarian']) laws.push({ text: LAWDEFS[k].name, fx: [k], day: S.day });
+  for (const k of ['collective', 'nowage', 'norent']) laws.push({ text: LAWDEFS[k].name, fx: [k], day: S.day });
+  S.council = -1;
   recomputeLaws(); renderLaws();
   S.unrest = 20; S.revDay = S.day;
-  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es deroguen les ${old} lleis vigents. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa.`, 'bad');
+  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es deroguen les ${old} lleis vigents. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell col·lectivitza la terra i aboleix el treball assalariat i la renda.`, 'bad');
   tag(W / 2, H / 2, 'REVOLUCIÓ', 'bad');
   if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis del batlle s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
 }
@@ -2781,7 +2886,8 @@ function drawDisasterTerrain(s) {
 // ---------- natural disasters ----------
 // droughts, floods, hard winters, epidemics, wolves, forest fires and, very rarely, earthquakes. They can be switched
 // off; with them off no dice are rolled for them, and the village runs exactly as it did before they existed
-let DISASTERS = true;
+let DISASTERS = true, POLITICS = true;
+try { POLITICS = localStorage.getItem('batlle.politics') !== '0'; } catch (e) {}
 try { DISASTERS = localStorage.getItem('batlle.disasters') !== '0'; } catch (e) {}
 const DROUGHT_P = 0.1, DROUGHT_YIELD = 0.45, DROUGHT_FORAGE = 0.7; // a dry summer: half a harvest, less to gather
 const FLOOD_P = 0.0015, FLOOD_YIELD = 0.3, FLOOD_REACH = 3;        // spring floods drown fields close to the river
@@ -2866,6 +2972,7 @@ function fire() {
   if (n < 3) return; // a few trees burning is no disaster
   disaster(`Un incendi crema ${n} arbres del bosc${dry() ? ', sec per la sequera' : ''}.`, 'INCENDI', x0, y0);
 }
+function syncPol() { $('polBtn').textContent = 'Política dinàmica: ' + (POLITICS ? 'sí' : 'no'); $('polBtn').setAttribute('aria-pressed', POLITICS); }
 function syncDis() { $('disBtn').textContent = 'Desastres: ' + (DISASTERS ? 'sí' : 'no'); $('disBtn').setAttribute('aria-pressed', DISASTERS); }
 
 // ---------- family mode ----------
@@ -3008,13 +3115,18 @@ $('quakeBtn').onclick = () => { // works even with natural disasters switched of
   quake(); updateHud(); if (!$('houses').hidden) renderHouses(true);
 };
 $('logAll').onchange = e => { logAll = e.target.checked; };
+$('polBtn').onclick = () => {
+  POLITICS = !POLITICS; syncPol(); updateHud();
+  try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
+  log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
+};
 $('disBtn').onclick = () => {
   DISASTERS = !DISASTERS; syncDis();
   try { localStorage.setItem('batlle.disasters', DISASTERS ? '1' : '0'); } catch (e) {}
   if (!DISASTERS && S.dis) { S.dis = {}; updateHud(); } // switching them off also ends a drought or a hard winter under way
   log(DISASTERS ? 'Desastres naturals activats.' : 'Desastres naturals desactivats.', 'info');
 };
-syncDis();
+syncDis(); syncPol();
 function syncPlay() { $('playBtn').textContent = running ? 'Pausa' : 'Continua'; }
 document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
   speed = +b.dataset.speed;
@@ -3139,9 +3251,12 @@ $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('
 // help window: every rule the simulation follows
 const RULES = [
   ['MALESTAR SOCIAL', [
+    'Medi ambient (amb política dinàmica): si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc, i si al riu queden menys del 40% dels peixos, la Pesca regulada. Quan el bosc torna al 70% o el riu al 85%, les pot derogar. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
+    'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
+    'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Segons qui pressiona més, el consell es mou cap a l\'esquerra o cap a la dreta (l\'indicador «Orientació del consell»). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
     'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
     'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
   ]],
   ['DESASTRES NATURALS', [
     'Es poden activar o desactivar amb el botó Desastres. Quan estan desactivats no passa cap d\'aquests fenòmens.',
@@ -3200,7 +3315,7 @@ const RULES = [
   ['MENJAR', [
     'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
     'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
-    'El bosc i el riu tenen un límit. El riu alimenta bé unes 45 persones pescant: si n\'hi ha més, cadascú pesca menys. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
+    'El bosc i el riu tenen un límit. Al riu hi ha una població de peixos que es reprodueix: molt a la primavera, poc a l\'estiu i a la tardor, gairebé gens a l\'hivern, a mig ritme durant una sequera i gens durant un hivern de fred extrem. Cada peix pescat en treu un del riu. Mentre el riu està ple, cadascú pesca tot el que pot; si se n\'ha pescat massa i baixa del 70%, cadascú pesca menys. L\'estadística «Peixos al riu» diu com de ple està. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
     'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
     'Un camp que no es fa servir durant un any desapareix i hi torna a créixer l\'herba. Un corral millorat que passa un any sense ovelles torna a ser un corral normal, i un corral normal que passa un any sense ovelles desapareix.',
   ]],
