@@ -370,6 +370,9 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Arades venudes</span><b id="sPlows">0</b></div>
         <div><span>Canyes venudes</span><b id="sRods">0</b></div>
         <div class="good"><span>Ferro estalviat</span><b id="sIronSaved">0</b></div>
+        <div><span>Molins</span><b id="sMills">0</b></div>
+        <div><span>Moliners</span><b id="sMillers">0</b></div>
+        <div><span>Sèquies</span><b id="sCanals">0</b></div>
         <h4>BESTIAR</h4>
         <div><span>Ovelles</span><b id="sHerd">0</b></div>
         <div><span>Corrals</span><b id="sPens">0</b></div>
@@ -513,8 +516,8 @@ const LAW_CATS = [
   ['GENERAL', ['work', 'natal', 'limit', 'ration', 'pubschool', 'privschool']],
   ['MEDI AMBIENT', ['forest', 'fishing', 'nocoal']],
   ['SEGURETAT', ['theft', 'stay', 'closed']],
-  ['SOCIALISTES', ['collective', 'nowage', 'norent', 'agrarian', 'share']],
-  ['SOCIALDEMÒCRATES', ['granary', 'wealthtax', 'inhtax', 'basic', 'prices', 'wage', 'tools', 'rentcap', 'housing']],
+  ['SOCIALISTES', ['collective', 'nowage', 'norent', 'agrarian', 'share', 'redist']],
+  ['SOCIALDEMÒCRATES', ['granary', 'wealthtax', 'inhtax', 'basic', 'prices', 'wage', 'tools', 'rentcap', 'housing', 'millsub']],
   ['TURBOCAPITALISTES', ['laissez', 'notax', 'usury', 'enclosure']],
   ['TECNOFEUDALS', ['platform', 'cloud', 'tribute', 'vassal']],
 ];
@@ -532,24 +535,26 @@ const LAWDEFS = {
   stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
   closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
   share: { name: 'A cadascú segons les seves necessitats', txt: 'A cadascú segons les seves necessitats: les cases amb molt de menjar han de donar el que sobra a les que passen gana.' },
-  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita va al magatzem col·lectiu, que la reparteix a parts iguals entre totes les persones del poble.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
+  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita va al magatzem col·lectiu, que la reparteix a parts iguals entre totes les persones del poble. Els molins molen de franc.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
   nowage: { name: 'Abolició del treball assalariat', txt: 'Abolició del treball assalariat: ningú pot treballar per a una altra casa a canvi d\'un jornal. Cada família treballa només el que és seu.', excl: ['laissez', 'platform'] },
   norent: { name: 'Abolició de la renda', txt: 'Abolició de la renda: ningú paga lloguer per viure en un pis, i ningú no pot ser desnonat. Els propietaris ja no en treuen res, així que no se\'n fan de nous.', excl: ['laissez', 'rentcap', 'housing'] },
   granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax', 'collective'] },
   wealthtax: { name: 'Impost a les grans fortunes', txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.', excl: ['notax'] },
   inhtax: { name: 'Impost sobre les herències', txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.', excl: ['notax'] },
   basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax', 'collective'] },
+  redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: totes les propietats (cases, blocs de pisos, corrals, carboneres, fargues i molins) es reparteixen equitativament entre totes les famílies. Cada llogater passa a ser amo del seu pis i ja no paga lloguer, les famílies sense casa ocupen de franc els pisos buits, i les cases que tenen més corrals, carboneres, fargues o molins en cedeixen a les que no en tenen. Es torna a repartir cada any.' },
   agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
   prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
   wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
   tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
   rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez', 'norent'] },
   housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez', 'norent'] },
-  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage', 'collective', 'nowage', 'norent'] },
+  millsub: { name: 'Molí subvencionat', txt: 'Molí subvencionat: del 20% de la collita que es paga al moliner, la meitat (un 10%) la paga el graner comú, si hi ha prou menjar.', excl: ['laissez', 'notax'] },
+  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat. El que cobra cada moliner puja si el seu molí no dona l\'abast i baixa si li falta feina.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage', 'collective', 'nowage', 'norent'] },
   notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
   usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Només en poden demanar les cases que tenen alguna cosa per empenyorar: casa pròpia, camps o corral. Si al cap d\'un any no han pagat, el creditor els embarga, una cosa cada mes fins a cobrar: primer el corral amb les ovelles, després els camps, un per un, i al final la casa, que llogarà.' },
   enclosure: { name: 'Privatització del bosc', excl: ['collective'], txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
-  platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament.', excl: ['nowage'] },
+  platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament, també del que es paga als molins.', excl: ['nowage'] },
   cloud: { name: 'Eines al núvol', txt: 'Eines al núvol: les eines ja no es gasten, però cada eina paga una quota diària al senyor de la plataforma. Qui no pot pagar la quota es queda sense l\'eina.' },
   tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.', excl: ['collective'] },
   vassal: { name: 'Vassallatge', txt: 'Vassallatge: les cases sense camps es tornen vassalles del senyor de la plataforma. Cada adult li paga cada dia mig de menjar, i a canvi el senyor les alimenta quan passen gana, si pot.' },
@@ -862,17 +867,25 @@ function quarry(h, p, eff, pro) {
 }
 function stoneNeed(h) {
   const plant = (job, kind) => h.members.some(m => m.job === job) && (!h[kind] || h[kind + 'Broken']) ? plantCost(h, kind).stone : 0;
-  return (!h.hut ? HUT_STONE : 0) + plant('ferrer', 'forge') + plant('carboner', 'kiln') + (wantUp(h) ? UP_STONE : 0) + (wantFloor(h) ? floorCost(h.hut).stone : 0);
+  return (!h.hut ? HUT_STONE : 0) + plant('ferrer', 'forge') + plant('carboner', 'kiln') + plant('moliner', 'mill') + (wantUp(h) ? UP_STONE : 0) + (wantFloor(h) ? floorCost(h.hut).stone : 0);
 }
 const COAL_START = 1.5, COAL_MIN = 0.6, COAL_MAX = 5, KILN_COST = 30;
+// water mills: very dear to build, at most three in the village. Milled grain gives half as much food again, and the
+// miller keeps a fifth of it (dynamic under the free market). A mill grinds at most MILL_CAP of grain a year
+const MANURE = 1.2; // a family with sheep manures its own fields
+const MILL_WOOD = 120, MILL_STONE = 80, MILL_FOOD = 300, MILL_MAX = 3, MILL_BOOST = 1.5, MILL_FEE = 0.2, MILL_SUB = 0.1, MILL_CAP = 12000;
+// irrigation channels: a rich house digs one from the river to its fields; every field along it loses much less in a drought
+const CANAL_FOOD = 120, CANAL_STONE = 10, CANAL_MAX = 12, CANAL_DROUGHT = 0.85;
 // kilns and forges belong to one family. Left idle for a year they crumble, and then they belong to whoever repairs them
 // first, for half the cost of building one. A family that needs one looks for a crumbled one before building
 const PLANT = {
   kiln: { wood: KILN_COST, stone: KILN_STONE, name: 'carbonera', mark: 5, built: 'aixeca una carbonera a la vora del bosc' },
   forge: { wood: FORGE_WOOD, stone: FORGE_STONE, name: 'farga', mark: 8, built: 'aixeca una farga al poble' },
+  mill: { wood: MILL_WOOD, stone: MILL_STONE, food: MILL_FOOD, name: 'molí', male: true, mark: 9, built: 'aixeca un molí d\'aigua a la vora del riu' },
 };
+const the = kind => (PLANT[kind].male ? 'el ' : 'la ') + PLANT[kind].name;
 function brokenPlant(h, kind) { return h[kind] && h[kind + 'Broken'] ? h : S.homes.find(o => o !== h && o[kind] && o[kind + 'Broken']); }
-function plantCost(h, kind) { const P = PLANT[kind], f = brokenPlant(h, kind) ? 0.5 : 1; return { wood: P.wood * f, stone: Math.ceil(P.stone * f) }; }
+function plantCost(h, kind) { const P = PLANT[kind], f = brokenPlant(h, kind) ? 0.5 : 1; return { wood: P.wood * f, stone: Math.ceil(P.stone * f), food: (P.food || 0) * f }; }
 function getPlant(h, p, eff, kind, site) {
   const P = PLANT[kind], o = brokenPlant(h, kind), c = plantCost(h, kind);
   if (h.wood < c.wood + 10) doWood(h, p, eff, homeXY(h));
@@ -883,14 +896,105 @@ function getPlant(h, p, eff, kind, site) {
       h[kind] = o[kind]; o[kind] = null; o[kind + 'Broken'] = false;
       if (kind === 'forge') { for (const k of ['hoes', 'picks', 'plows', 'rods']) { h[k] += o[k]; o[k] = 0; } for (const k of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) h[k].push(...o[k].splice(0)); }
     }
-    h.wood -= c.wood; h.stone -= c.stone; h[kind + 'Broken'] = false; h[kind + 'Used'] = S.day; S.dirty = true;
-    log(o === h ? `${fullName(p)} repara la ${P.name} dels ${h.surname} amb ${c.wood} de fusta i ${c.stone} de pedra.`
-      : `${fullName(p)} repara la ${P.name} abandonada dels ${o.surname} amb ${c.wood} de fusta i ${c.stone} de pedra, i se la queda.`, 'amber');
+    h.wood -= c.wood; h.stone -= c.stone; h.food -= c.food; h[kind + 'Broken'] = false; h[kind + 'Used'] = S.day; S.dirty = true;
+    log(o === h ? `${fullName(p)} repara ${the(kind)} dels ${h.surname} amb ${c.wood} de fusta i ${c.stone} de pedra${c.food ? ` i ${fmt(c.food)} de menjar` : ''}.`
+      : `${fullName(p)} repara ${the(kind)} ${P.male ? 'abandonat' : 'abandonada'} dels ${o.surname} amb ${c.wood} de fusta i ${c.stone} de pedra${c.food ? ` i ${fmt(c.food)} de menjar` : ''}, i ${P.male ? 'se\'l' : 'se la'} queda.`, 'amber');
   } else {
     const st = site(); if (!st) return;
-    h.wood -= c.wood; h.stone -= c.stone; h[kind] = st; h[kind + 'Used'] = S.day; h[kind + 'Broken'] = false;
+    h.wood -= c.wood; h.stone -= c.stone; h.food -= c.food; h[kind] = st; h[kind + 'Used'] = S.day; h[kind + 'Broken'] = false;
     mark(st.x, st.y, 2, 2, P.mark); log(`${fullName(p)} ${P.built}.`, 'amber');
   }
+}
+// the mill goes on the east bank, as close to the middle of the village as there is room
+function millSite() {
+  const rows = [...Array(H - 4).keys()].map(y => y + 2).sort((a, b) => Math.abs(a - CY) - Math.abs(b - CY));
+  for (const y of rows) for (let d = 1; d <= 4; d++) { const x = Math.ceil(S.riverX(y)) + d; if (rectFree(x, y, 2, 2, true)) return { x, y }; }
+  return null;
+}
+const millWorks = o => o.mill && !o.millBroken && !o.gone && o.members.some(m => m.job === 'moliner' && !m.leaving);
+// the miller builds or repairs the mill when the family can afford it, and at harvest time stays there grinding
+function millWork(h, p, eff, season) {
+  if (!h.mill || h.millBroken) {
+    if (!brokenPlant(h, 'mill') && S.homes.filter(o => o.mill).length >= MILL_MAX) { p.job = null; log(`${fullName(p)} deixa l'ofici de moliner: ja hi ha ${MILL_MAX} molins al poble.`, 'info'); return false; }
+    if (h.food < plantCost(h, 'mill').food + 100) {
+      if (R() < 0.005) { p.job = null; log(`${fullName(p)} deixa l'ofici de moliner: a casa no poden pagar el molí.`, 'info'); }
+      return false;
+    }
+    getPlant(h, p, eff, 'mill', millSite); return true;
+  }
+  if (season !== 2) return false;
+  setTask(p, 'molí', h.mill.x + 1, h.mill.y + 1, 0.8); return true;
+}
+// grain carried to the cheapest mill that still has room this year. The miller keeps a fifth of the flour (the owner's
+// family pays nothing, and nobody does under collectivised land); with the subsidy the granary pays half of that fifth,
+// and under the platform the lord takes 15% of what the miller earns
+const millFee = (o, h) => L.collective || o === h ? 0 : L.laissez ? (o.millFee ?? MILL_FEE) : MILL_FEE;
+function grind(h, got) {
+  if (!(got > 0)) return got;
+  const sub = L.millsub ? MILL_SUB : 0;
+  const ms = S.homes.filter(o => millWorks(o) && (o.millLoad || 0) + got <= MILL_CAP).sort((a, b) => millFee(a, h) - millFee(b, h));
+  const o = ms[0];
+  if (!o || MILL_BOOST * (1 - Math.max(0, millFee(o, h) - sub)) <= 1) return got;
+  const out = got * MILL_BOOST, pay = out * millFee(o, h), paid = Math.min(Math.min(sub, millFee(o, h)) * out, S.granary);
+  o.millLoad = (o.millLoad || 0) + got; o.millUsed = S.day;
+  S.granary -= paid;
+  const cut = L.platform ? payLord(o, pay * 0.15) : 0;
+  o.food += pay - cut; o.millIn = (o.millIn || 0) + pay - cut; S.st.millFees = (S.st.millFees || 0) + pay;
+  return out - (pay - paid);
+}
+// how much more each field gives: manure from a family's own sheep, and what the village knows (its adults' cleverness
+// compared with the first settlers')
+function knowFactor() {
+  const ad = S.people.filter(p => p.age >= 360 && !p.leaving);
+  if (!ad.length) return 1;
+  const a = avg(ad.map(p => p.int)); S.int0 ??= a;
+  return Math.max(0.8, Math.min(1.6, 1 + 1.5 * (a - S.int0)));
+}
+const irrigated = f => (S.canals || []).some(c => c.y >= f.y - 1 && c.y <= f.y + 2 && f.x <= c.x1);
+// a rich family digs a channel from the river to a dry field of its own; a left-wing council pays one from the granary
+function digCanals(active) {
+  S.canals ||= [];
+  if (S.canals.length >= CANAL_MAX) return;
+  const dry = h => h.fields.find(f => !irrigated(f));
+  const h = active.filter(o => o.fields.length >= 2 && o.food > 400 + CANAL_FOOD && dry(o)).sort((a, b) => b.food - a.food)[0];
+  const council = !h && POLITICS && (S.council || 0) < -0.15 && S.granary > 400 + CANAL_FOOD ? active.filter(o => dry(o)).sort((a, b) => b.fields.length - a.fields.length)[0] : null;
+  const who = h || council; if (!who) return;
+  if (h && !ask(h, 'canal', `Teniu ${fmt(h.food)} de menjar. Feu una sèquia des del riu fins als vostres camps? Costa ${CANAL_FOOD} de menjar i ${CANAL_STONE} de pedra, i a la sequera els camps que hi toquen perden molt menys collita.`, 'Fem-la', 'No', 60)) return;
+  if (h && h.stone < CANAL_STONE) { h.food -= CANAL_STONE * S.stonePrice; } else if (h) h.stone -= CANAL_STONE;
+  const f = dry(who), y = f.y + 1, x0 = Math.ceil(S.riverX(y)), x1 = f.x + 2;
+  if (h) h.food -= CANAL_FOOD; else S.granary -= CANAL_FOOD;
+  const c = { y, x0, x1 }; S.canals.push(c); S.dirty = true;
+  const n = active.reduce((t, o) => t + o.fields.filter(g => irrigated(g)).length, 0);
+  log(h ? `Els ${h.surname} fan una sèquia des del riu fins als seus camps. Ara ${n} camps tenen reg.` : `El consell ${councilType(S.council)} fa una sèquia amb menjar del graner fins als camps dels ${who.surname}. Ara ${n} camps tenen reg.`, 'good');
+}
+// redistribution of goods: tenants own their flats, homeless families move into empty flats for free, and families with
+// more pens, kilns, forges or mills than others hand them over until no family has more than one more than another
+const PROPS = [['pen', null, 'el corral'], ['kiln', 'carboner', 'la carbonera'], ['forge', 'ferrer', 'la farga'], ['mill', 'moliner', 'el molí']];
+function redistribute(first) {
+  const fam = S.homes.filter(h => !h.gone && h.members.length);
+  let flats = 0;
+  for (const h of fam) if (h.tenant && !h.ownFlat) { h.ownFlat = true; flats++; }
+  for (const o of S.homes) if (o.hut && o.hut.landlord) o.hut.landlord = null;
+  const n = h => PROPS.filter(([k]) => h[k]).length, moved = [];
+  for (let guard = 0; guard < 200; guard++) {
+    const ws = new Map(fam.map((h, i) => [h, wealthsOf([h])[0]]));
+    const rich = fam.slice().sort((a, b) => n(b) - n(a) || ws.get(b) - ws.get(a))[0];
+    const poor = fam.slice().sort((a, b) => n(a) - n(b) || ws.get(a) - ws.get(b))[0];
+    if (!rich || n(rich) - n(poor) <= 1) break;
+    const p = PROPS.find(([k]) => rich[k] && !poor[k]); if (!p) break;
+    const [k, job, name] = p;
+    poor[k] = rich[k]; rich[k] = null;
+    if (k === 'pen') { poor.herd += rich.herd; rich.herd = 0; syncHerd(rich); syncHerd(poor); }
+    else {
+      for (const x of ['Broken', 'BrokenDay', 'Used', 'Fee', 'Load', 'In']) { poor[k + x] = rich[k + x]; delete rich[k + x]; }
+      if (k === 'forge') { for (const t of ['hoes', 'picks', 'plows', 'rods']) { poor[t] += rich[t]; rich[t] = 0; } for (const t of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) poor[t].push(...rich[t].splice(0)); }
+      for (const m of rich.members) if (m.job === job) m.job = null;
+      const w = poor.members.find(m => m.age >= 360 && !m.job && !m.leaving); if (w) w.job = job;
+    }
+    moved.push(`${name} dels ${rich.surname} als ${poor.surname}`);
+  }
+  S.dirty = true;
+  if (first || flats || moved.length) log(`Redistribució de béns: ${flats ? `${flats} ${flats > 1 ? 'famílies llogateres passen' : 'família llogatera passa'} a ser ${flats > 1 ? 'amos dels seus pisos' : 'ama del seu pis'}` : 'cap pis canvia de mans'}${moved.length ? `, i ${moved.length > 1 ? 'passen' : 'passa'} ${moved.slice(0, 6).join(', ')}${moved.length > 6 ? ` i ${moved.length - 6} més` : ''}` : ''}.`, 'good');
 }
 function coalValue(h, season) { const n = need(h); return n * (1 - 1 / 1.2) + (season === 3 ? n * 0.25 : 0); }
 const WAGE = 2.5, MIN_WAGE = 3.5, SHEEP_COST = 40, MILK = 0.7, FODDER = 0.3, MEAT = 30, HERD_MAX = 8;
@@ -924,6 +1028,7 @@ const hutOwner = hut => S.homes.find(o => o.hut === hut && !o.gone && !o.tenant)
 // a block inherited by a family that already has a home is let out whole, ground floor included: rent goes to that landlord
 const landlord = hut => hut.landlord && !hut.landlord.gone ? hut.landlord : null;
 const rentTo = hut => hutOwner(hut) || landlord(hut);
+const ownFlats = hut => (hut.flats || []).filter(f => f && f.ownFlat).length + (hut.ground && hut.ground.ownFlat ? 1 : 0);
 // what a household owns, in food: stores, materials at market prices, sheep, and the houses it owns
 function wealth(h) { return wealthsOf([h])[0]; }
 // the wealth of many houses at once: the blocks each one lets out are looked up in a single pass
@@ -932,7 +1037,8 @@ function wealthsOf(list) {
   for (const o of S.homes) { const u = o.hut, l = u && u.landlord; if (l) { const s = lets.get(l) || lets.set(l, new Set()).get(l); s.add(u); } }
   return list.map(h => {
     let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
-    if (h.hut && !h.tenant) w += housePrice(h.hut);
+    if (h.hut && !h.tenant) w += Math.max(0, housePrice(h.hut) - FLOOR_VAL * S.houseIdx * ownFlats(h.hut));
+    if (h.hut && h.tenant && h.ownFlat) w += FLOOR_VAL * S.houseIdx;
     for (const u of lets.get(h) || []) w += housePrice(u);
     return w;
   });
@@ -951,15 +1057,16 @@ const housePrice = hut => { const f = hut.floors || 0; return (HUT_VAL + (hut.lv
 const wantFloor = h => !h.gone && h.hut && !h.tenant && (h.hut.floors || 0) < MAX_FLOORS && daysOf(h) > 60 && h.food > 250
   && !S.vacant && (S.homeless > 0 || S.rent > 0.6) && S.rent * 730 > floorCost(h.hut).wood + floorCost(h.hut).stone * S.stonePrice + 20;
 function moveIn(h, hut, i) { h.hut = hut; h.tenant = true; h.flatIdx = i; if (i === 'g') hut.ground = h; else hut.flats[i] = h; S.dirty = true; }
-function leaveFlat(h) { if (!h.tenant) return; if (h.flatIdx === 'g') h.hut.ground = null; else h.hut.flats[h.flatIdx] = null; S.dirty = true; h.hut = null; h.tenant = false; h.flatIdx = -1; h.arrears = 0; }
+function leaveFlat(h) { if (!h.tenant) return; if (h.flatIdx === 'g') h.hut.ground = null; else h.hut.flats[h.flatIdx] = null; S.dirty = true; h.hut = null; h.tenant = false; h.ownFlat = false; h.flatIdx = -1; h.arrears = 0; }
 const wantUp = h => !h.gone && h.hut && !h.tenant && !h.hut.lvl && daysOf(h) > 60 && h.food > 300 && adultsOf(h).length >= 2;
 // what a new charcoal burner or smith has to do before starting
 function plantTxt(c, kind, job) {
   const h = c.h, P = PLANT[kind], o = brokenPlant(h, kind), k = plantCost(h, kind);
-  if (h[kind] && !h[kind + 'Broken']) return `${fullName(c)} torna a encendre la ${P.name} dels ${h.surname}.`;
-  if (o === h) return `${fullName(c)} es fa ${job}, però la ${P.name} de casa està malmesa: reparar-la costarà ${k.wood} de fusta i ${k.stone} de pedra.`;
-  if (o) return `${fullName(c)} es fa ${job}. Hi ha una ${P.name} abandonada dels ${o.surname}: si la repara amb ${k.wood} de fusta i ${k.stone} de pedra, serà seva.`;
-  return `${fullName(c)} es fa ${job}. Primer ha de construir una ${P.name} amb ${k.wood} de fusta i ${k.stone} de pedra.`;
+  const m = P.male, cost = `${k.wood} de fusta i ${k.stone} de pedra${k.food ? ` i ${fmt(k.food)} de menjar` : ''}`;
+  if (h[kind] && !h[kind + 'Broken']) return `${fullName(c)} ${kind === 'mill' ? 'torna a fer anar' : 'torna a encendre'} ${the(kind)} dels ${h.surname}.`;
+  if (o === h) return `${fullName(c)} es fa ${job}, però ${the(kind)} de casa està ${m ? 'malmès' : 'malmesa'}: reparar-${m ? 'lo' : 'la'} costarà ${cost}.`;
+  if (o) return `${fullName(c)} es fa ${job}. Hi ha ${m ? 'un' : 'una'} ${P.name} ${m ? 'abandonat' : 'abandonada'} dels ${o.surname}: si ${m ? 'el' : 'la'} repara amb ${cost}, serà ${m ? 'seu' : 'seva'}.`;
+  return `${fullName(c)} es fa ${job}. Primer ha de construir ${m ? 'un' : 'una'} ${P.name} amb ${cost}.`;
 }
 function homeXY(h) { return h.hut ? { x: h.hut.x + 1, y: h.hut.y + 1 } : { x: CX, y: CY }; }
 function countTrees() { let n = 0; for (let i = 0; i < W * H; i++) n += S.tree[i]; return n; }
@@ -1001,11 +1108,12 @@ function bequeath(h) {
     if (!o.pen && h.pen) { o.pen = h.pen; o.penUsed = S.day; h.pen = null; }
     if (o.pen) { o.herd += h.herd; got.push(h.herd > 1 ? `${h.herd} ovelles` : 'una ovella'); h.herd = 0; syncHerd(h); syncHerd(o); }
   }
-  for (const [kind, job, name] of [['kiln', 'carboner', 'la carbonera'], ['forge', 'ferrer', 'la farga']]) {
+  for (const [kind, job, name] of [['kiln', 'carboner', 'la carbonera'], ['forge', 'ferrer', 'la farga'], ['mill', 'moliner', 'el molí']]) {
     if (!h[kind]) continue;
     const o = homes.find(x => !x[kind] && x.members.some(m => m.job === job)) || homes.find(x => !x[kind]);
     if (!o) continue;
-    o[kind] = h[kind]; o[kind + 'Broken'] = h[kind + 'Broken']; o[kind + 'Used'] = h[kind + 'Used']; h[kind] = null; got.push(name);
+    for (const x of ['Broken', 'BrokenDay', 'Used', 'Fee', 'Load']) o[kind + x] = h[kind + x];
+    o[kind] = h[kind]; h[kind] = null; got.push(name);
     if (kind === 'forge') { for (const k of ['hoes', 'picks', 'plows', 'rods']) { o[k] += h[k]; h[k] = 0; } for (const k of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) o[k].push(...h[k].splice(0)); }
   }
   if (h.hut && !h.taken) {
@@ -1184,9 +1292,15 @@ function daily() {
   S.wild = { fish: 0, forage: 0, got: 0 };
 
   // fields lifecycle
+  const know = doy === 175 ? (S.know = knowFactor()) : 1;
   for (const h of S.homes) for (const f of h.fields) {
     if (doy === 95 && f.stage === 0) f.stage = 1;
-    if (doy === 175 && f.stage === 1) { f.stage = 2; f.yield = 230 * (0.55 + 0.75 * Math.min(1, f.care / 140)) * rr(0.8, 1.2) * (dry() ? DROUGHT_YIELD : 1) * (f.flood ? FLOOD_YIELD : 1); f.flood = false; }
+    if (doy === 175 && f.stage === 1) {
+      f.stage = 2;
+      f.yield = 230 * (0.55 + 0.75 * Math.min(1, f.care / 140)) * rr(0.8, 1.2) * (dry() ? (irrigated(f) ? CANAL_DROUGHT : DROUGHT_YIELD) : 1) * (f.flood ? FLOOD_YIELD : 1)
+        * (h.herd > 0 ? MANURE : 1) * know;
+      f.flood = false;
+    }
     if (doy === 236 && f.stage === 2) { f.stage = 3; if (!h.gone) logOnce('rot', `Una família no va collir a temps i el blat es va fer malbé.`, 'bad'); }
     if (doy === 0 && f.stage === 3) { f.stage = 0; f.care = 0; }
   }
@@ -1204,6 +1318,7 @@ function daily() {
       if (p.job === 'carboner' && h.hut && !L.nocoal) { burnCoal(h, p, eff); continue; }
       if (p.job === 'miner' && h.iron < 25) { mineIron(h, p, eff); continue; }
       if (p.job === 'ferrer' && h.hut && smith(h, p, eff)) continue;
+      if (p.job === 'moliner' && h.hut && millWork(h, p, eff, season)) continue;
       if (p.job === 'picapedrer' && h.stone < 30 + stoneNeed(h)) { quarry(h, p, eff, true); continue; } // with a full stock, they do other work
       if (!h.hut) {
         // wood first, then stone (bought if someone sells it, otherwise dug by themselves)
@@ -1216,7 +1331,7 @@ function daily() {
         const f = ripe.pop();
         setTask(p, 'harvest', f.x + 1.5, f.y + 1, 1.5);
         if (R() < eff + 0.1 + 0.3 * famInt(h)) {
-          let got = f.yield * REAP(p); f.used = S.day;
+          let got = grind(h, f.yield * REAP(p)); f.used = S.day;
           if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
           if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
           if (L.tribute) got -= payLord(h, got * 0.1);
@@ -1282,7 +1397,7 @@ function daily() {
       // the worker gives up a day of foraging for a wage
       w.h.food -= w.gain; w.gain = 0;
       if (kind === 'harvest') {
-        let got = f.yield * (0.8 + 0.2 * w.str) * REAP_FOR(w, e); f.used = S.day;
+        let got = grind(e, f.yield * (0.8 + 0.2 * w.str) * REAP_FOR(w, e)); f.used = S.day;
         if (L.granary) { S.granary += got * 0.2; got *= 0.8; }
         if (L.basic) { S.granary += got * 0.1; S.basicFund += got * 0.1; got *= 0.9; }
         if (L.tribute) got -= payLord(e, got * 0.1);
@@ -1366,13 +1481,17 @@ function daily() {
   }
 
   // kilns and forges: idle for a year they crumble; a ruin nobody repairs for another year is cleared away
-  for (const h of S.homes) for (const kind of ['kiln', 'forge']) if (h[kind] && h[kind + 'Broken'] && S.day - (h[kind + 'BrokenDay'] ??= S.day) > YEAR) {
+  for (const h of S.homes) for (const kind of ['kiln', 'forge', 'mill']) if (h[kind] && h[kind + 'Broken'] && S.day - (h[kind + 'BrokenDay'] ??= S.day) > YEAR) {
     const b = h[kind]; mark(b.x, b.y, 2, 2, 0); h[kind] = null; h[kind + 'Broken'] = false;
-    log(`Les ruïnes de la ${PLANT[kind].name} dels ${h.surname} han desaparegut: fa més d'un any que ningú no les arregla.`, 'info');
+    log(`Les ruïnes ${kind === 'mill' ? 'del' : 'de la'} ${PLANT[kind].name} dels ${h.surname} han desaparegut: fa més d'un any que ningú no les arregla.`, 'info');
   }
   for (const h of S.homes) if (h.kiln && !h.kilnBroken && S.day - h.kilnUsed > YEAR) {
     h.kilnBroken = true; h.kilnBrokenDay = S.day; S.dirty = true;
     log(`La carbonera dels ${h.surname} fa més d'un any que no s'encén i s'ha deteriorat.`, 'info');
+  }
+  for (const h of S.homes) if (h.mill && !h.millBroken && S.day - h.millUsed > YEAR) {
+    h.millBroken = true; h.millBrokenDay = S.day; S.dirty = true;
+    log(`El molí dels ${h.surname} fa més d'un any que no mol i ha quedat en ruïnes.`, 'info');
   }
   for (const h of S.homes) if (h.forge && !h.forgeBroken && S.day - h.forgeUsed > YEAR) {
     h.forgeBroken = true; h.forgeBrokenDay = S.day; S.dirty = true;
@@ -1471,6 +1590,24 @@ function daily() {
     const c = hireFrom(m => m.int + m.str * 0.5 + (m.h.forge ? 2 : 0));
     if (c && ask(c.h, 'job' + c.id, `${fullName(c)} es pot fer ferrer: fer eines a la farga amb ferro i fusta. Necessitarà una farga. Hi esteu d'acord?`, 'Sí', 'No', 90)) { c.job = 'ferrer'; log(plantTxt(c, 'forge', 'ferrer'), 'amber'); }
   }
+  // millers: when the harvest outgrows the mills there are (at most three), a rich family that can pay for one takes
+  // up the trade; a family that owns a mill with nobody running it puts someone to it
+  if (S.day > YEAR && R() < 0.02 && !S.people.some(p => p.job === 'moliner' && !p.leaving && !millWorks(p.h))) {
+    const mills = S.homes.filter(o => o.mill), grain = active.reduce((t, o) => t + o.fields.length, 0) * 230;
+    const idle = active.find(o => o.mill && !o.millBroken && !o.members.some(m => m.job === 'moliner'));
+    const c = idle ? idle.members.find(m => m.age >= 360 && !m.job && !m.leaving)
+      : (mills.some(o => o.millBroken) || mills.length < MILL_MAX) && grain > mills.filter(millWorks).length * MILL_CAP
+        ? active.filter(o => o.hut && !o.tenant && !o.members.some(m => m.job === 'moliner') && o.food > plantCost(o, 'mill').food + 250)
+          .sort((a, b) => b.food - a.food).flatMap(o => o.members.filter(m => m.age >= 360 && !m.job && !m.leaving))[0] : null;
+    if (c && ask(c.h, 'job' + c.id, `${fullName(c)} es pot fer moliner: moldre el gra de tot el poble al molí i quedar-se una part de la farina. Fer un molí és molt car. Hi esteu d'acord?`, 'Sí', 'No', 90)) { c.job = 'moliner'; log(plantTxt(c, 'mill', 'moliner'), 'amber'); }
+  }
+  // under the free market each miller sets the fee every new year: up when the mill can't keep up, down when it's idle
+  if (doy === 0) for (const o of S.homes) if (o.mill) {
+    const load = (o.millLoad || 0) / MILL_CAP;
+    o.millFee = L.laissez ? Math.max(0.05, Math.min(0.6, (o.millFee ?? MILL_FEE) + (load > 0.9 ? 0.05 : load < 0.5 ? -0.05 : 0))) : MILL_FEE;
+    o.millLoad = 0;
+  }
+  if (doy % 30 === 12 && (season === 3 || season === 0)) digCanals(active);
   // iron market: smiths buy from miners
   {
     let unmet = 0;
@@ -1551,7 +1688,7 @@ function daily() {
     const huts = [...new Set(S.homes.filter(o => o.hut).map(o => o.hut))];
     for (const hut of huts) if (!hut.flats) { hut.flats = []; hut.floors = 0; }
     for (const t of active.filter(o => o.tenant)) {
-      const due = L.norent ? 0 : S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
+      const due = L.norent || t.ownFlat ? 0 : S.rent * (L.housing && daysOf(t) < 10 ? 0.5 : 1); // the housing law halves the rent of families in need
       const own = rentTo(t.hut), pay = Math.min(due, Math.max(0, t.food));
       t.food -= pay; t.rentPaid = (t.rentPaid || 0) + pay; S.st.rents += pay;
       if (own) { const cut = L.platform ? payLord(own, pay * 0.15) : 0; own.food += pay - cut; own.rentIn = (own.rentIn || 0) + pay - cut; }
@@ -1564,10 +1701,10 @@ function daily() {
     const vac = [];
     for (const hut of huts) { hut.flats.forEach((f, i) => { if (!f) vac.push([hut, i]); }); if (landlord(hut) && !hutOwner(hut) && !hut.ground) vac.push([hut, 'g']); }
     let unmet = 0;
-    for (const h of active.filter(o => !o.hut && (L.housing || o.food > S.rent * 15)).sort((a, b) => b.food - a.food)) {
+    for (const h of active.filter(o => !o.hut && (L.housing || L.redist || o.food > S.rent * 15)).sort((a, b) => b.food - a.food)) {
       const v = vac.shift();
       if (!v) { unmet++; continue; }
-      moveIn(h, v[0], v[1]);
+      moveIn(h, v[0], v[1]); if (L.redist) h.ownFlat = true;
       const own = rentTo(v[0]);
       logOnce('rent', `Els ${h.surname} lloguen un pis${own ? ` a casa dels ${own.surname}` : ''} per ${S.rent.toFixed(1)} de menjar al dia.`, 'amber');
     }
@@ -2034,6 +2171,7 @@ function yearEnd() {
   log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${wed} casaments, ${S.yr.died} morts${starved ? ` (${starved} de gana)` : ''}, ${S.yr.left} han marxat, ${S.yr.thefts} robatoris${banished ? `, ${banished} desterrats` : ''}.`, 'amber');
   S.yr0 = { died: S.st.died, banished: S.st.banished || 0, weddings: S.st.weddings };
   S.yr = { thefts: 0, births: 0, left: 0, died: 0 };
+  if (L.redist) redistribute(false);
 }
 function seasonChange(doy) {
   S.dirty = true;
@@ -2104,6 +2242,12 @@ function drawTerrain() {
   if (!bases[s]) bases[s] = buildBase(s);
   tctx.putImageData(bases[s], 0, 0);
   drawDisasterTerrain(s);
+  // irrigation channels: a thin line of water from the river, under the fields
+  for (const c of S.canals || []) {
+    tctx.fillStyle = s === 3 ? '#9fc4d8' : '#3f86b0';
+    for (let x = c.x0; x <= c.x1; x++) if (!S.water[idx(x, c.y)]) tctx.fillRect(x * T, c.y * T + 2, T, 1);
+    tctx.fillStyle = 'rgba(0,0,0,.15)'; tctx.fillRect(c.x0 * T, c.y * T + 3, (c.x1 - c.x0 + 1) * T, 1);
+  }
   // fields
   for (const h of S.homes) for (const f of h.fields) drawField(f, s, h.gone);
   for (const h of S.homes) if (h.pending && !h.gone) {
@@ -2181,6 +2325,26 @@ function drawTerrain() {
     tctx.fillStyle = '#3b3029'; tctx.fillRect(px + 1, py + 2, 8, 7); tctx.fillRect(px + 2, py + 1, 6, 9);
     tctx.fillStyle = '#5a4a3c'; tctx.fillRect(px + 3, py + 2, 3, 2);
     tctx.fillStyle = '#241b16'; tctx.fillRect(px + 4, py + 7, 2, 1); // the mouth; it glows only while lit (see render)
+  }
+  // water mills: a stone mill house with a wooden roof by the river; the wheel turns in render()
+  for (const h of S.homes) if (h.mill) {
+    const px = h.mill.x * T, py = h.mill.y * T;
+    if (h.millBroken) {
+      tctx.fillStyle = 'rgba(0,0,0,.2)'; tctx.fillRect(px, py + 3, 10, 7);
+      tctx.fillStyle = '#8c8a84'; tctx.fillRect(px, py + 5, 9, 4); tctx.fillRect(px + 1, py + 3, 2, 2); tctx.fillRect(px + 6, py + 4, 2, 1);
+      tctx.fillStyle = '#5a4030'; tctx.fillRect(px + 3, py + 6, 4, 1); tctx.fillRect(px - 2, py + 7, 3, 1);
+      continue;
+    }
+    tctx.fillStyle = 'rgba(0,0,0,.3)'; tctx.fillRect(px + 1, py + 2, 10, 9);
+    tctx.fillStyle = '#a8a294'; tctx.fillRect(px, py + 3, 10, 7);
+    tctx.fillStyle = '#8c867a'; for (let k = 0; k < 3; k++) tctx.fillRect(px + (k % 2) * 3, py + 4 + k * 2, 10 - (k % 2) * 3, 1);
+    tctx.fillStyle = s === 3 ? '#eef1f4' : '#7a4a2a'; tctx.fillRect(px - 1, py, 12, 3); tctx.fillRect(px + 1, py - 1, 8, 1);
+    tctx.fillStyle = '#2a1d14'; tctx.fillRect(px + 6, py + 6, 2, 4);
+    tctx.fillStyle = '#3a2a1c'; tctx.fillRect(px + 2, py + 5, 2, 2);
+    // the wheel's rim and axle, half in the water; its spokes turn in render()
+    tctx.fillStyle = '#4a3220'; tctx.fillRect(px - 2, py + 5, 2, 2);
+    tctx.fillStyle = '#6b4a2c';
+    for (let k = 0; k < 16; k++) { const t = k * Math.PI / 8; tctx.fillRect(Math.round(px - 3 + Math.cos(t) * 4.5), Math.round(py + 6 + Math.sin(t) * 4.5), 1, 1); }
   }
   // sheep pens
   for (const h of S.homes) if (h.pen) {
@@ -2319,6 +2483,13 @@ function render() {
     ctx.fillStyle = t % 3 ? '#f08a30' : '#ffc060'; ctx.fillRect(h.forge.x * T + 3, h.forge.y * T + 7, 3, 3);
     ctx.fillStyle = 'rgba(120,120,120,.5)';
     for (let k = 0; k < 3; k++) { const ph = (t + k * 9) % 24; ctx.fillRect(h.forge.x * T + 7 + Math.round(Math.sin((ph + k) / 3)), h.forge.y * T - 3 - ph / 2, 2, 2); }
+  }
+  for (const h of S.homes) if (h.mill && !h.millBroken) { // the mill wheel on the river side; it turns while someone runs the mill
+    const cx = h.mill.x * T - 3, cy = h.mill.y * T + 6, a = millWorks(h) && !reduceMotion ? S.frame / 12 : 0;
+    ctx.fillStyle = '#5a3e26';
+    for (let k = 0; k < 8; k++) { const t = a + k * Math.PI / 4; ctx.fillRect(Math.round(cx + Math.cos(t) * 5), Math.round(cy + Math.sin(t) * 5), 1, 1); } // paddles
+    ctx.fillStyle = '#8a6440';
+    for (let k = 0; k < 2; k++) { const t = a + k * Math.PI / 2; for (let r = -3; r <= 3; r++) ctx.fillRect(Math.round(cx + Math.cos(t) * r), Math.round(cy + Math.sin(t) * r), 1, 1); }
   }
   for (const h of S.homes) if (h.kiln && !h.kilnBroken && S.day - h.kilnUsed <= 1) { // only a kiln that is burning smokes and glows
     const t = (S.frame / 6) | 0;
@@ -2592,6 +2763,9 @@ function updateHud() {
   put('sMiners', S.people.filter(p => p.job === 'miner' && !p.leaving).length);
   put('sIronDug', fmt(S.mine.dug));
   put('sSmiths', S.people.filter(p => p.job === 'ferrer' && !p.leaving).length);
+  { const ms = S.homes.filter(o => o.mill), br = ms.filter(o => o.millBroken).length; put('sMills', ms.length ? `${ms.length - br}${br ? ` (+${br} en ruïnes)` : ''}${L.laissez && ms.some(millWorks) ? ` · ${Math.round(100 * Math.min(...ms.filter(millWorks).map(o => o.millFee ?? MILL_FEE)))}%` : ''}` : 0); }
+  put('sMillers', S.people.filter(p => p.job === 'moliner' && !p.leaving).length);
+  put('sCanals', (S.canals || []).length);
   put('sHoePrice', S.hoePrice.toFixed(1));
   put('sPickPrice', S.pickPrice.toFixed(1));
   put('sWage', S.wage.toFixed(2));
@@ -2685,6 +2859,7 @@ function proclaim(k, quiet) {
   }
   if (['platform', 'cloud', 'tribute', 'vassal'].includes(k)) lordOf('lord');
   if (k === 'enclosure') lordOf('forestLord');
+  if (k === 'redist') redistribute(true);
   renderLaws(); updateHud(); return true;
 }
 function renderLawPick() {
@@ -3066,7 +3241,7 @@ function quake() {
       mark(u.x, u.y, 2, 2, 0); u.cleared = true; fell++;
     }
   }
-  for (const o of S.homes) for (const k of ['kiln', 'forge']) if (o[k] && !o[k + 'Broken'] && R() < 0.3) { o[k + 'Broken'] = true; o[k + 'BrokenDay'] = S.day; }
+  for (const o of S.homes) for (const k of ['kiln', 'forge', 'mill']) if (o[k] && !o[k + 'Broken'] && R() < 0.3) { o[k + 'Broken'] = true; o[k + 'BrokenDay'] = S.day; }
   FX.push({ type: 'quake', t0: performance.now(), dur: 4000, cracks: makeCracks() });
   S.dirty = true;
   disaster(`Terratrèmol! S'han ensorrat ${fell} ${fell === 1 ? 'cabana' : 'cabanes'} i ${floors} ${floors === 1 ? 'pis' : 'pisos'}. ${homeless} ${homeless === 1 ? 'família s\'ha quedat' : 'famílies s\'han quedat'} sense casa. Les cases de pedra han aguantat.`, 'TERRATRÈMOL');
@@ -3423,6 +3598,9 @@ const HELP_TABS = [
   ['Menjar i natura', [
     ['MENJAR', [
       'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
+      'Fems: les cases que tenen ovelles abonen els seus camps, que donen un 20% més de collita.',
+      'Saber: la collita de tots els camps creix o baixa segons la intel·ligència mitjana dels adults del poble, comparada amb la dels primers pobladors: cada 0,1 més d\'intel·ligència mitjana dona un 15% més de collita (entre un 20% menys i un 60% més). Com que l\'escola fa néixer els nens més llestos, amb els anys l\'escola fa créixer les collites.',
+      'Sèquies: a l\'hivern i a la primavera, una casa rica (amb dos camps o més i més de 520 de menjar) pot fer una sèquia des del riu fins a un camp seu que no en tingui. Costa 120 de menjar i 10 de pedra. Si el consell és d\'esquerres i la política dinàmica està activada, també en pot fer una amb menjar del graner. Tots els camps que toquen una sèquia, siguin de qui siguin, a la sequera perden només un 15% de la collita en lloc de més de la meitat. Hi pot haver fins a 12 sèquies.',
       'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
       'Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
       'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
@@ -3458,6 +3636,13 @@ const HELP_TABS = [
       'Arada: costa més que l\'aixada, però la feina va encara més de pressa i la collita és més gran.',
       'Pic: el picapedrer i el miner treuen més. Canya de pescar: es pesca més.',
       'Les eines es gasten amb el temps i s\'han de tornar a comprar.',
+    ]],
+    ['MOLINS I MOLINERS', [
+      'Un molí d\'aigua és molt car: 120 de fusta, 80 de pedra i 300 de menjar. Al poble n\'hi pot haver com a màxim tres, i van a la riba del riu.',
+      'Quan les collites ja no caben als molins que hi ha, una casa rica posa algú de moliner. El moliner aixeca el molí i a l\'època de la sega s\'hi està molent.',
+      'El gra que passa pel molí dona un 50% més de menjar, però el moliner es queda un 20% del que surt. Així, a la família li queda un 20% més del que hauria tingut sense molí. La família del moliner mol de franc. Cada molí pot moldre unes 12.000 unitats de gra a l\'any, i cada família porta el gra al molí més barat que encara tingui lloc.',
+      'Un molí que passa un any sense moldre queda en ruïnes. Qui el repari, per la meitat del preu, se\'l queda. Si passa un altre any en ruïnes, desapareix.',
+      'Lleis: amb la Col·lectivització de la terra, els molins molen de franc. Amb el Molí subvencionat, el graner paga la meitat del que cobra el moliner. Amb el Mercat lliure total, cada moliner apuja el preu cada any si el seu molí no dona l\'abast i l\'abaixa si li falta feina, entre el 5% i el 60%. Però si el molí cobra més d\'un terç, ja no surt a compte i ningú no hi va. Amb la Plataforma, el senyor es queda un 15% de cada pagament al molí.',
     ]],
     ['JORNALERS', [
       'Les cases que tenen feina de sobres contracten gent d\'altres cases i els paguen un jornal en menjar.',
