@@ -128,6 +128,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .stats div{background:var(--panel);padding:6px 8px}
 .stats span{display:block;font-size:10px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .stats b{font-size:15px;font-variant-numeric:tabular-nums;font-weight:600}
+.stats h4{grid-column:1/-1;margin:0;padding:9px 8px 3px;background:var(--panel);font-size:10px;letter-spacing:.12em;color:var(--amber);font-weight:700}
 .stats .bad b{color:var(--bad)}.stats .good b{color:var(--good)}
 .log{list-style:none;margin:0;padding:0 4px 0 0;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;font-size:12px}
 .log li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:6px}
@@ -286,61 +287,76 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     <section class="sec">
       <h3>EL POBLE AVUI</h3>
       <div class="stats">
+        <h4>POBLACIÓ</h4>
+        <div><span>Famílies</span><b id="sHomes">0</b></div>
+        <div><span>Cognoms</span><b id="sNames">0</b></div>
+        <div><span>Edat mitjana</span><b id="sAge">0</b></div>
+        <div><span>Salut mitjana</span><b id="sHealth">0</b></div>
+        <div><span>La persona més gran</span><b id="sOldest">0</b></div>
+        <div class="good"><span>Nadons</span><b id="sBirths">0</b></div>
+        <div class="good"><span>Casaments</span><b id="sWeddings">0</b></div>
+        <div><span>Nouvinguts</span><b id="sArrived">0</b></div>
+        <div class="bad"><span>Han marxat</span><b id="sLeft">0</b></div>
+        <div class="bad"><span>Morts de gana</span><b id="sDied">0</b></div>
+        <div><span>Morts de vellesa</span><b id="sOldDeaths">0</b></div>
+        <div><span>Famílies extingides</span><b id="sExtinct">0</b></div>
+        <div class="good"><span>Herències</span><b id="sBequests">0</b></div>
+        <div class="pad"></div>
+        <div class="pad"></div>
+        <h4>MENJAR</h4>
         <div><span>Menjar</span><b id="sFood">0</b></div>
         <div><span>Dies (mitjana)</span><b id="sDays">0</b></div>
         <div><span>Graner comú</span><b id="sGran">0</b></div>
-        <div class="bad"><span>Robatoris</span><b id="sThefts">0</b></div>
-        <div class="good"><span>Regals</span><b id="sGifts">0</b></div>
-        <div class="good"><span>Nadons</span><b id="sBirths">0</b></div>
-        <div class="bad"><span>Han marxat</span><b id="sLeft">0</b></div>
-        <div class="bad"><span>Morts de gana</span><b id="sDied">0</b></div>
-        <div><span>Atrapats</span><b id="sCaught">0</b></div>
-        <div><span>Nouvinguts</span><b id="sArrived">0</b></div>
-        <div><span>Famílies</span><b id="sHomes">0</b></div>
-        <div><span>Cognoms</span><b id="sNames">0</b></div>
-        <div><span>Ovelles</span><b id="sHerd">0</b></div>
-        <div><span>Corrals</span><b id="sPens">0</b></div>
-        <div class="bad"><span>Ovelles perdudes</span><b id="sLostHerd">0</b></div>
-        <div class="bad"><span>Desastres</span><b id="sDisasters">0</b></div>
-        <div class="bad"><span>Aldarulls</span><b id="sRiots">0</b></div>
-        <div class="bad"><span>Revolucions</span><b id="sRevolutions">0</b></div>
+        <div><span>Peix pescat</span><b id="sFish">0</b></div>
+        <div class="good"><span>Menjar repartit</span><b id="sRedist">0</b></div>
+        <div class="pad"></div>
+        <h4>FEINA I PREUS</h4>
+        <div><span>Preu del jornal</span><b id="sWage">0</b></div>
         <div><span>Jornals</span><b id="sJobs">0</b></div>
         <div><span>Menjar en sous</span><b id="sWages">0</b></div>
-        <div class="good"><span>Casaments</span><b id="sWeddings">0</b></div>
         <div><span>Preu del carbó</span><b id="sCoalPrice">0</b></div>
-        <div><span>Carboners</span><b id="sBurners">0</b></div>
-        <div><span>Carbó venut</span><b id="sCoalSold">0</b></div>
         <div><span>Preu de la pedra</span><b id="sStonePrice">0</b></div>
-        <div><span>Picapedrers</span><b id="sCutters">0</b></div>
-        <div><span>Pedra extreta</span><b id="sDug">0</b></div>
         <div><span>Preu del ferro</span><b id="sIronPrice">0</b></div>
-        <div><span>Miners</span><b id="sMiners">0</b></div>
-        <div><span>Ferro extret</span><b id="sIronDug">0</b></div>
-        <div><span>Ferrers</span><b id="sSmiths">0</b></div>
         <div><span>Preu aixada</span><b id="sHoePrice">0</b></div>
         <div><span>Preu pic</span><b id="sPickPrice">0</b></div>
-        <div><span>Preu del jornal</span><b id="sWage">0</b></div>
+        <div><span>Preu arada</span><b id="sPlowPrice">0</b></div>
+        <div><span>Preu canya</span><b id="sRodPrice">0</b></div>
+        <div class="pad"></div>
+        <div class="pad"></div>
+        <h4>OFICIS I MATERIALS</h4>
+        <div><span>Carboners</span><b id="sBurners">0</b></div>
+        <div><span>Carbó venut</span><b id="sCoalSold">0</b></div>
+        <div><span>Picapedrers</span><b id="sCutters">0</b></div>
+        <div><span>Pedra extreta</span><b id="sDug">0</b></div>
+        <div><span>Miners</span><b id="sMiners">0</b></div>
+        <div><span>Ferro extret</span><b id="sIronDug">0</b></div>
+        <div><span>Ferro venut</span><b id="sIronSold">0</b></div>
+        <div><span>Ferrers</span><b id="sSmiths">0</b></div>
         <div><span>Eines venudes</span><b id="sTools">0</b></div>
+        <div><span>Arades venudes</span><b id="sPlows">0</b></div>
+        <div><span>Canyes venudes</span><b id="sRods">0</b></div>
         <div class="good"><span>Ferro estalviat</span><b id="sIronSaved">0</b></div>
-        <div><span>Morts de vellesa</span><b id="sOldDeaths">0</b></div>
-        <div><span>Salut mitjana</span><b id="sHealth">0</b></div>
-        <div><span>Edat mitjana</span><b id="sAge">0</b></div>
+        <h4>BESTIAR</h4>
+        <div><span>Ovelles</span><b id="sHerd">0</b></div>
+        <div><span>Corrals</span><b id="sPens">0</b></div>
+        <div class="good"><span>Corrals millorats</span><b id="sPenUps">0</b></div>
+        <div class="bad"><span>Ovelles perdudes</span><b id="sLostHerd">0</b></div>
+        <div class="pad"></div>
+        <div class="pad"></div>
+        <h4>HABITATGE</h4>
+        <div><span>Preu d'una cabana</span><b id="sHousePrice">0</b></div>
         <div class="good"><span>Cases de pedra</span><b id="sStoneHouses">0</b></div>
         <div><span>Cases buides</span><b id="sEmpty">0</b></div>
         <div><span>Cases en ruïnes</span><b id="sRuins">0</b></div>
-        <div><span>Ferro venut</span><b id="sIronSold">0</b></div>
         <div><span>Preu del lloguer</span><b id="sRent">0</b></div>
         <div><span>Pisos llogats</span><b id="sFlats">0</b></div>
-        <div><span>Preu d'una cabana</span><b id="sHousePrice">0</b></div>
-        <div><span>Preu arada</span><b id="sPlowPrice">0</b></div>
-        <div><span>Arades venudes</span><b id="sPlows">0</b></div>
-        <div class="good"><span>Corrals millorats</span><b id="sPenUps">0</b></div>
-        <div><span>Preu canya</span><b id="sRodPrice">0</b></div>
-        <div><span>Canyes venudes</span><b id="sRods">0</b></div>
-        <div><span>Peix pescat</span><b id="sFish">0</b></div>
-        <div class="good"><span>Herències</span><b id="sBequests">0</b></div>
-        <div><span>Famílies extingides</span><b id="sExtinct">0</b></div>
-        <div><span>La persona més gran</span><b id="sOldest">0</b></div>
+        <h4>CONFLICTES I DESASTRES</h4>
+        <div class="bad"><span>Robatoris</span><b id="sThefts">0</b></div>
+        <div><span>Atrapats</span><b id="sCaught">0</b></div>
+        <div class="bad"><span>Aldarulls</span><b id="sRiots">0</b></div>
+        <div class="bad"><span>Revolucions</span><b id="sRevolutions">0</b></div>
+        <div class="bad"><span>Desastres</span><b id="sDisasters">0</b></div>
+        <div class="pad"></div>
       </div>
     </section>
 
@@ -473,7 +489,7 @@ const LAWDEFS = {
   tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
   rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez'] },
   housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez'] },
-  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal pot baixar fins a 0,6, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage'] },
+  laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage'] },
   notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
   usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Només en poden demanar les cases que tenen alguna cosa per empenyorar: casa pròpia, camps o corral. Si al cap d\'un any no han pagat, el creditor els embarga, una cosa cada mes fins a cobrar: primer el corral amb les ovelles, després els camps, un per un, i al final la casa, que llogarà.' },
   enclosure: { name: 'Privatització del bosc', txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
@@ -521,8 +537,8 @@ function newWorld(sd) {
   }
   S = {
     day: 0, frame: 0, water, tree, occ, riverX, people: [], homes: [], granary: 0,
-    st: { thefts: 0, gifts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
-    yr: { thefts: 0, gifts: 0, births: 0, left: 0, died: 0 },
+    st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
+    yr: { thefts: 0, births: 0, left: 0, died: 0 },
     flags: {}, dirty: true, nextId: 1, used: new Set(), animals: [], forest: tree.slice(),
   };
   // the quarry sits in the bottom-right corner
@@ -588,7 +604,7 @@ function newPerson(h, age, parents, sex, surname) {
   sex = sex || (R() < 0.5 ? 'f' : 'm');
   const p = { id: S.nextId++, h, age, sex, name: pickName(sex === 'f' ? NOMS_F : NOMS_M), surname: surname || h.surname,
     x: 0, y: 0, tx: 0, ty: 0, bx: 0, by: 0, wait: 0, task: 'idle',
-    greed: inherit(parents, 'greed', () => Math.pow(R(), 1.6)), gen: inherit(parents, 'gen', R), lazy: inherit(parents, 'lazy', () => R() * 0.8),
+    greed: inherit(parents, 'greed', () => Math.pow(R(), 1.6)), lazy: inherit(parents, 'lazy', () => R() * 0.8),
     health: age > 0 ? rr(0.8, 1) : 1, str: inherit(parents, 'str', R), int: clamp01(inherit(parents, 'int', R) + (L.school && parents ? 0.08 : 0)),
     parents: parents ? parents.map(q => q.name) : null, hunger: 0, leaving: false, color: CLOTHES[ri(0, CLOTHES.length - 1)] };
   p.parentIds = parents ? parents.map(q => q.id) : null;
@@ -808,8 +824,6 @@ function getPlant(h, p, eff, kind, site) {
   }
 }
 function coalValue(h, season) { const n = need(h); return n * (1 - 1 / 1.2) + (season === 3 ? n * 0.25 : 0); }
-// a day of farm work brings in about two to three of food at harvest, so no employer pays more than WAGE_MAX for it
-const WAGE_MAX = 3;
 const WAGE = 2.5, MIN_WAGE = 3.5, SHEEP_COST = 40, MILK = 0.7, FODDER = 0.3, MEAT = 30, HERD_MAX = 8;
 function syncHerd(h) {
   const mine = S.animals.filter(a => a.h === h);
@@ -1227,7 +1241,8 @@ function daily() {
 
   // wages follow supply and demand: jobs left undone push them up, idle hands push them down
   if (short) S.wage *= 1.01; else if (pool.length > 3) S.wage *= 0.993;
-  S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.3 : Math.max(0.3, Math.min(1.2, S.wildPay ?? 1.2)), Math.min(WAGE_MAX, S.wage));
+  // under laissez there is no floor at all; the tiny value only keeps the multiplicative update alive
+  S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.02 : Math.max(0.3, Math.min(1.2, S.wildPay ?? 1.2)), S.wage);
 
   // livestock
   for (const h of active) {
@@ -1717,11 +1732,11 @@ function daily() {
     for (const pz of poor) {
       const r = rich.find(o => daysOf(o) > 35); if (!r) break;
       const amt = Math.min(need(pz) * 8 - pz.food, r.food * 0.15);
-      if (amt >= 1) { r.food -= amt; pz.food += amt; S.st.gifts++; S.yr.gifts++; r.gave += amt; pz.got += amt; if (R() < 0.35) tagHome(r, `VA DONAR ${Math.round(amt)} MENJAR`, 'good'); }
+      if (amt >= 1) { r.food -= amt; pz.food += amt; S.st.redist += amt; r.gave += amt; pz.got += amt; if (R() < 0.35) tagHome(r, `VA DONAR ${Math.round(amt)} MENJAR`, 'good'); }
     }
   }
 
-  // desperation: steal or beg
+  // desperation: steal
   for (const h of active) {
     if (h.gone || daysOf(h) >= 2) continue;
     const hungry = h.members.filter(p => p.hunger >= 2 && p.age >= 360 && !p.leaving).sort((a, b) => b.hunger - a.hunger);
@@ -1749,18 +1764,6 @@ function daily() {
         v.food -= amt; h.food += amt; S.st.thefts++; S.yr.thefts++; h.stole += amt; v.robbed += amt;
         tagHome(v, `VA AGAFAR ${amt} MENJAR`, 'bad');
         if (!S.flags.theft) { S.flags.theft = 1; log(`${fullName(a)} va agafar ${amt} de menjar de casa dels ${v.surname}.${L.theft ? '' : ' Ningú ho va impedir.'}`, 'bad'); }
-      }
-    } else {
-      const donors = others.filter(o => daysOf(o) > 25);
-      if (!donors.length) continue;
-      const d = donors[0];
-      const g = avg(d.members.map(m => m.gen));
-      if (R() < g * 0.7 + 0.1) {
-        const amt = Math.round(Math.min(d.food * 0.1, need(h) * 3 + rr(0, 6)));
-        if (amt < 1) continue;
-        d.food -= amt; h.food += amt; S.st.gifts++; S.yr.gifts++; d.gave += amt; h.got += amt;
-        tagHome(d, `VA DONAR ${amt} MENJAR`, 'good');
-        if (!S.flags.gift) { S.flags.gift = 1; log(`Els ${d.surname} van donar ${amt} de menjar als ${h.surname}, que passaven gana.`, 'good'); }
       }
     }
   }
@@ -1938,9 +1941,9 @@ function yearEnd() {
   const y = cal(S.day).y - 1;
   const alive = S.people.filter(p => !p.leaving).length;
   const y0 = S.yr0 || {}, starved = S.st.died - (y0.died || 0), banished = (S.st.banished || 0) - (y0.banished || 0), wed = S.st.weddings - (y0.weddings || 0);
-  log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${wed} casaments, ${S.yr.died} morts${starved ? ` (${starved} de gana)` : ''}, ${S.yr.left} han marxat, ${S.yr.thefts} robatoris${banished ? `, ${banished} desterrats` : ''}, ${S.yr.gifts} regals.`, 'amber');
+  log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${wed} casaments, ${S.yr.died} morts${starved ? ` (${starved} de gana)` : ''}, ${S.yr.left} han marxat, ${S.yr.thefts} robatoris${banished ? `, ${banished} desterrats` : ''}.`, 'amber');
   S.yr0 = { died: S.st.died, banished: S.st.banished || 0, weddings: S.st.weddings };
-  S.yr = { thefts: 0, gifts: 0, births: 0, left: 0, died: 0 };
+  S.yr = { thefts: 0, births: 0, left: 0, died: 0 };
 }
 function seasonChange(doy) {
   S.dirty = true;
@@ -2467,6 +2470,7 @@ function updateHud() {
   put('sFood', fmt(food));
   put('sDays', nd ? Math.round(food / nd) : 0);
   put('sGran', fmt(S.granary));
+  put('sRedist', fmt(S.st.redist));
   put('sHomes', act.length);
   put('sNames', new Set(act.map(h => h.surname)).size);
   put('sHerd', act.reduce((t, h) => t + h.herd, 0));
@@ -2518,7 +2522,7 @@ function updateHud() {
     put('uWhy', (hs > 0.005 ? `El ${Math.round(hs * 100)}% de la gent passa gana.` : 'Ningú no passa gana.') + (bs >= 1 && S.day >= YEAR ? ` La desigualtat (Gini ${gi.toFixed(2).replace('.', ',')}) el manté com a mínim al ${Math.round(bs)}%.` : '') + (u >= 75 ? ' Hi pot haver aldarulls en qualsevol moment.' : u >= 50 ? ' La gent comença a protestar.' : ''));
   }
   put('sAge', alive.length ? (avg(alive.map(p => p.age)) / YEAR).toFixed(1).replace('.', ',') + ' anys' : '—');
-  for (const k of ['thefts', 'gifts', 'births', 'left', 'died', 'caught', 'arrived', 'lostHerd', 'jobs', 'weddings', 'coalSold']) put('s' + k[0].toUpperCase() + k.slice(1), S.st[k]);
+  for (const k of ['thefts', 'births', 'left', 'died', 'caught', 'arrived', 'lostHerd', 'jobs', 'weddings', 'coalSold']) put('s' + k[0].toUpperCase() + k.slice(1), S.st[k]);
 }
 
 // ---------- laws UI ----------
@@ -2995,7 +2999,6 @@ const COLS = [
   ['days', 'Dies', h => daysOf(h)],
   ['hunger', 'Gana', h => avg(h.members.map(m => m.hunger))],
   ['greed', 'Cobdícia', h => avg(adultsOf(h).map(m => m.greed))],
-  ['gen', 'Generositat', h => avg(adultsOf(h).map(m => m.gen))],
   ['lazy', 'Mandra', h => avg(adultsOf(h).map(m => m.lazy))],
   ['str', 'Força', h => avg(adultsOf(h).map(m => m.str))],
   ['int', 'Intel·ligència màx.', h => famInt(h)],
@@ -3050,7 +3053,6 @@ function renderHouses(force, focusId) {
       <td class="${d < 5 ? 'bad' : d > 40 ? 'good' : ''}">${Math.floor(d)}</td>
       <td class="${hg >= 2 ? 'bad' : 'dim'}">${hg >= 0.5 ? hg.toFixed(1) : '—'}</td>
       <td>${bar(avg(ad.map(m => m.greed)), 'g')}</td>
-      <td>${bar(avg(ad.map(m => m.gen)), 'n')}</td>
       <td>${bar(avg(ad.map(m => m.lazy)), 'l')}</td>
       <td>${bar(avg(ad.map(m => m.str)), 's')}</td>
       <td>${bar(famInt(h), 'i')}</td>
@@ -3065,7 +3067,7 @@ function renderHouses(force, focusId) {
     if (openHouse.has(h.id)) {
       const ms = h.members.slice().sort((a, b) => b.age - a.age).map(m => `<div class="member"><div class="n">${esc(fullName(m))}</div>
         <div class="meta">${m.job ? m.job + ' · ' : ''}${hasPlow(m) ? 'arada · ' : ''}${hasRod(m) ? 'canya · ' : ''}${hasHoe(m) ? 'aixada · ' : ''}${hasPick(m) ? 'pic · ' : ''}${ageTxt(m)}${m.married ? (m.sex === 'f' ? ' · casada' : ' · casat') : m.widow != null ? (m.sex === 'f' ? ' · vídua' : ' · vidu') : m.age >= 360 ? (m.sex === 'f' ? ' · soltera' : ' · solter') : ''}${m.parents ? ` · ${esc(parentsTxt(m))}` : ''}${m.hunger ? ` · <span class="bad">${m.hunger} dies amb gana</span>` : ''}</div>
-        <div class="meta">cobdícia ${Math.round(m.greed * 100)} · generositat ${Math.round(m.gen * 100)} · mandra ${Math.round(m.lazy * 100)}</div>
+        <div class="meta">cobdícia ${Math.round(m.greed * 100)} · mandra ${Math.round(m.lazy * 100)}</div>
         <div class="meta">força ${Math.round(m.str * 100)} · intel·ligència ${Math.round(m.int * 100)} · <span class="${m.health < 0.5 ? 'bad' : ''}">salut ${Math.round(m.health * 100)}</span></div></div>`).join('');
       html += `<tr class="detail"><td colspan="${COLS.length}"><div class="members">${ms}</div></td></tr>`;
     }
@@ -3122,7 +3124,7 @@ const RULES = [
     'Hi ha quatre estacions. A la primavera es llauren i se sembren els camps, a l\'estiu se sega la collita, a la tardor hi ha menys llet i a l\'hivern gairebé no es troba menjar al bosc i cal cremar llenya o carbó.',
   ]],
   ['LA GENT I ELS SEUS TRETS', [
-    'Cada persona té força, intel·ligència, cobdícia, generositat, mandra i salut.',
+    'Cada persona té força, intel·ligència, cobdícia, mandra i salut.',
     'Els fills hereten la mitjana dels trets dels pares amb una mica de variació, i de tant en tant surten diferents del tot.',
     'La força dona més menjar i més fusta. La intel·ligència dona millors collites, millors llocs de pesca, guarda millor el menjar i fa que els lladres siguin atrapats menys sovint.',
     'Un nen es fa adult al cap d\'un any. Un adult menja 1 de menjar al dia, un nen la meitat, i qui fa feines dures menja una mica més.',
@@ -3182,7 +3184,7 @@ const RULES = [
   ]],
   ['JORNALERS', [
     'Les cases que tenen feina de sobres contracten gent d\'altres cases i els paguen un jornal en menjar.',
-    'El jornal puja quan falten braços i baixa quan sobren. No passa mai de 3 de menjar al dia, que és el que pot donar un dia de feina al camp. Tampoc baixa del que la gent trauria pescant o collint pel seu compte (com a màxim 1,2), perquè per menys ningú no hi aniria. Si el bosc s\'acaba i el riu va ple, aquest mínim baixa fins a 0,3. Amb Mercat lliure total el mínim és 0,3, i amb la llei del salari mínim és 3,5.',
+    'El jornal puja quan falten braços i baixa quan sobren, sense cap màxim. No baixa del que la gent trauria pescant o collint pel seu compte (com a màxim 1,2), perquè per menys ningú no hi aniria. Si el bosc s\'acaba i el riu va ple, aquest mínim baixa fins a 0,3. Amb Mercat lliure total no hi ha mínim, i amb la llei del salari mínim és 3,5.',
     'El jornal puja quan molta gent busca treballadors i baixa quan molta gent busca feina.',
     'El jornaler treballa amb les eines de la casa que el contracta.',
   ]],
@@ -3196,10 +3198,9 @@ const RULES = [
     'Una carbonera o una farga que no s\'encén durant un any queda en ruïnes, i la pot arreglar qualsevol carboner o ferrer per la meitat del cost.',
     'Qualsevol edifici en ruïnes (cabana, carbonera o farga) que ningú no arregla durant un any desapareix, i el lloc queda lliure per construir-hi.',
   ]],
-  ['ROBATORIS I REGALS', [
+  ['ROBATORIS', [
     'Qui passa gana pot robar menjar a una casa que en té, sobretot si és cobdiciós.',
     'Qui és atrapat robant queda avisat; si l\'atrapen una segona vegada, és desterrat del poble per sempre, hi hagi llei o no. Els lladres llestos són atrapats menys sovint, i amb la llei contra els robatoris hi ha guàrdia i se n\'atrapen el doble.',
-    'Les persones generoses regalen menjar a les cases que passen gana.',
   ]],
   ['DESIGUALTAT', [
     'La riquesa d\'una casa és el menjar, la fusta, la pedra, el ferro, el carbó i les ovelles que té, més el valor de les cases que són seves.',
