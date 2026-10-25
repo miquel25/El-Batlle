@@ -533,8 +533,8 @@ const LAWDEFS = {
   theft: { name: 'Llei contra els robatoris', txt: 'Robar està prohibit: hi ha molts menys robatoris i hi ha guàrdia, que atrapa el doble de lladres.' },
   stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
   closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
-  share: { name: 'A cadascú segons les seves necessitats', txt: 'A cadascú segons les seves necessitats: les cases amb molt de menjar han de donar el que sobra a les que passen gana.' },
-  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita va al magatzem col·lectiu, que la reparteix a parts iguals entre totes les persones del poble. Els molins molen de franc.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
+  share: { name: 'A cadascú segons les seves necessitats', txt: 'A cadascú segons les seves necessitats: les cases amb molt de menjar han de donar el que sobra a les que passen gana. Cadascuna es guarda prou menjar per arribar a la collita següent.' },
+  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita, i també la llet i la carn de les ovelles, va al magatzem col·lectiu. El magatzem la reparteix a parts iguals entre totes les persones del poble, en racions setmanals que han de durar fins a la collita següent, i paga el farratge dels ramats a l\'hivern. Els molins molen de franc.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
   nowage: { name: 'Abolició del treball assalariat', txt: 'Abolició del treball assalariat: ningú pot treballar per a una altra casa a canvi d\'un jornal. Cada família treballa només el que és seu.', excl: ['laissez', 'platform'] },
   norent: { name: 'Abolició de la renda', txt: 'Abolició de la renda: ningú paga lloguer per viure en un pis, i ningú no pot ser desnonat. Els propietaris ja no en treuen res, així que no se\'n fan de nous.', excl: ['laissez', 'rentcap', 'housing'] },
   granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax', 'collective'] },
@@ -1505,7 +1505,7 @@ function daily() {
     }
     h.penUsed = S.day;
     if (season !== 3) {
-      if (h.shep) { const m = MILK * h.herd * (season === 2 ? 0.7 : 1) * (h.pen.lvl ? PEN_MILK : 1); h.food += m; h.milk += m; }
+      if (h.shep) { const m = MILK * h.herd * (season === 2 ? 0.7 : 1) * (h.pen.lvl ? PEN_MILK : 1); if (L.collective) S.commune = (S.commune || 0) + m; else h.food += m; h.milk += m; }
       // unattended (or badly attended) sheep get lost
       const pLoss = (h.shep ? 0.004 * h.shep : 0.02) * (h.pen.lvl ? 0.5 : 1);
       let lost = 0; for (let k = 0; k < h.herd; k++) if (R() < pLoss) lost++;
@@ -1515,11 +1515,12 @@ function daily() {
     } else {
       // winter: the sheep eat hay from the family's stores
       const fodder = FODDER * h.herd;
-      if (h.food >= fodder) { h.food -= fodder; h.milk -= fodder; }
+      if (L.collective && S.commune >= fodder) { S.commune -= fodder; h.milk -= fodder; }
+      else if (h.food >= fodder) { h.food -= fodder; h.milk -= fodder; }
       else if (R() < 0.15) { h.herd--; S.st.lostHerd++; tagHome(h, 'MOR UNA OVELLA', 'bad'); logOnce('herdStarve', `Els ${h.surname} no tenen farratge i una ovella mor de gana.`, 'bad'); }
     }
     // autumn: surplus animals are slaughtered and the meat salted
-    if (doy === 240 && h.herd > herdMax(h)) { const k = h.herd - herdMax(h); h.herd = herdMax(h); h.food += MEAT * k; h.milk += MEAT * k; tagHome(h, `MATEN ${k} OVELLES`, 'info'); }
+    if (doy === 240 && h.herd > herdMax(h)) { const k = h.herd - herdMax(h); h.herd = herdMax(h); if (L.collective) S.commune = (S.commune || 0) + MEAT * k; else h.food += MEAT * k; h.milk += MEAT * k; tagHome(h, `MATEN ${k} OVELLES`, 'info'); }
     // hungry families eat their animals
     if (h.herd && daysOf(h) < 1.5) { h.herd--; h.food += MEAT; h.milk += MEAT; tagHome(h, 'MATEN UNA OVELLA', 'bad'); logOnce('eatSheep', `Els ${h.surname} passen gana i maten una ovella per menjar.`, 'bad'); }
     syncHerd(h);
@@ -1850,9 +1851,10 @@ function daily() {
     const pay = Math.min(S.basicFund, S.granary), each = pay / active.length; S.basicFund = 0; S.granary -= pay;
     for (const h of active) { h.food += each; h.helped = (h.helped || 0) + each; } S.st.redist += pay;
   }
-  if (S.commune > 0) { // collectivised harvest: the common store shares it out the same day, equally per head
-    const heads = active.reduce((t, h) => t + h.members.length, 0);
-    if (heads) { for (const h of active) { const g = S.commune * h.members.length / heads; h.food += g; h.helped = (h.helped || 0) + g; } S.st.redist += S.commune; S.commune = 0; }
+  if (S.commune > 0 && (S.day % 7 === 0 || !L.collective)) { // collectivised harvest: the common store hands out a weekly ration per head, spread so that it lasts until the next harvest
+    const heads = active.reduce((t, h) => t + h.members.length, 0), left = (180 - doy + YEAR) % YEAR || YEAR;
+    const out = L.collective ? S.commune * Math.min(1, 7 / left) : S.commune; // once the law is gone, the store empties at once
+    if (heads) { for (const h of active) { const g = out * h.members.length / heads; h.food += g; h.helped = (h.helped || 0) + g; } S.st.redist += out; S.commune -= out; }
   }
   if (L.agrarian && doy === 300) {
     // land reform: every winter, houses with more than three fields hand one over to a house with one or none
@@ -1932,10 +1934,10 @@ function daily() {
   }
 
   // the common granary feeds the hungry. It exists from the start and is filled by the laws: the harvest tithe, the
-  // taxes, and everything from houses that die out without heirs. Once a week, what is above a reserve of 10 days of
+  // taxes, and everything from houses that die out without heirs. Once a week, what is above a reserve of 60 days of
   // food for the whole village is shared among the poorest quarter of the houses
   if (S.granary > 0 && !L.notax && S.day % 7 === 0 && active.length > 3) {
-    const reserve = 10 * active.reduce((t, h) => t + need(h), 0), extra = S.granary - reserve;
+    const reserve = 60 * active.reduce((t, h) => t + need(h), 0), extra = S.granary - reserve;
     if (extra > 1) {
       const poor = (w => active.map((h, i) => [h, w[i]]))(wealthsOf(active)).sort((a, b) => a[1] - b[1]).slice(0, Math.max(1, Math.floor(active.length / 4)));
       for (const [h] of poor) { h.food += extra / poor.length; h.got += extra / poor.length; h.helped = (h.helped || 0) + extra / poor.length; }
@@ -2000,10 +2002,11 @@ function daily() {
   }
   // sharing law
   if (L.share) {
+    const keep = Math.max(35, (200 - doy + YEAR) % YEAR + 20); // the givers keep enough to reach the next harvest
     const poor = active.filter(h => daysOf(h) < 4 && h.members.length);
-    const rich = active.filter(h => daysOf(h) > 35).sort((a, b) => b.food - a.food);
+    const rich = active.filter(h => daysOf(h) > keep).sort((a, b) => b.food - a.food);
     for (const pz of poor) {
-      const r = rich.find(o => daysOf(o) > 35); if (!r) break;
+      const r = rich.find(o => daysOf(o) > keep); if (!r) break;
       const amt = Math.min(need(pz) * 8 - pz.food, r.food * 0.15);
       if (amt >= 1) { r.food -= amt; pz.food += amt; S.st.redist += amt; r.gave += amt; pz.got += amt; if (R() < 0.35) tagHome(r, `VA DONAR ${Math.round(amt)} MENJAR`, 'good'); }
     }
@@ -2811,7 +2814,7 @@ function updateHud() {
   const nd = act.reduce((s, h) => s + need(h), 0);
   put('sFood', fmt(food));
   put('sDays', nd ? Math.round(food / nd) : 0);
-  put('sGran', fmt(S.granary));
+  put('sGran', fmt(S.granary + (S.commune || 0)));
   put('sRedist', fmt(S.st.redist));
   put('sHomes', act.length);
   put('sNames', new Set(act.map(h => h.surname)).size);
@@ -3037,7 +3040,7 @@ function civicLaws(active, c) {
   const t = councilType(c), left = c < -0.15, right = c > 0.15, hard = t === 'socialista' || t === 'tecnofeudal', soft = t === 'socialdemòcrata' || t === 'turbocapitalista';
   const n = S.people.filter(p => !p.leaving).length || 1, hs = S.hungryShare || 0;
   const gone = S.st.left - (S.c60?.left ?? S.st.left), thefts = S.st.thefts - (S.c60?.thefts ?? S.st.thefts), grew = n / (S.c60?.n || n);
-  const food = active.reduce((a, h) => a + Math.max(0, h.food), 0) + S.granary, nd = active.reduce((a, h) => a + need(h), 0) || 1;
+  const food = active.reduce((a, h) => a + Math.max(0, h.food), 0) + S.granary + (S.commune || 0), nd = active.reduce((a, h) => a + need(h), 0) || 1;
   S.c60 = { left: S.st.left, thefts: S.st.thefts, n };
   const vote = (k, on, why) => {
     const i = laws.findIndex(l => l.fx.includes(k));
@@ -3164,7 +3167,9 @@ function revolution(active) {
   const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
   for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
   S.revDay = S.day;
+  const hadRedist = L.redist;
   for (const k of LAW_CATS[3][1]) if (!L[k]) proclaim(k, true);
+  if (hadRedist) redistribute(); // already in force: the goods are shared out again all the same
   S.council = -1;
   recomputeLaws(); renderLaws();
   S.unrest = 20; S.revDay = S.day;
@@ -3718,7 +3723,7 @@ const HELP_TABS = [
     ['GRANER COMÚ', [
       'El poble té un graner comú. S\'omple amb el delme de la llei del graner, amb tots els impostos i amb tot el que deixen les famílies que s\'extingeixen sense descendents.',
       'Cada dia dona menjar a les cases que en tenen per a menys de 3 dies.',
-      'Un cop per setmana, el que passa d\'una reserva de 10 dies de menjar per a tot el poble es reparteix entre la quarta part més pobra de les cases.',
+      'Un cop per setmana, el que passa d\'una reserva de 60 dies de menjar per a tot el poble (per passar l\'hivern) es reparteix entre la quarta part més pobra de les cases.',
     ]],
     ['ROBATORIS', [
       'Qui passa gana pot robar menjar a una casa que en té, sobretot si és cobdiciós.',
@@ -3738,7 +3743,7 @@ const HELP_TABS = [
     ['MALESTAR SOCIAL', [
       'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
       'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. Si es desactiva la política dinàmica, aquesta protecció deixa d\'actuar i el batlle pot derogar qualsevol llei. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Els béns es redistribueixen sempre, encara que la llei de Redistribució ja hi fos. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. Si es desactiva la política dinàmica, aquesta protecció deixa d\'actuar i el batlle pot derogar qualsevol llei. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
     ]],
     ['EL CONSELL I LES PRESSIONS', [
       'Els rics i els pobres pressionen el consell, i la pressió depèn només de com està repartida la riquesa. Els rics empenyen cap a la dreta com més riquesa té el 10% de cases més riques: comencen quan en tenen el 25% del total i pressionen al màxim quan en tenen el 65%. Els pobres empenyen cap a l\'esquerra com més riquesa té, sumada, la meitat més pobre de les cases: comencen quan en té el 25% i pressionen al màxim quan en té el 50% (un poble del tot igualitari).',
