@@ -194,6 +194,10 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .help .rules ul{margin:0;padding-left:18px}
 .help .rules li{margin:3px 0}
 .help .rules li::marker{color:var(--muted)}
+.help .htabs{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px 4px;border-bottom:1px solid var(--line)}
+.help .htabs .btn{padding:4px 10px;font-size:12px}
+.help .htabs .btn[aria-selected="true"]{background:var(--amber);color:#1d1406;border-color:var(--amber)}
+.help .rules .lead{color:var(--muted);margin:14px 0 0}
 .help .rules .on{color:var(--good);font-size:11px;margin-left:6px}
 .houses .hsort{display:none}
 /* on a phone each house becomes a card: the name across the top and every column as a labelled cell below */
@@ -449,7 +453,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <div><h2 id="helpTitle">AJUDA · LES REGLES DEL POBLE</h2><p>Tot el que passa a la simulació surt d'aquestes regles.</p></div>
       <button class="btn" id="helpClose">Tanca</button>
     </header>
-    <div class="scroller"><div class="rules" id="helpBody"></div></div>
+    <div class="htabs" id="helpTabs" role="tablist" aria-label="Temes de l'ajuda"></div>
+    <div class="scroller"><div class="rules" id="helpBody" role="tabpanel"></div></div>
   </div>
 </div>
 <div class="houses" id="houses" hidden role="dialog" aria-modal="true" aria-labelledby="housesTitle">
@@ -3319,133 +3324,195 @@ function toggleRow(tr) { const id = +tr.dataset.id; openHouse.has(id) ? openHous
 $('housesBody').addEventListener('click', e => { const tr = e.target.closest('tr.row'); if (tr) toggleRow(tr); });
 $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('tr.row'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleRow(tr); $('housesBody').querySelector(`tr[data-id="${tr.dataset.id}"]`)?.focus(); } });
 // help window: every rule the simulation follows
-const RULES = [
-  ['MALESTAR SOCIAL', [
-    'Tipus de consell (amb política dinàmica): segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Un consell de centre no aprova cap escola ni obre ni tanca fronteres.',
-    'Lleis generals i de seguretat (amb política dinàmica), cada dos mesos: un consell d\'esquerres pot aprovar l\'Escola pública i un de dretes l\'Escola privada. Els consells socialistes i tecnofeudals tanquen les fronteres si més del 10% de la gent passa gana, prohibeixen marxar del poble si en dos mesos marxa més del 3% de la gent, limiten els naixements si hi ha gana i fomenten la natalitat si el poble s\'encongeix. Els socialdemòcrates i els turbocapitalistes tornen a obrir les fronteres i deixen marxar la gent, i mai aproven lleis sobre els naixements. Qualsevol consell pot aprovar la llei contra els robatoris si n\'hi ha molts (els de dretes, més fàcilment), el racionament si el menjar del poble s\'acaba, i els socialistes i turbocapitalistes Tothom a treballar si hi ha gana. Quan el problema desapareix, les poden derogar.',
-    'Més dinàmiques (amb política dinàmica): un consell molt de dretes deroga lleis socialistes i socialdemòcrates, i un de molt d\'esquerres lleis turbocapitalistes i tecnofeudals. Quan els rics guanyen i hi ha l\'impost a les grans fortunes o el de les herències, sovint en lloc d\'una llei nova n\'aconsegueixen la derogació. Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó, i qualsevol consell aixeca la prohibició quan el bosc torna a la meitat. Després d\'uns aldarulls, un consell tecnofeudal aprova la llei contra els robatoris i tanca les fronteres. Si hi ha molts jornalers sense feina, un consell socialdemòcrata aprova el salari mínim i un de turbocapitalista el mercat lliure total.',
-    'Medi ambient (amb política dinàmica): si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc, i si al riu queden menys del 40% dels peixos, la Pesca regulada. Quan el bosc torna al 70% o el riu al 85%, les pot derogar. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
-    'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
-    'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Segons qui pressiona més, el consell es mou cap a l\'esquerra o cap a la dreta (l\'indicador «Orientació del consell»). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
-    'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
-    'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+const HELP_TABS = [
+  ['Resum', [
+    ['EN POQUES PARAULES', [
+      'El batlle mira com viu un poble d\'unes 100 persones. Ningú no les controla: cada família decideix sola què fa cada dia per menjar, escalfar-se i prosperar.',
+      'Les famílies llauren camps, cullen fruits al bosc, pesquen al riu, crien ovelles, fan cabanes i aprenen oficis: carboner, picapedrer, miner o ferrer.',
+      'Les que tenen de sobres contracten jornalers, lloguen pisos o deixen menjar amb interès. Les que no en tenen poden passar gana, robar, marxar o morir.',
+      'Com a batlle pots proclamar i derogar lleis (generals, de medi ambient, de seguretat, socialistes, socialdemòcrates, turbocapitalistes i tecnofeudals) i veure què canvia. O pots ser el cap d\'una família i decidir per ella.',
+      'L\'índex de Gini i els gràfics mostren com de repartida està la riquesa. El malestar social puja quan la gent passa gana o hi ha molta desigualtat.',
+      'Amb «Política dinàmica: sí», el malestar porta aldarulls i revolucions, i un consell que es mou d\'esquerres a dretes aprova i deroga lleis tot sol.',
+      'Amb «Desastres: sí» hi ha sequeres, inundacions, hiverns molt freds, epidèmies, llops, incendis i terratrèmols.',
+      'Les altres pestanyes expliquen exactament què fa la simulació.',
+    ]],
   ]],
-  ['DESASTRES NATURALS', [
-    'Es poden activar o desactivar amb el botó Desastres. Quan estan desactivats no passa cap d\'aquests fenòmens.',
-    'Sequera: un estiu de cada deu, aproximadament. Els camps donen menys de la meitat de collita i al bosc i al riu es recull un 30% menys.',
-    'Inundació: alguna primavera el riu es desborda. Els camps a tres caselles o menys del riu donen un 30% de la collita aquell any.',
-    'Hivern molt fred: un hivern de cada vuit, aproximadament. Les cases cremen gairebé el doble de llenya, i a les cases que se\'n queden sense, la família menja un 40% més del normal per culpa del fred i perd salut el doble de ràpid.',
-    'Epidèmia: rara. La meitat de la gent emmalalteix i perd salut, i els vells i els febles tenen més risc de morir.',
-    'Llops: a l\'hivern, de tant en tant, entren en un corral i s\'emporten d\'una a tres ovelles. Un corral millorat els atura gairebé sempre.',
-    'Incendi: a l\'estiu i a la tardor un foc pot cremar un tros de bosc, molt més gran si hi ha sequera.',
-    'Terratrèmol: molt rar, però el botó Terratrèmol! en provoca un quan vulguis, encara que els desastres estiguin desactivats. S\'ensorren alguns pisos i algunes cabanes, i les famílies que hi vivien es queden sense casa. Les cases de pedra aguanten. Algunes carboneres i fargues queden en ruïnes.',
+  ['Gent i famílies', [
+    ['EL TEMPS', [
+      'Cada dia dura uns instants i un any té 365 dies. El poble arriba el 21 de març.',
+      'Hi ha quatre estacions. A la primavera es llauren i se sembren els camps, a l\'estiu se sega la collita, a la tardor hi ha menys llet i a l\'hivern gairebé no es troba menjar al bosc i cal cremar llenya o carbó.',
+    ]],
+    ['LA GENT I ELS SEUS TRETS', [
+      'Cada persona té força, intel·ligència, cobdícia, mandra i salut.',
+      'Els fills hereten la mitjana dels trets dels pares amb una mica de variació, i de tant en tant surten diferents del tot.',
+      'La força dona més menjar i més fusta. La intel·ligència dona millors collites, millors llocs de pesca, guarda millor el menjar i fa que els lladres siguin atrapats menys sovint.',
+      'Un nen es fa adult al cap d\'un any. Un adult menja 1 de menjar al dia, un nen la meitat, i qui fa feines dures menja una mica més.',
+    ]],
+    ['GANA, SALUT I MORT', [
+      'Cada dia sense menjar fa baixar una mica la salut, que ja no es recupera mai.',
+      'Després de 9 dies de gana, un adult pot marxar del poble. Després de 15 dies, pot morir de fam.',
+      'A partir dels dos anys d\'edat la gent pot morir de vellesa, amb més probabilitat com més gran és i menys salut té.',
+    ]],
+    ['FAMÍLIES', [
+      'Cada casa és una família. Si té menjar per a més de 45 dies i no és plena, hi pot néixer un nadó.',
+      'Una casa comença amb lloc per a 7 persones, i com més menjar guarda més gran pot ser la família, fins a 14.',
+      'Quan una casa és plena, els fills grans marxen a casar-se amb algú d\'una altra família o amb un nouvingut, i fan casa nova.',
+      'Qui es queda vidu o vídua passa a ser solter i, després d\'un temps de dol, pot tornar a casar-se fora. Una vídua només marxa si es queda sola a casa.',
+      'En una casa sense parella, el fill gran solter hi porta una dona, o una filla marxa a casar-se si hi ha algú amb qui fer-ho.',
+      'Quan arriba menjar de sobres al poble, de tant en tant arriben nouvinguts de fora, mai a l\'hivern.',
+    ]],
+    ['HERÈNCIES', [
+      'Quan una casa es queda buida, els seus béns (menjar, fusta, pedra, ferro, eines, ovelles, camps, carboneres i fargues) passen als fills i néts que viuen en altres cases.',
+      'Si hi ha un bloc de pisos o una casa en herència, un dels hereus, escollit a l\'atzar, se la queda. Si ja té casa, la lloga sencera, planta baixa inclosa.',
+      'Si una família s\'extingeix sense fills ni néts en altres cases, tot el que tenia (menjar, materials i ovelles, al seu valor de mercat, i la casa si es ven) va al graner comú.',
+      'Les eines d\'una persona que mor passen a algú de la seva família.',
+    ]],
   ]],
-  ['MODE CAP DE FAMÍLIA', [
-    'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. En aquest mode també pots proclamar lleis.',
-    'La teva casa porta un marcador groc al mapa, i el panell LA TEVA FAMÍLIA mostra els seus membres, el menjar, els dies que els durarà, la riquesa, els camps i les ovelles.',
-    'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar o marxar del poble), el joc es pausa i surt una finestra perquè triïs.',
-    'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
-    'A la taula de Cases del poble, la teva família surt marcada en blau amb l\'etiqueta TU.',
-    'Les altres famílies decideixen soles, com sempre.',
-    'Si la teva família es queda sense ningú, passes a portar la família hereva que es queda la casa. Si l\'últim membre es casa i se\'n va, passes a la família amb qui s\'ha casat.',
-    'Si no hi ha hereus, la partida s\'acaba. Pots començar un poble nou o continuar mirant el poble.',
+  ['Menjar i natura', [
+    ['MENJAR', [
+      'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
+      'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
+      'Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
+      'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
+      'Un camp que no es fa servir durant un any desapareix i hi torna a créixer l\'herba. Un corral millorat que passa un any sense ovelles torna a ser un corral normal, i un corral normal que passa un any sense ovelles desapareix.',
+    ]],
+    ['PESCA I PEIXOS', [
+      'La meitat de la gent que no treballa als camps va a pescar, i també tothom que té una canya.',
+      'Al riu hi ha una població de peixos, comptada en dies de menjar. Es reprodueix cap al màxim que hi cap: molt a la primavera (3,5% al dia), poc a l\'estiu i a la tardor, gairebé gens a l\'hivern. Durant una sequera es reprodueix a mig ritme i durant un hivern de fred extrem no es reprodueix.',
+      'Cada peix pescat surt del riu. Mentre el riu està per sobre del 70%, cadascú pesca tot el que pot; per sota, cadascú pesca proporcionalment menys.',
+      'Com més ple és el riu, més peixos es veuen nedant al mapa. L\'estadística «Peixos al riu» en dona el percentatge.',
+      'Amb la Pesca regulada, cada pescador treu només el 60% i a la primavera no es pesca: la gent va al bosc.',
+    ]],
+    ['FUSTA I BOSC', [
+      'Els arbres donen fusta per construir i llenya per escalfar-se a l\'hivern. Quan es talen massa, el bosc s\'aprima, i també hi ha menys fruits.',
+      'Les famílies petites i les cases de pedra necessiten menys llenya.',
+      'Passar fred també fa mal: cada dia d\'hivern sense foc (sense carbó ni llenya, o sense casa) tothom de la família perd una mica de salut per sempre. Els infants en perden més i qui viu en una casa de pedra, la meitat. Amb menys salut és més fàcil morir de vell.',
+    ]],
+    ['BESTIAR', [
+      'Les famílies amb menjar de sobres compren ovelles i fan un corral. Les ovelles donen llet cada dia i tenen xais.',
+      'A l\'hivern les ovelles mengen farratge, i si una casa passa gana mata una ovella.',
+      'Un corral es pot millorar amb 40 de fusta i 8 de ferro: hi caben més ovelles, dona més llet, té més xais i es perden menys ovelles. Si queda buit un any, torna a ser un corral normal.',
+    ]],
   ]],
-  ['EL TEMPS', [
-    'Cada dia dura uns instants i un any té 365 dies. El poble arriba el 21 de març.',
-    'Hi ha quatre estacions. A la primavera es llauren i se sembren els camps, a l\'estiu se sega la collita, a la tardor hi ha menys llet i a l\'hivern gairebé no es troba menjar al bosc i cal cremar llenya o carbó.',
+  ['Economia', [
+    ['OFICIS I MERCATS', [
+      'Carboner: fa carbó amb la llenya del bosc en una carbonera. El carbó escalfa més que la llenya.',
+      'Picapedrer: treu pedra de la pedrera. Miner: treu ferro de la mina del nord. Ferrer: fa eines a la farga amb ferro i fusta, i com més llest és, més ràpid treballa, menys ferro gasta i més duren les eines.',
+      'Carboneres i fargues són d\'una sola família. Si no es fan servir durant un any s\'esfondren, i qui les repara primer (per la meitat del cost) se les queda. Abans de construir-ne una de nova, les famílies busquen si n\'hi ha d\'esfondrades.',
+      'El carbó, la pedra, el ferro, les eines, els jornals, els lloguers i les cases tenen preus que pugen quan hi ha poca oferta i baixen quan n\'hi ha molta.',
+    ]],
+    ['EINES', [
+      'Aixada: es treballa més ràpid el camp i la collita és una mica més gran.',
+      'Arada: costa més que l\'aixada, però la feina va encara més de pressa i la collita és més gran.',
+      'Pic: el picapedrer i el miner treuen més. Canya de pescar: es pesca més.',
+      'Les eines es gasten amb el temps i s\'han de tornar a comprar.',
+    ]],
+    ['JORNALERS', [
+      'Les cases que tenen feina de sobres contracten gent d\'altres cases i els paguen un jornal en menjar.',
+      'El jornal puja quan falten braços i baixa quan sobren, sense cap màxim. No baixa del que la gent trauria pescant o collint pel seu compte (com a màxim 1,2), perquè per menys ningú no hi aniria. Si el bosc s\'acaba i el riu va ple, aquest mínim baixa fins a 0,3. Amb Mercat lliure total no hi ha mínim, i amb la llei del salari mínim és 3,5.',
+      'El jornaler treballa amb les eines de la casa que el contracta.',
+    ]],
+    ['CASES I PISOS', [
+      'Una cabana costa 14 de fusta i 6 de pedra. No es pot construir a l\'altra banda del riu, excepte carboneres.',
+      'Una cabana es pot millorar a casa de pedra amb pedra i ferro: es fa malbé menys menjar i cal menys llenya.',
+      'Sobre una casa es poden aixecar pisos, fins a 5 plantes. Cada planta costa més que l\'anterior.',
+      'Els pisos es lloguen a famílies sense casa. El propietari viu a la planta baixa i cobra el lloguer cada dia. Si el llogater no pot pagar, és desnonat.',
+      'Es compren i venen cabanes, cases de pedra i blocs sencers, mai un pis sol. Venen les famílies que passen gana i les famílies petites que tenen una casa massa gran. Compren les famílies sense casa i les famílies grans que volen una casa millor, donant la seva i pagant la diferència.',
+      'Una casa (cabana, casa de pedra o bloc) on no viu ningú durant un any queda en ruïnes: perd la pedra i els pisos. Una família sense casa la pot refer per la meitat del que costa una cabana nova (7 de fusta i 3 de pedra). Mentre no està en ruïnes, una casa buida la pot ocupar una família nova.',
+      'Una carbonera o una farga que no s\'encén durant un any queda en ruïnes, i la pot arreglar qualsevol carboner o ferrer per la meitat del cost.',
+      'Qualsevol edifici en ruïnes (cabana, carbonera o farga) que ningú no arregla durant un any desapareix, i el lloc queda lliure per construir-hi.',
+    ]],
+    ['GRANER COMÚ', [
+      'El poble té un graner comú. S\'omple amb el delme de la llei del graner, amb tots els impostos i amb tot el que deixen les famílies que s\'extingeixen sense descendents.',
+      'Cada dia dona menjar a les cases que en tenen per a menys de 3 dies.',
+      'Un cop per setmana, el que passa d\'una reserva de 10 dies de menjar per a tot el poble es reparteix entre la quarta part més pobra de les cases.',
+    ]],
+    ['ROBATORIS', [
+      'Qui passa gana pot robar menjar a una casa que en té, sobretot si és cobdiciós.',
+      'Qui és atrapat robant queda avisat; si l\'atrapen una segona vegada, és desterrat del poble per sempre, hi hagi llei o no. Els lladres llestos són atrapats menys sovint, i amb la llei contra els robatoris hi ha guàrdia i se n\'atrapen el doble.',
+    ]],
+    ['DESIGUALTAT', [
+      'La riquesa d\'una casa és el menjar, la fusta, la pedra, el ferro, el carbó i les ovelles que té, més el valor de les cases que són seves.',
+      'L\'índex de Gini mesura com de repartida està: 0 vol dir que totes les cases tenen el mateix, i 1 que una sola ho té tot. Es mesura cada 5 dies.',
+      'L\'histograma mostra quina part de la riquesa total té cada 10% de cases, de les més pobres (a l\'esquerra) a les més riques (a la dreta).',
+    ]],
   ]],
-  ['LA GENT I ELS SEUS TRETS', [
-    'Cada persona té força, intel·ligència, cobdícia, mandra i salut.',
-    'Els fills hereten la mitjana dels trets dels pares amb una mica de variació, i de tant en tant surten diferents del tot.',
-    'La força dona més menjar i més fusta. La intel·ligència dona millors collites, millors llocs de pesca, guarda millor el menjar i fa que els lladres siguin atrapats menys sovint.',
-    'Un nen es fa adult al cap d\'un any. Un adult menja 1 de menjar al dia, un nen la meitat, i qui fa feines dures menja una mica més.',
+  ['Lleis', null],
+  ['Política dinàmica', [
+    ['EL BOTÓ', [
+      'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
+    ]],
+    ['MALESTAR SOCIAL', [
+      'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
+      'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
+      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+    ]],
+    ['EL CONSELL I LES PRESSIONS', [
+      'Cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques, a partir del 30% del total. Els pobres pressionen més com més malestar hi ha, a partir del 40%.',
+      'El consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
+      'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
+      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar.',
+    ]],
+    ['LLEIS ECONÒMIQUES', [
+      'Qui pressiona més pot aconseguir aprovar una llei. Com més pressió, més probable és.',
+      'Els pobres demanen una llei socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres.',
+      'Els rics demanen una llei turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Si hi ha l\'impost a les grans fortunes o el de les herències, la meitat de les vegades n\'aconsegueixen la derogació en lloc d\'una llei nova.',
+      'Un consell molt de dretes deroga lleis socialistes i socialdemòcrates, i un de molt d\'esquerres lleis turbocapitalistes i tecnofeudals.',
+      'Si molts jornalers no troben feina, un consell socialdemòcrata aprova el salari mínim i un de turbocapitalista el mercat lliure total.',
+    ]],
+    ['LLEIS DE MEDI AMBIENT', [
+      'Si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc. Si al riu queden menys del 40% dels peixos, la Pesca regulada.',
+      'Les pot derogar quan el bosc torna al 70% o el riu al 85%. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
+      'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc torna a la meitat, qualsevol consell aixeca la prohibició.',
+    ]],
+    ['LLEIS GENERALS I DE SEGURETAT', [
+      'Escola: un consell d\'esquerres aprova l\'Escola pública i un de dretes l\'Escola privada. Un de centre no en toca cap.',
+      'Fronteres tancades: els consells socialistes i tecnofeudals les aproven si més del 10% de la gent passa gana. Els socialdemòcrates i turbocapitalistes les deroguen.',
+      'Ningú no marxa del poble: els socialistes i tecnofeudals l\'aproven si en dos mesos marxa més del 3% de la gent. Els socialdemòcrates i turbocapitalistes la deroguen.',
+      'Naixements: només els socialistes i tecnofeudals hi legislen. Limiten els naixements si hi ha gana (i ho aixequen quan ja no n\'hi ha) i els fomenten si el poble s\'encongeix (i ho aixequen quan torna a créixer).',
+      'Robatoris: qualsevol consell pot aprovar la llei si hi ha molts robatoris (els de dretes, més fàcilment). Un consell d\'esquerres la deroga si deixa d\'haver-n\'hi.',
+      'Després d\'uns aldarulls, un consell tecnofeudal aprova la llei contra els robatoris i tanca les fronteres.',
+      'Racionament: qualsevol consell l\'aprova si el menjar del poble s\'acaba i el deroga quan torna a haver-hi reserves.',
+      'Tothom a treballar: els socialistes i turbocapitalistes l\'aproven si hi ha gana, i qualsevol consell la deroga quan ja no n\'hi ha.',
+    ]],
   ]],
-  ['GANA, SALUT I MORT', [
-    'Cada dia sense menjar fa baixar una mica la salut, que ja no es recupera mai.',
-    'Després de 9 dies de gana, un adult pot marxar del poble. Després de 15 dies, pot morir de fam.',
-    'A partir dels dos anys d\'edat la gent pot morir de vellesa, amb més probabilitat com més gran és i menys salut té.',
+  ['Desastres', [
+    ['DESASTRES NATURALS', [
+      'Es poden activar o desactivar amb el botó Desastres. Quan estan desactivats no passa cap d\'aquests fenòmens.',
+      'Sequera: un estiu de cada deu, aproximadament. Els camps donen menys de la meitat de collita i al bosc i al riu es recull un 30% menys.',
+      'Inundació: alguna primavera el riu es desborda. Els camps a tres caselles o menys del riu donen un 30% de la collita aquell any.',
+      'Hivern molt fred: un hivern de cada vuit, aproximadament. Les cases cremen gairebé el doble de llenya, i a les cases que se\'n queden sense, la família menja un 40% més del normal per culpa del fred i perd salut el doble de ràpid.',
+      'Epidèmia: rara. La meitat de la gent emmalalteix i perd salut, i els vells i els febles tenen més risc de morir.',
+      'Llops: a l\'hivern, de tant en tant, entren en un corral i s\'emporten d\'una a tres ovelles. Un corral millorat els atura gairebé sempre.',
+      'Incendi: a l\'estiu i a la tardor un foc pot cremar un tros de bosc, molt més gran si hi ha sequera.',
+      'Terratrèmol: molt rar, però el botó Terratrèmol! en provoca un quan vulguis, encara que els desastres estiguin desactivats. S\'ensorren alguns pisos i algunes cabanes, i les famílies que hi vivien es queden sense casa. Les cases de pedra aguanten. Algunes carboneres i fargues queden en ruïnes.',
+    ]],
   ]],
-  ['FAMÍLIES', [
-    'Cada casa és una família. Si té menjar per a més de 45 dies i no és plena, hi pot néixer un nadó.',
-    'Una casa comença amb lloc per a 7 persones, i com més menjar guarda més gran pot ser la família, fins a 14.',
-    'Quan una casa és plena, els fills grans marxen a casar-se amb algú d\'una altra família o amb un nouvingut, i fan casa nova.',
-    'Qui es queda vidu o vídua passa a ser solter i, després d\'un temps de dol, pot tornar a casar-se fora. Una vídua només marxa si es queda sola a casa.',
-    'En una casa sense parella, el fill gran solter hi porta una dona, o una filla marxa a casar-se si hi ha algú amb qui fer-ho.',
-    'Quan arriba menjar de sobres al poble, de tant en tant arriben nouvinguts de fora, mai a l\'hivern.',
-  ]],
-  ['GRANER COMÚ', [
-    'El poble té un graner comú. S\'omple amb el delme de la llei del graner, amb tots els impostos i amb tot el que deixen les famílies que s\'extingeixen sense descendents.',
-    'Cada dia dona menjar a les cases que en tenen per a menys de 3 dies.',
-    'Un cop per setmana, el que passa d\'una reserva de 10 dies de menjar per a tot el poble es reparteix entre la quarta part més pobra de les cases.',
-  ]],
-  ['HERÈNCIES', [
-    'Quan una casa es queda buida, els seus béns (menjar, fusta, pedra, ferro, eines, ovelles, camps, carboneres i fargues) passen als fills i néts que viuen en altres cases.',
-    'Si hi ha un bloc de pisos o una casa en herència, un dels hereus, escollit a l\'atzar, se la queda. Si ja té casa, la lloga sencera, planta baixa inclosa.',
-    'Si una família s\'extingeix sense fills ni néts en altres cases, tot el que tenia (menjar, materials i ovelles, al seu valor de mercat, i la casa si es ven) va al graner comú.',
-    'Les eines d\'una persona que mor passen a algú de la seva família.',
-  ]],
-  ['MENJAR', [
-    'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
-    'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
-    'El bosc i el riu tenen un límit. Al riu hi ha una població de peixos que es reprodueix: molt a la primavera, poc a l\'estiu i a la tardor, gairebé gens a l\'hivern, a mig ritme durant una sequera i gens durant un hivern de fred extrem. Cada peix pescat en treu un del riu. Mentre el riu està ple, cadascú pesca tot el que pot; si se n\'ha pescat massa i baixa del 70%, cadascú pesca menys. L\'estadística «Peixos al riu» diu com de ple està. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
-    'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
-    'Un camp que no es fa servir durant un any desapareix i hi torna a créixer l\'herba. Un corral millorat que passa un any sense ovelles torna a ser un corral normal, i un corral normal que passa un any sense ovelles desapareix.',
-  ]],
-  ['FUSTA I BOSC', [
-    'Els arbres donen fusta per construir i llenya per escalfar-se a l\'hivern. Quan es talen massa, el bosc s\'aprima, i també hi ha menys fruits.',
-    'Les famílies petites i les cases de pedra necessiten menys llenya.',
-    'Passar fred també fa mal: cada dia d\'hivern sense foc (sense carbó ni llenya, o sense casa) tothom de la família perd una mica de salut per sempre. Els infants en perden més i qui viu en una casa de pedra, la meitat. Amb menys salut és més fàcil morir de vell.',
-  ]],
-  ['BESTIAR', [
-    'Les famílies amb menjar de sobres compren ovelles i fan un corral. Les ovelles donen llet cada dia i tenen xais.',
-    'A l\'hivern les ovelles mengen farratge, i si una casa passa gana mata una ovella.',
-    'Un corral es pot millorar amb 40 de fusta i 8 de ferro: hi caben més ovelles, dona més llet, té més xais i es perden menys ovelles. Si queda buit un any, torna a ser un corral normal.',
-  ]],
-  ['OFICIS I MERCATS', [
-    'Carboner: fa carbó amb la llenya del bosc en una carbonera. El carbó escalfa més que la llenya.',
-    'Picapedrer: treu pedra de la pedrera. Miner: treu ferro de la mina del nord. Ferrer: fa eines a la farga amb ferro i fusta, i com més llest és, més ràpid treballa, menys ferro gasta i més duren les eines.',
-    'Carboneres i fargues són d\'una sola família. Si no es fan servir durant un any s\'esfondren, i qui les repara primer (per la meitat del cost) se les queda. Abans de construir-ne una de nova, les famílies busquen si n\'hi ha d\'esfondrades.',
-    'El carbó, la pedra, el ferro, les eines, els jornals, els lloguers i les cases tenen preus que pugen quan hi ha poca oferta i baixen quan n\'hi ha molta.',
-  ]],
-  ['EINES', [
-    'Aixada: es treballa més ràpid el camp i la collita és una mica més gran.',
-    'Arada: costa més que l\'aixada, però la feina va encara més de pressa i la collita és més gran.',
-    'Pic: el picapedrer i el miner treuen més. Canya de pescar: es pesca més.',
-    'Les eines es gasten amb el temps i s\'han de tornar a comprar.',
-  ]],
-  ['JORNALERS', [
-    'Les cases que tenen feina de sobres contracten gent d\'altres cases i els paguen un jornal en menjar.',
-    'El jornal puja quan falten braços i baixa quan sobren, sense cap màxim. No baixa del que la gent trauria pescant o collint pel seu compte (com a màxim 1,2), perquè per menys ningú no hi aniria. Si el bosc s\'acaba i el riu va ple, aquest mínim baixa fins a 0,3. Amb Mercat lliure total no hi ha mínim, i amb la llei del salari mínim és 3,5.',
-    'El jornal puja quan molta gent busca treballadors i baixa quan molta gent busca feina.',
-    'El jornaler treballa amb les eines de la casa que el contracta.',
-  ]],
-  ['CASES I PISOS', [
-    'Una cabana costa 14 de fusta i 6 de pedra. No es pot construir a l\'altra banda del riu, excepte carboneres.',
-    'Una cabana es pot millorar a casa de pedra amb pedra i ferro: es fa malbé menys menjar i cal menys llenya.',
-    'Sobre una casa es poden aixecar pisos, fins a 5 plantes. Cada planta costa més que l\'anterior.',
-    'Els pisos es lloguen a famílies sense casa. El propietari viu a la planta baixa i cobra el lloguer cada dia. Si el llogater no pot pagar, és desnonat.',
-    'Es compren i venen cabanes, cases de pedra i blocs sencers, mai un pis sol. Venen les famílies que passen gana i les famílies petites que tenen una casa massa gran. Compren les famílies sense casa i les famílies grans que volen una casa millor, donant la seva i pagant la diferència.',
-    'Una casa (cabana, casa de pedra o bloc) on no viu ningú durant un any queda en ruïnes: perd la pedra i els pisos. Una família sense casa la pot refer per la meitat del que costa una cabana nova (7 de fusta i 3 de pedra). Mentre no està en ruïnes, una casa buida la pot ocupar una família nova.',
-    'Una carbonera o una farga que no s\'encén durant un any queda en ruïnes, i la pot arreglar qualsevol carboner o ferrer per la meitat del cost.',
-    'Qualsevol edifici en ruïnes (cabana, carbonera o farga) que ningú no arregla durant un any desapareix, i el lloc queda lliure per construir-hi.',
-  ]],
-  ['ROBATORIS', [
-    'Qui passa gana pot robar menjar a una casa que en té, sobretot si és cobdiciós.',
-    'Qui és atrapat robant queda avisat; si l\'atrapen una segona vegada, és desterrat del poble per sempre, hi hagi llei o no. Els lladres llestos són atrapats menys sovint, i amb la llei contra els robatoris hi ha guàrdia i se n\'atrapen el doble.',
-  ]],
-  ['DESIGUALTAT', [
-    'La riquesa d\'una casa és el menjar, la fusta, la pedra, el ferro, el carbó i les ovelles que té, més el valor de les cases que són seves.',
-    'L\'índex de Gini mesura com de repartida està: 0 vol dir que totes les cases tenen el mateix, i 1 que una sola ho té tot. Es mesura cada 5 dies.',
-    'L\'histograma mostra quina part de la riquesa total té cada 10% de cases, de les més pobres (a l\'esquerra) a les més riques (a la dreta).',
+  ['Mode família', [
+    ['MODE CAP DE FAMÍLIA', [
+      'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. En aquest mode també pots proclamar lleis.',
+      'La teva casa porta un marcador groc al mapa, i el panell LA TEVA FAMÍLIA mostra els seus membres, el menjar, els dies que els durarà, la riquesa, els camps i les ovelles.',
+      'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar o marxar del poble), el joc es pausa i surt una finestra perquè triïs.',
+      'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
+      'A la taula de Cases del poble, la teva família surt marcada en blau amb l\'etiqueta TU.',
+      'Les altres famílies decideixen soles, com sempre.',
+      'Si la teva família es queda sense ningú, passes a portar la família hereva que es queda la casa. Si l\'últim membre es casa i se\'n va, passes a la família amb qui s\'ha casat.',
+      'Si no hi ha hereus, la partida s\'acaba. Pots començar un poble nou o continuar mirant el poble.',
+    ]],
   ]],
 ];
+let helpTab = 0;
 function renderHelp() {
   const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   const on = k => laws.some(l => l.fx.includes(k));
-  $('helpBody').innerHTML = RULES.map(([t, items]) => `<h3>${t}</h3><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('') +
-    LAW_CATS.map(([cat, ks]) => `<h3>LLEIS ${cat}</h3><ul>${ks.map(k => `<li>${esc(LAWDEFS[k].txt)}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`).join('')}</ul>`).join('');
+  $('helpTabs').innerHTML = HELP_TABS.map(([t], i) => `<button class="btn" type="button" role="tab" aria-selected="${i === helpTab}" data-i="${i}">${t}</button>`).join('');
+  const secs = HELP_TABS[helpTab][1];
+  $('helpBody').innerHTML = secs ? secs.map(([t, items]) => `<h3>${t}</h3><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`).join('')
+    : `<p class="lead">Cada llei fa exactament el que diu aquí. Les marcades com a VIGENT són les que hi ha ara al poble. Algunes no poden conviure i, en proclamar-ne una, es deroga l'altra.</p>` +
+      LAW_CATS.map(([cat, ks]) => `<h3>LLEIS ${cat}</h3><ul>${ks.map(k => `<li>${esc(LAWDEFS[k].txt)}${on(k) ? '<span class="on">VIGENT</span>' : ''}</li>`).join('')}</ul>`).join('');
+  $('helpBody').parentElement.scrollTop = 0;
 }
+$('helpTabs').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) { helpTab = +b.dataset.i; renderHelp(); } });
 $('helpBtn').onclick = () => { renderHelp(); $('help').hidden = false; $('help').querySelector('.scroller').scrollTop = 0; $('helpClose').focus(); };
 $('helpClose').onclick = () => { $('help').hidden = true; $('helpBtn').focus(); };
 $('help').addEventListener('click', e => { if (e.target.id === 'help') $('helpClose').click(); });
