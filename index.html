@@ -389,7 +389,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <canvas id="giniCv" role="img" aria-label="Evolució de l'índex de Gini de la riquesa de les cases"></canvas>
         <div class="gtip" id="giniTip" hidden></div>
       </div>
-      <p class="gnote"><b id="giniNow">—</b> · 0 vol dir que totes les cases tenen el mateix; 1, que una sola casa ho té tot. Compta el menjar, els materials, les ovelles i les cases de cada família. Les marques numerades són les lleis.</p>
+      <p class="gnote"><b id="giniNow">—</b> · 0 vol dir que totes les cases tenen el mateix; 1, que una sola casa ho té tot. Compta el menjar, els materials, les ovelles i les cases de cada família. Les marques numerades són les lleis, i les línies vermelles amb bandera, les revolucions.</p>
       <div class="gini dec" id="decBox">
         <canvas id="decCv" role="img" aria-label="Part de la riquesa total que té cada 10% de cases, de les més pobres a les més riques"></canvas>
         <div class="gtip" id="decTip" hidden></div>
@@ -2386,6 +2386,13 @@ function drawGini(force) {
     g.strokeStyle = ink; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(x, T0); g.lineTo(x, T0 + ph); g.stroke(); g.setLineDash([]);
     g.fillStyle = ink; g.textBaseline = 'top'; g.fillText('#' + (i + 1), x + (x > w - 20 ? -10 : 10), T0);
   });
+  // revolutions: a solid red line with a red flag at the top
+  const bad = css.getPropertyValue('--bad').trim();
+  for (const d of S.revs || []) {
+    const x = Math.round(X(d)) + 0.5;
+    g.strokeStyle = bad; g.lineWidth = 2; g.beginPath(); g.moveTo(x, T0); g.lineTo(x, T0 + ph); g.stroke(); g.lineWidth = 1;
+    g.fillStyle = bad; g.beginPath(); g.moveTo(x, T0); g.lineTo(x + 7, T0 + 3); g.lineTo(x, T0 + 6); g.fill();
+  }
   if (data.length > 1) {
     g.strokeStyle = amber; g.lineWidth = 2; g.lineJoin = 'round'; g.beginPath();
     data.forEach(([d, v], i) => i ? g.lineTo(X(d), Y(v)) : g.moveTo(X(d), Y(v))); g.stroke();
@@ -2400,7 +2407,8 @@ function drawGini(force) {
     g.fillStyle = css.getPropertyValue('--panel').trim(); g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
     g.fillStyle = amber; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill();
     const c = cal(best[0]);
-    tip.textContent = `${c.d} ${MSHORT[c.m]} A${c.y} · Gini ${best[1].toFixed(2).replace('.', ',')}`; tip.hidden = false;
+    const rev = (S.revs || []).some(r => Math.abs(r - best[0]) <= 15);
+    tip.textContent = `${c.d} ${MSHORT[c.m]} A${c.y} · Gini ${best[1].toFixed(2).replace('.', ',')}${rev ? ' · REVOLUCIÓ' : ''}`; tip.hidden = false;
     tip.style.left = Math.min(Math.max(0, x - tip.offsetWidth / 2), w - tip.offsetWidth) + 'px';
   } else tip.hidden = true;
   const last = data[data.length - 1];
@@ -2844,7 +2852,7 @@ function riot(active) {
   log(`Aldarulls! La gent que passa gana assalta els rebostos dels ${rich.map(h => h.surname).join(', ')} i s'emporta ${fmt(loot)} de menjar${poor.length ? `, que es reparteix entre ${poor.length} ${poor.length > 1 ? 'cases' : 'casa'}` : ''}. Una part es fa malbé.${wreck}`, 'bad');
 }
 function revolution(active) {
-  S.st.revolutions = (S.st.revolutions || 0) + 1;
+  S.st.revolutions = (S.st.revolutions || 0) + 1; (S.revs ||= []).push(S.day);
   // the revolution tears up the laws of the right, turbocapitalist and technofeudal; the rest stay
   const right = new Set(LAW_CATS.filter(c => c[0] === 'TURBOCAPITALISTES' || c[0] === 'TECNOFEUDALS').flatMap(c => c[1]));
   const old = laws.filter(l => l.fx.some(f => right.has(f))).length;
