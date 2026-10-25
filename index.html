@@ -106,6 +106,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .houses .you{display:inline-block;margin-left:8px;padding:0 5px;border-radius:3px;background:#5aa0ee;color:#0d1620;font:600 10px/16px var(--f-mono);letter-spacing:.06em;vertical-align:2px}
 #famSec .forget{margin-top:8px;font-size:12px;background:var(--panel);color:var(--ink);border-color:var(--line)}
 #famSec .forget:disabled{opacity:.5;cursor:default}
+.btn:disabled,.laws .x:disabled{opacity:.5;cursor:not-allowed}
 .unrest{position:relative;height:12px;border:1px solid var(--line);border-radius:3px;background:var(--panel);overflow:hidden}
 .unrest i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--good);transition:width .3s}
 .unrest b{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 3px,transparent 3px 6px)}
@@ -559,6 +560,13 @@ const sideCats = side => LAW_CATS.filter(c => (side === 'left' ? ['SOCIALISTES',
 const sideOf = k => sideCats('left').includes(k) ? 'left' : sideCats('right').includes(k) ? 'right' : null;
 for (const k of LAW_CATS.find(c => c[0] === 'SOCIALISTES')[1]) LAWDEFS[k].excl = [...new Set([...(LAWDEFS[k].excl || []), ...sideCats('right')])];
 const clashes = (a, b) => (LAWDEFS[a].excl || []).includes(b) || (LAWDEFS[b].excl || []).includes(a);
+// for three years after a revolution nobody can repeal a socialist law, so nor can anyone pass a law that would push
+// one out (for the council, any law of the right, since it clears the other side first)
+const SOC_LOCK = 3 * YEAR;
+const socLocked = () => S.revDay !== undefined && S.day - S.revDay < SOC_LOCK;
+const lockedLaw = l => socLocked() && l.fx.some(f => LAW_CATS[3][1].includes(f));
+const blockers = (k, council) => laws.filter(l => lockedLaw(l) && l.fx.some(f => clashes(k, f) || (council && sideOf(k) && sideOf(k) !== sideOf(f))));
+const lockEnd = () => dateLong(S.revDay + SOC_LOCK);
 
 // ---------- rng / noise ----------
 let seed = 1, rng;
@@ -2645,6 +2653,7 @@ function renderLaws() {
     const x = document.createElement('button'); x.className = 'x'; x.textContent = 'Deroga'; x.type = 'button';
     x.setAttribute('aria-label', `Deroga la llei ${i + 1}`);
     x.onclick = () => { repeal(i); updateHud(); };
+    if (lockedLaw(l)) { x.disabled = true; x.textContent = 'Protegida'; x.title = `La revolució la protegeix fins al ${lockEnd()}`; }
     const fx = document.createElement('div');
     fx.className = 'fx' + (l.fx.length ? '' : ' none');
     const who = l.fx.some(f => ['platform', 'cloud', 'tribute', 'vassal'].includes(f)) && S.lord ? ` Senyors de la plataforma: els ${S.lord.surname}.` : l.fx.includes('enclosure') && S.forestLord ? ` Amos del bosc: els ${S.forestLord.surname}.` : '';
@@ -2659,9 +2668,12 @@ function renderLaws() {
   laws.forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${i + 1}] ${l.text}`; con.append(d); });
   $('hLaws').textContent = laws.length;
 }
-function repeal(i, quiet) { const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); if (!quiet) log(`Es deroga la llei «${l.text}».`, 'amber'); }
+function repeal(i, quiet) {
+  if (lockedLaw(laws[i])) { if (!quiet) log(`«${laws[i].text}» no es pot derogar fins al ${lockEnd()}: ho va decidir la revolució.`, 'bad'); return false; }
+  const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); if (!quiet) log(`Es deroga la llei «${l.text}».`, 'amber'); }
 function proclaim(k, quiet) {
-  const d = LAWDEFS[k];
+  const d = LAWDEFS[k], bl = blockers(k);
+  if (bl.length) { if (!quiet) log(`«${d.name}» no es pot proclamar fins al ${lockEnd()}: hauria de derogar «${bl[0].text}», que la revolució protegeix.`, 'bad'); return false; }
   for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => clashes(k, f))) repeal(i);
   laws.push({ text: d.name, fx: [k], day: S.day }); recomputeLaws();
   if (!quiet) log(`Nova llei: «${d.name}».`, 'amber');
@@ -2673,13 +2685,14 @@ function proclaim(k, quiet) {
   }
   if (['platform', 'cloud', 'tribute', 'vassal'].includes(k)) lordOf('lord');
   if (k === 'enclosure') lordOf('forestLord');
-  renderLaws(); updateHud();
+  renderLaws(); updateHud(); return true;
 }
 function renderLawPick() {
   const on = k => laws.findIndex(l => l.fx.includes(k));
   $('lawPickBody').innerHTML = LAW_CATS.map(([cat, ks]) => `<section class="cat"><h3>${cat}</h3><ul>${ks.map(k => {
     const d = LAWDEFS[k], i = on(k), clash = laws.filter(l => l.fx.some(f => clashes(k, f))).map(l => l.text);
-    return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}">${i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
+    const lock = i >= 0 ? lockedLaw(laws[i]) : blockers(k).length > 0;
+    return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${lock ? `<span class="warn">${i >= 0 ? 'La revolució la protegeix' : 'Xoca amb lleis que la revolució protegeix'} fins al ${esc(lockEnd())}.</span>` : clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}"${lock ? ' disabled' : ''}>${i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
   }).join('')}</ul></section>`).join('');
 }
 $('lawPickBody').addEventListener('click', e => {
@@ -2733,12 +2746,13 @@ const councilType = c => c < -0.5 ? 'socialista' : c < -0.15 ? 'socialdemòcrata
 // before the council passes a law of one side, it repeals every law of the other side still standing
 function councilProclaim(k) {
   const side = sideOf(k);
+  if (blockers(k, true).length) return false;
   if (side) {
     const other = new Set(sideCats(side === 'left' ? 'right' : 'left')), gone = [];
     for (let i = laws.length - 1; i >= 0; i--) if (laws[i].fx.some(f => other.has(f))) { gone.unshift(laws[i].text); repeal(i, true); }
     if (gone.length) log(`Abans, el consell deroga ${gone.length > 1 ? 'les lleis' : 'la llei'} de l'altra banda: ${gone.map(t => '«' + t + '»').join(', ')}.`, 'amber');
   }
-  proclaim(k, true);
+  return proclaim(k, true);
 }
 function lobby(active, u) {
   const { rich, poor, top, bot } = S.press || pressures(active), c = S.council || 0;
@@ -2746,7 +2760,7 @@ function lobby(active, u) {
   // a council far to one side sweeps away a law of the other side
   const sweep = c > 0.6 ? ['SOCIALISTES', 'SOCIALDEMÒCRATES'] : c < -0.6 ? ['TURBOCAPITALISTES', 'TECNOFEUDALS'] : null;
   if (sweep && R() < 0.4) {
-    const ks = new Set(LAW_CATS.filter(x => sweep.includes(x[0])).flatMap(x => x[1])), i = laws.findIndex(l => l.fx.some(f => ks.has(f)));
+    const ks = new Set(LAW_CATS.filter(x => sweep.includes(x[0])).flatMap(x => x[1])), i = laws.findIndex(l => !lockedLaw(l) && l.fx.some(f => ks.has(f)));
     if (i >= 0) { log(`El consell ${councilType(c)} deroga «${laws[i].text}», una llei ${c > 0 ? 'd\'esquerres' : 'de dretes'}.`, 'amber'); repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
   }
   const push = Math.max(rich, poor);
@@ -2760,7 +2774,7 @@ function lobby(active, u) {
     repeal(tax, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; return;
   }
   const cat = poor >= rich ? (c < -0.5 ? 'SOCIALISTES' : 'SOCIALDEMÒCRATES') : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
-  const options = LAW_CATS.find(x => x[0] === cat)[1].filter(k => !L[k]);
+  const options = LAW_CATS.find(x => x[0] === cat)[1].filter(k => !L[k] && !blockers(k, true).length);
   if (!options.length) return;
   const k = options[Math.floor(R() * options.length)];
   log(poor >= rich
@@ -2788,6 +2802,7 @@ function civicLaws(active, c) {
   S.c60 = { left: S.st.left, thefts: S.st.thefts, n };
   const vote = (k, on, why) => {
     const i = laws.findIndex(l => l.fx.includes(k));
+    if (on && i < 0 ? blockers(k, true).length : !on && i >= 0 && lockedLaw(laws[i])) return;
     if (on && i < 0) { log(`El consell ${t} aprova «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); councilProclaim(k); }
     else if (!on && i >= 0) { log(`El consell ${t} deroga «${LAWDEFS[k].name}»${why ? ': ' + why : ''}.`, 'amber'); repeal(i, true); }
     else return;
@@ -2832,7 +2847,7 @@ function ecoLaws(c) {
     if (i < 0 && level < 0.4 && c < 0.6 && R() < 0.5) {
       log(`Queda poc ${k === 'forest' ? 'bosc' : 'peix'} i el consell decideix protegir ${what}: s'aprova «${LAWDEFS[k].name}».`, 'good');
       proclaim(k, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
-    } else if (i >= 0 && level > (k === 'forest' ? 0.7 : 0.85) && c > -0.6 && R() < 0.5) {
+    } else if (i >= 0 && level > (k === 'forest' ? 0.55 : 0.85) && c > -0.6 && R() < 0.5) {
       log(`${k === 'forest' ? 'El bosc' : 'El riu'} s'ha recuperat i el consell aixeca la protecció.`, 'amber');
       repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
     }
@@ -2904,11 +2919,12 @@ function revolution(active) {
   // the materials go to the poorest quarter, in equal shares
   const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
   for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
-  for (const k of ['collective', 'nowage', 'norent']) if (!L[k]) proclaim(k, true);
+  S.revDay = S.day;
+  for (const k of LAW_CATS[3][1]) if (!L[k]) proclaim(k, true);
   S.council = -1;
   recomputeLaws(); renderLaws();
   S.unrest = 20; S.revDay = S.day;
-  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es ${old > 1 ? `deroguen les ${old} lleis de dretes` : 'deroga l\'única llei de dretes'}. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell col·lectivitza la terra i aboleix el treball assalariat i la renda.`, 'bad');
+  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es ${old > 1 ? `deroguen les ${old} lleis de dretes` : 'deroga l\'única llei de dretes'}. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell proclama totes les lleis socialistes, i ningú no les podrà derogar fins al ${lockEnd()}.`, 'bad');
   tag(W / 2, H / 2, 'REVOLUCIÓ', 'bad');
   if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis de dretes s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
 }
@@ -3481,7 +3497,7 @@ const HELP_TABS = [
     ['MALESTAR SOCIAL', [
       'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
       'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
-      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama la Col·lectivització de la terra, l\'Abolició del treball assalariat i l\'Abolició de la renda, i queda del tot a l\'esquerra. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+      'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis turbocapitalistes i tecnofeudals (les altres es mantenen), el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama totes les lleis socialistes (les que ja hi eren es mantenen) i queda del tot a l\'esquerra. Durant tres anys ningú, ni el batlle ni el consell, no pot derogar cap llei socialista, ni aprovar-ne cap que n\'hagi de derogar una: el consell no pot aprovar lleis de dretes, i el batlle no pot proclamar les que hi xoquen. Les altres lleis el batlle les pot canviar com sempre, i el consell segueix funcionant igual. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
     ]],
     ['EL CONSELL I LES PRESSIONS', [
       'Els rics i els pobres pressionen el consell, i la pressió depèn només de com està repartida la riquesa. Els rics empenyen cap a la dreta com més riquesa té el 10% de cases més riques: comencen quan en tenen el 25% del total i pressionen al màxim quan en tenen el 65%. Els pobres empenyen cap a l\'esquerra com més riquesa té, sumada, la meitat més pobre de les cases: comencen quan en té el 25% i pressionen al màxim quan en té el 50% (un poble del tot igualitari).',
@@ -3489,7 +3505,7 @@ const HELP_TABS = [
       'Cada deu dies el consell es mou a poc a poc cap a qui pressiona més. L\'indicador «Orientació del consell» mostra on és, d\'Esquerres a Dretes.',
       'Segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Després d\'una revolució queda del tot a l\'esquerra.',
       'Abans d\'aprovar una llei d\'un bàndol (socialista o socialdemòcrata a l\'esquerra, turbocapitalista o tecnofeudal a la dreta), el consell deroga totes les lleis de l\'altre bàndol que encara hi hagi.',
-      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar.',
+      'El batlle pot derogar qualsevol llei que aprovi el consell, però el consell la pot tornar a aprovar. L\'única excepció són les lleis socialistes durant els tres anys després d\'una revolució.',
     ]],
     ['LLEIS ECONÒMIQUES', [
       'Qui pressiona més pot aconseguir aprovar una llei. Com més pressió, més probable és.',
@@ -3500,7 +3516,7 @@ const HELP_TABS = [
     ]],
     ['LLEIS DE MEDI AMBIENT', [
       'Si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc. Si al riu queden menys del 40% dels peixos, la Pesca regulada.',
-      'Les pot derogar quan el bosc torna al 70% o el riu al 85%. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
+      'Les pot derogar quan el bosc torna al 55% o el riu al 85%. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
       'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc torna a la meitat, qualsevol consell aixeca la prohibició.',
     ]],
     ['LLEIS GENERALS I DE SEGURETAT', [
