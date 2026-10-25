@@ -57,8 +57,9 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .btn:hover{border-color:var(--muted)}
 .btn.primary{background:var(--amber);color:#1d1406;border-color:var(--amber);font-weight:600}
 .btn[aria-pressed="true"]{background:var(--ink);color:var(--night);border-color:var(--ink)}
-.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:100%}
+.controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;width:100%}
 .controls .group{display:flex;gap:4px}
+.controls > .btn,.controls .group .btn{padding:6px 10px}
 .controls .hint{color:var(--muted);font-size:11.5px;flex-basis:100%;text-align:center}
 .col-side{display:flex;flex-direction:column;gap:18px;min-width:0}
 .scroll{position:relative;background:var(--parch);color:var(--parch-ink);border-radius:3px;padding:20px 22px 16px;margin-block:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
@@ -104,6 +105,13 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .houses .you{display:inline-block;margin-left:8px;padding:0 5px;border-radius:3px;background:#5aa0ee;color:#0d1620;font:600 10px/16px var(--f-mono);letter-spacing:.06em;vertical-align:2px}
 #famSec .forget{margin-top:8px;font-size:12px;background:var(--panel);color:var(--ink);border-color:var(--line)}
 #famSec .forget:disabled{opacity:.5;cursor:default}
+.unrest{position:relative;height:12px;border:1px solid var(--line);border-radius:3px;background:var(--panel);overflow:hidden}
+.unrest i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--good);transition:width .3s}
+.unrest b{position:absolute;left:0;top:0;bottom:0;width:0;background:repeating-linear-gradient(135deg,rgba(0,0,0,.35) 0 3px,transparent 3px 6px)}
+.unrest i.mid{background:var(--amber)}.unrest i.high{background:var(--bad)}
+.unrest span{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.35)}
+.unrest .t1{left:75%}.unrest .t2{left:calc(100% - 1px)}
+#uNow.mid{color:var(--amber)}#uNow.high{color:var(--bad)}
 .credit{margin:0;padding:14px 4px 18px;font-size:11px;color:var(--muted);text-align:center}
 .gini{position:relative;height:120px;border:1px solid var(--line);border-radius:4px;background:var(--panel)}
 .gini canvas{display:block;width:100%;height:100%;cursor:crosshair}
@@ -123,6 +131,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .stats .bad b{color:var(--bad)}.stats .good b{color:var(--good)}
 .log{list-style:none;margin:0;padding:0 4px 0 0;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;font-size:12px}
 .log li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:6px}
+.loghead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.loghead label{font-family:var(--f-mono);letter-spacing:0;font-size:11px;text-transform:none;display:flex;gap:4px;align-items:center;cursor:pointer}
 .log .d{color:var(--muted);font-variant-numeric:tabular-nums}
 .log .bad{color:#f0a294}.log .good{color:#b6e0ab}.log .amber{color:var(--amber)}
 /* houses register */
@@ -231,6 +241,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <button class="btn" id="resetBtn">Poble nou</button>
       <button class="btn" id="housesBtn">Cases del poble</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
+      <button class="btn" id="quakeBtn">Terratrèmol!</button>
       <button class="btn" id="helpBtn">Ajuda</button>
       <span class="hint">Toca una cabana per veure quina família hi viu i quants dies de menjar li queden.</span>
     </div>
@@ -261,6 +272,12 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </section>
 
     <section class="sec">
+      <h3>MALESTAR SOCIAL</h3>
+      <div class="unrest" role="meter" aria-label="Malestar social" aria-valuemin="0" aria-valuemax="100" id="uMeter"><i id="uBar"></i><b id="uBase"></b><span class="t1"></span><span class="t2"></span></div>
+      <p class="gnote"><b id="uNow">0%</b> · <span id="uWhy">Ningú no passa gana.</span></p>
+    </section>
+
+    <section class="sec">
       <h3>LLEIS VIGENTS</h3>
       <ul class="laws" id="lawList"></ul>
       <p class="empty" id="lawEmpty">Encara no n'hi ha cap. El poble fa el que vol.</p>
@@ -285,6 +302,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Corrals</span><b id="sPens">0</b></div>
         <div class="bad"><span>Ovelles perdudes</span><b id="sLostHerd">0</b></div>
         <div class="bad"><span>Desastres</span><b id="sDisasters">0</b></div>
+        <div class="bad"><span>Aldarulls</span><b id="sRiots">0</b></div>
+        <div class="bad"><span>Revolucions</span><b id="sRevolutions">0</b></div>
         <div><span>Jornals</span><b id="sJobs">0</b></div>
         <div><span>Menjar en sous</span><b id="sWages">0</b></div>
         <div class="good"><span>Casaments</span><b id="sWeddings">0</b></div>
@@ -346,7 +365,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </section>
 
     <section class="sec">
-      <h3>CRÒNICA</h3>
+      <h3 class="loghead">CRÒNICA <label><input type="checkbox" id="logAll"> Mostra també els fets petits</label></h3>
       <ul class="log" id="log"></ul>
     </section>
     <p class="credit">Basat en la idea de @an_ai_tries_youtube · Llicència MIT</p>
@@ -456,7 +475,7 @@ const LAWDEFS = {
   housing: { name: 'Dret a l\'habitatge', txt: 'Dret a l\'habitatge: ningú pot ser desnonat, les famílies sense casa poden llogar un pis encara que no tinguin estalvis, i les que passen gana paguen la meitat del lloguer.', excl: ['laissez'] },
   laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal pot baixar fins a 0,6, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage'] },
   notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
-  usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Qui no ha pagat al cap de quatre mesos perd un camp o una ovella a favor del creditor.' },
+  usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Només en poden demanar les cases que tenen alguna cosa per empenyorar: casa pròpia, camps o corral. Si al cap d\'un any no han pagat, el creditor els embarga, una cosa cada mes fins a cobrar: primer el corral amb les ovelles, després els camps, un per un, i al final la casa, que llogarà.' },
   enclosure: { name: 'Privatització del bosc', txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
   platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament.' },
   cloud: { name: 'Eines al núvol', txt: 'Eines al núvol: les eines ja no es gasten, però cada eina paga una quota diària al senyor de la plataforma. Qui no pot pagar la quota es queda sense l\'eina.' },
@@ -502,7 +521,7 @@ function newWorld(sd) {
   }
   S = {
     day: 0, frame: 0, water, tree, occ, riverX, people: [], homes: [], granary: 0,
-    st: { thefts: 0, gifts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
+    st: { thefts: 0, gifts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, gifts: 0, births: 0, left: 0, died: 0 },
     flags: {}, dirty: true, nextId: 1, used: new Set(), animals: [], forest: tree.slice(),
   };
@@ -789,6 +808,8 @@ function getPlant(h, p, eff, kind, site) {
   }
 }
 function coalValue(h, season) { const n = need(h); return n * (1 - 1 / 1.2) + (season === 3 ? n * 0.25 : 0); }
+// a day of farm work brings in about two to three of food at harvest, so no employer pays more than WAGE_MAX for it
+const WAGE_MAX = 3;
 const WAGE = 2.5, MIN_WAGE = 3.5, SHEEP_COST = 40, MILK = 0.7, FODDER = 0.3, MEAT = 30, HERD_MAX = 8;
 function syncHerd(h) {
   const mine = S.animals.filter(a => a.h === h);
@@ -1067,8 +1088,16 @@ function daily() {
   if (doy === 90 || doy === 180 || doy === 270) seasonChange(doy);
   if ((S.day + START) % YEAR === 0) yearEnd();
   disasters(doy, season);
+  const vis = (dry() ? 1 : 0) + (freezing() ? 2 : 0); // the map shows a drought and a bitter winter while they last
+  if (vis !== (S.visDis || 0)) { S.visDis = vis; S.dirty = true; }
   const sf = [1.3, 1.4, 1.1, 0.18][season] * (dry() ? DROUGHT_FORAGE : 1);
   const active = S.homes.filter(h => !h.gone);
+  unrest(active);
+  // yesterday's crowd at the river and in the woods sets today's share of the wild; what a day in the wild yields is
+  // what a labourer gives up to take a job, and so the least a day's wage can fall to
+  const wy = S.wild || { fish: 0, forage: 0, got: 0 };
+  S.wildY = wy; if (wy.fish + wy.forage) S.wildPay = 0.97 * (S.wildPay ?? 1.2) + 0.03 * wy.got / (wy.fish + wy.forage);
+  S.wild = { fish: 0, forage: 0, got: 0 };
 
   // fields lifecycle
   for (const h of S.homes) for (const f of h.fields) {
@@ -1198,7 +1227,7 @@ function daily() {
 
   // wages follow supply and demand: jobs left undone push them up, idle hands push them down
   if (short) S.wage *= 1.01; else if (pool.length > 3) S.wage *= 0.993;
-  S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.6 : 1.2, Math.min(8, S.wage));
+  S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.3 : Math.max(0.3, Math.min(1.2, S.wildPay ?? 1.2)), Math.min(WAGE_MAX, S.wage));
 
   // livestock
   for (const h of active) {
@@ -1634,10 +1663,13 @@ function daily() {
       }
     }
   }
-  // loans at interest: a hungry house borrows six days of food from the richest one and owes 40% more. It pays back out
-  // of what it has above 15 days of food; after four months unpaid, the creditor takes a sheep or a field
+  // loans at interest: a hungry house that owns something to pledge (its house, a field or a sheep pen) borrows six days
+  // of food from the richest one and owes 40% more. It pays back out of what it has above 15 days of food. After a
+  // year unpaid the creditor seizes, one a month until the debt is covered: first the pen with its sheep, then the
+  // fields one by one, and last the house, which the creditor then lets out
   if (L.usury) {
     const lenders = active.filter(h => daysOf(h) > 60).sort((a, b) => b.food - a.food);
+    const pledge = h => (h.hut && !h.tenant) || h.fields.length || h.pen;
     for (const h of active) {
       if (h.debt > 0) {
         const c = h.creditor;
@@ -1645,17 +1677,10 @@ function daily() {
         const pay = Math.min(h.debt, Math.max(0, h.food - 15 * need(h)) * 0.3);
         h.food -= pay; h.debt -= pay; c.food += pay; c.interest = (c.interest || 0) + pay;
         if (h.debt < 0.5) { h.debt = 0; h.creditor = null; }
-        else if (S.day - h.loanDay > 120) {
-          h.loanDay = S.day;
-          if (h.herd && c.pen) { h.herd--; c.herd++; syncHerd(h); syncHerd(c); h.debt = Math.max(0, h.debt - SHEEP_COST); tagHome(h, 'EMBARGAMENT: UNA OVELLA', 'bad'); }
-          else if (h.fields.length) { const f = h.fields.pop(); f.used = S.day; c.fields.push(f); h.debt = Math.max(0, h.debt - 60); tagHome(h, 'EMBARGAMENT: UN CAMP', 'bad'); }
-          else { h.debt = 0; h.creditor = null; continue; }
-          S.st.seized = (S.st.seized || 0) + 1;
-          logOnce('seize', `Els ${h.surname} no han tornat el préstec a temps i els ${c.surname} els embarguen.`, 'bad');
-        }
-      } else if (daysOf(h) < 3 && h.members.length) {
+        else if (S.day - h.loanDay > YEAR && S.day - (h.seizedDay || 0) >= 30) seize(h, c);
+      } else if (daysOf(h) < 3 && h.members.length && pledge(h)) {
         const c = lenders.find(o => o !== h && daysOf(o) > 60); if (!c) continue;
-        if (!ask(h, 'loan', `Passeu gana. Els ${c.surname} us deixen ${fmt(need(h) * 6)} de menjar, però n'haureu de tornar ${fmt(need(h) * 6 * 1.4)}. Si no pagueu en quatre mesos, us embargaran. Accepteu el préstec?`, 'Sí', 'No', 10)) continue;
+        if (!ask(h, 'loan', `Passeu gana. Els ${c.surname} us deixen ${fmt(need(h) * 6)} de menjar, però n'haureu de tornar ${fmt(need(h) * 6 * 1.4)}. Si en un any no l'heu tornat, us embargaran el corral, després els camps i, al final, la casa. Accepteu el préstec?`, 'Sí', 'No', 10)) continue;
         const loan = need(h) * 6; c.food -= loan; h.food += loan; h.debt = loan * 1.4; h.creditor = c; h.loanDay = S.day;
         S.st.loans = (S.st.loans || 0) + 1; c.lent = (c.lent || 0) + loan;
         logOnce('loan', `Els ${h.surname} demanen ${fmt(loan)} de menjar en préstec als ${c.surname}. N'hauran de tornar ${fmt(loan * 1.4)}.`, 'amber');
@@ -1718,7 +1743,7 @@ function daily() {
       // and with the theft law there is a watch that catches twice as many
       if (R() < (L.theft ? 0.55 : 0.25) * (1.3 - 0.6 * a.int)) {
         S.st.caught++;
-        if (a.caught) { leave(a, 'DESTERRAT'); log(`${fullName(a)} ha estat atrapat robant per segon cop, als ${v.surname}, i és desterrat del poble.`, 'amber'); }
+        if (a.caught) { leave(a, 'DESTERRAT'); S.st.banished = (S.st.banished || 0) + 1; log(`${fullName(a)} ha estat atrapat robant per segon cop, als ${v.surname}, i és desterrat del poble.`, 'amber'); }
         else { a.caught = S.day; tagHome(v, 'ATRAPAT ROBANT', 'amber'); logOnce('caught', `${fullName(a)} ha estat atrapat robant als ${v.surname}. Queda avisat: si el tornen a atrapar, serà desterrat.`, 'amber'); }
       } else {
         v.food -= amt; h.food += amt; S.st.thefts++; S.yr.thefts++; h.stole += amt; v.robbed += amt;
@@ -1843,6 +1868,7 @@ function daily() {
   updateHud();
 }
 
+const RIVER_FISHERS = 45, TREES_PER_GATHERER = 30;
 function forage(h, p, eff, sf, season) {
   const hx = homeXY(h);
   const fish = p.id % 2 || hasRod(p); // whoever owns a rod goes fishing
@@ -1855,9 +1881,15 @@ function forage(h, p, eff, sf, season) {
       if (t >= 0) setTask(p, 'forage', t % W, Math.floor(t / W) + 1, 2);
     }
   }
-  const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1);
+  // the wild has limits: the river feeds about RIVER_FISHERS people fully and the forest one gatherer for every
+  // TREES_PER_GATHERER trees; with more people at it (counted yesterday), everyone gets a smaller share, and a
+  // forest that has been cut down gives nothing at all
+  const wild = fish ? Math.min(1, RIVER_FISHERS / Math.max(1, S.wildY.fish)) : Math.min(1, treeList().length / (TREES_PER_GATHERER * Math.max(1, S.wildY.forage)));
+  S.wild[fish ? 'fish' : 'forage']++;
+  const g = sf * h.skill * eff * STR(p) * (0.85 + 0.3 * famInt(h)) * rr(0.75, 1.25) * (fish && hasRod(p) ? ROD_BONUS : 1) * wild;
   const net = fish ? g : forestToll(h, 'food', g);
   h.food += net; p.gain = net; p.gainDay = S.day; if (fish) S.st.fish += g;
+  S.wild.got += net;
 }
 function burnCoal(h, p, eff) {
   if (!h.kiln || h.kilnBroken) {
@@ -1905,7 +1937,9 @@ function buildHut(h) {
 function yearEnd() {
   const y = cal(S.day).y - 1;
   const alive = S.people.filter(p => !p.leaving).length;
-  log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${S.yr.thefts} robatoris, ${S.yr.gifts} regals, ${S.yr.left} han marxat, ${S.yr.died} morts.`, 'amber');
+  const y0 = S.yr0 || {}, starved = S.st.died - (y0.died || 0), banished = (S.st.banished || 0) - (y0.banished || 0), wed = S.st.weddings - (y0.weddings || 0);
+  log(`Fi de l'any ${y}: ${alive} persones, ${S.yr.births} nadons, ${wed} casaments, ${S.yr.died} morts${starved ? ` (${starved} de gana)` : ''}, ${S.yr.left} han marxat, ${S.yr.thefts} robatoris${banished ? `, ${banished} desterrats` : ''}, ${S.yr.gifts} regals.`, 'amber');
+  S.yr0 = { died: S.st.died, banished: S.st.banished || 0, weddings: S.st.weddings };
   S.yr = { thefts: 0, gifts: 0, births: 0, left: 0, died: 0 };
 }
 function seasonChange(doy) {
@@ -1976,6 +2010,7 @@ function drawTerrain() {
   const s = season();
   if (!bases[s]) bases[s] = buildBase(s);
   tctx.putImageData(bases[s], 0, 0);
+  drawDisasterTerrain(s);
   // fields
   for (const h of S.homes) for (const f of h.fields) drawField(f, s, h.gone);
   for (const h of S.homes) if (h.pending && !h.gone) {
@@ -2149,6 +2184,7 @@ function drawHut(hut, s, owner, rented) {
   tctx.fillStyle = rgb(roof, 1.12); tctx.fillRect(px + 1, py + 1, 8, 1);
   if (s === 3) { tctx.fillStyle = '#eef1f4'; tctx.fillRect(px + 1, py, 8, 1); tctx.fillRect(px, py + 1, 10, 2); tctx.fillRect(px + 2, py + 4, 6, 1); }
 }
+const blizzard = Array.from({ length: 160 }, () => ({ x: Math.random() * W * T, y: Math.random() * H * T, v: 0.8 + Math.random() * 0.9 }));
 const snow = Array.from({ length: 90 }, () => ({ x: Math.random() * W * T, y: Math.random() * H * T, v: 0.3 + Math.random() * 0.5 }));
 const MAX_PEOPLE_DRAWN = 200, MAX_SHEEP_DRAWN = 80;
 let terrainAt = 0;
@@ -2194,6 +2230,15 @@ function render() {
     ctx.fillStyle = '#1d1406'; ctx.fillRect(x - 1, y - 1, 7, 4); ctx.fillRect(x, y + 3, 5, 1); ctx.fillRect(x + 1, y + 4, 3, 1); ctx.fillRect(x + 2, y + 5, 1, 1);
     ctx.fillStyle = '#eaa441'; ctx.fillRect(x, y, 5, 2); ctx.fillRect(x + 1, y + 2, 3, 1); ctx.fillRect(x + 2, y + 3, 1, 1);
   }
+  if (freezing()) { // a bitter winter: a cold blue light and a blizzard blowing sideways
+    ctx.fillStyle = 'rgba(170,200,255,.10)'; ctx.fillRect(0, 0, W * T, H * T);
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    for (const f of blizzard) {
+      if (running && !reduceMotion) { f.y += f.v; f.x += f.v * 1.6; if (f.y > H * T || f.x > W * T) { f.y = Math.random() * H * T * 0.3; f.x = Math.random() * W * T - 60; } }
+      ctx.fillRect(f.x | 0, f.y | 0, 2, 1);
+    }
+  }
+  drawFX(performance.now());
   if (season() === 3) {
     ctx.fillStyle = 'rgba(255,255,255,.85)';
     for (const f of snow) {
@@ -2217,7 +2262,12 @@ function tagHome(h, text, kind) { if (h.hut) tag(h.hut.x + 1, h.hut.y, text, kin
 
 // ---------- log & hud ----------
 const logEl = document.getElementById('log');
+// the chronicle keeps what matters; everyday events (births, weddings, deaths of old age, trades, jobs...) only show
+// when the reader asks for them, or when they concern the player's own family
+const MINOR = /, fill d|, filla d|es casen|es casa amb|es torna a casar|ha mort de vell|s'ha quedat v[ií]du|compra una (canya|aixada|arada)|compra un pic|milloren el corral|maten una ovella|corral buit|s'ha deteriorat|s'ha malmès|s'ha quedat sola|per dues ovelles|deixen el pis|es fa (miner|picapedrer|carboner|ferrer)|deixa (l'ofici|la mina|la pedrera)|torna a encendre|refan la cabana|refan una cabana|venen |compren |aixequen (un|el) pis|família nova al poble|s'ha quedat buida|aixeca una (carbonera|farga)|repara la|és desterrat|lloguen un pis|^Arriba l|^Tardor:|treballa un dia per|el blat es va fer malbé|^Els llops ronden/;
+let logAll = false;
 function log(text, kind = 'info') {
+  if (!logAll && MINOR.test(text) && !(S.player && text.includes(S.player.surname))) return;
   const li = document.createElement('li');
   li.innerHTML = `<span class="d">${cal(S.day).d} ${MSHORT[cal(S.day).m]} A${cal(S.day).y}</span><span class="${kind}"></span>`;
   li.lastChild.textContent = text;
@@ -2456,6 +2506,17 @@ function updateHud() {
   put('sHousePrice', fmt(HUT_VAL * S.houseIdx));
   put('sHealth', alive.length ? Math.round(100 * avg(alive.map(p => p.health))) : '—');
   put('sDisasters', S.st.disasters || 0);
+  put('sRiots', S.st.riots || 0); put('sRevolutions', S.st.revolutions || 0);
+  { // unrest meter
+    const u = S.unrest || 0, lvl = u >= 75 ? 'high' : u >= 50 ? 'mid' : '';
+    $('uBar').style.width = u.toFixed(1) + '%'; $('uBar').className = lvl; $('uNow').className = lvl;
+    $('uMeter').setAttribute('aria-valuenow', Math.round(u));
+    put('uNow', Math.round(u) + '%');
+    const hs = S.hungryShare || 0;
+    const bs = unrestBase(), gi = S.gini.length ? S.gini[S.gini.length - 1][1] : 0;
+    $('uBase').style.width = (S.day < YEAR ? 0 : bs).toFixed(1) + '%';
+    put('uWhy', (hs > 0.005 ? `El ${Math.round(hs * 100)}% de la gent passa gana.` : 'Ningú no passa gana.') + (bs >= 1 && S.day >= YEAR ? ` La desigualtat (Gini ${gi.toFixed(2).replace('.', ',')}) el manté com a mínim al ${Math.round(bs)}%.` : '') + (u >= 75 ? ' Hi pot haver aldarulls en qualsevol moment.' : u >= 50 ? ' La gent comença a protestar.' : ''));
+  }
   put('sAge', alive.length ? (avg(alive.map(p => p.age)) / YEAR).toFixed(1).replace('.', ',') + ' anys' : '—');
   for (const k of ['thefts', 'gifts', 'births', 'left', 'died', 'caught', 'arrived', 'lostHerd', 'jobs', 'weddings', 'coalSold']) put('s' + k[0].toUpperCase() + k.slice(1), S.st[k]);
 }
@@ -2521,6 +2582,176 @@ $('lawPickClose').onclick = () => { $('lawPick').hidden = true; $('lawPickBtn').
 $('lawPick').addEventListener('click', e => { if (e.target.id === 'lawPick') $('lawPickClose').click(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('lawPick').hidden) $('lawPickClose').click(); });
 
+// ---------- social unrest ----------
+// hunger makes people angry, and a death from starvation much more: the meter rises with the share of people going
+// hungry and jumps with every death from hunger, and calms down slowly when everyone eats. Above 75% the hungry riot
+// and loot the richest pantries; at 100% there is a revolution
+const UNREST_HUNGER = 3, UNREST_DEATH = 600, UNREST_CALM = 0.5, RIOT_AT = 75, REVOLT_GAP = 2 * YEAR;
+function unrest(active) {
+  const alive = S.people.filter(p => !p.leaving), n = alive.length || 1;
+  const hs = alive.filter(p => p.hunger >= 3).length / n, died = S.st.died - (S.uDied ?? S.st.died);
+  S.uDied = S.st.died; S.hungryShare = hs;
+  S.unrest ||= 0;
+  if (S.day < YEAR) return; // the first year everyone has just arrived and nobody blames anyone yet
+  let u = S.unrest || 0;
+  const base = unrestBase();
+  u += UNREST_HUNGER * hs + died * Math.max(3, UNREST_DEATH / n) - (hs < 0.05 ? UNREST_CALM : 0.15);
+  S.unrest = u = Math.max(base, Math.min(100, u)); // inequality alone keeps people from ever being quite content
+  if (u >= 100 && !(S.day - (S.revDay ?? -1e9) < REVOLT_GAP)) revolution(active);
+  else if (u >= RIOT_AT && R() < 0.01 + 0.05 * (u - RIOT_AT) / (100 - RIOT_AT)) riot(active);
+}
+// the floor set by inequality: nothing below a Gini of 0.25, then 1.4 points for every hundredth, up to 70
+function unrestBase() { const g = S.gini.length ? S.gini[S.gini.length - 1][1] : 0; return Math.max(0, Math.min(70, (g - 0.25) * 140)); }
+// a creditor takes one pledge from a debtor who has not paid within the year: the pen, then a field, then the house
+function seize(h, c) {
+  let what, worth;
+  if (h.pen) {
+    worth = h.herd * SHEEP_COST + 20 + (h.pen.lvl ? 40 : 0);
+    if (!c.pen) { c.pen = h.pen; c.penUsed = S.day; } else mark(h.pen.x, h.pen.y, 3, 3, 0); // a second pen is pulled down
+    c.herd += h.herd; h.herd = 0; h.pen = null; syncHerd(h); syncHerd(c);
+    what = 'el corral i les ovelles';
+  } else if (h.fields.length) {
+    const f = h.fields.pop(); f.used = S.day; c.fields.push(f); worth = 60; what = 'un camp';
+  } else if (h.hut && !h.tenant) {
+    const u = h.hut; worth = housePrice(u); what = houseName(u);
+    // the deed passes to the creditor, who lets the whole house; a record of the old owners keeps hold of the building
+    const d = newHome(0, h.surname, h.color); d.gone = true; d.goneDay = S.day; d.taken = true; d.deed = true; d.hut = u;
+    u.landlord = c; h.hut = null; S.dirty = true;
+  } else { h.debt = 0; h.creditor = null; return; } // nothing left to take: the debt is written off
+  h.debt = Math.max(0, h.debt - worth); h.seizedDay = S.day; if (h.debt < 0.5) { h.debt = 0; h.creditor = null; }
+  S.st.seized = (S.st.seized || 0) + 1;
+  tagHome(h, 'EMBARGAMENT', 'bad');
+  log(`Els ${h.surname} fa més d'un any que no tornen el préstec i els ${c.surname} els embarguen ${what}.${h.debt ? ` Encara deuen ${fmt(h.debt)}.` : ' El deute queda saldat.'}`, 'bad');
+}
+function riot(active) {
+  const rich = active.filter(h => h.members.length && h.food > 50).sort((a, b) => b.food - a.food).slice(0, 3);
+  const poor = active.filter(h => h.members.length && daysOf(h) < 5);
+  if (!rich.length) return;
+  let loot = 0;
+  for (const h of rich) { const t = h.food * 0.4; h.food -= t; loot += t; h.robbed += t; tagHome(h, 'SAQUEJADA', 'bad'); }
+  const share = loot * 0.75 / Math.max(1, poor.length); // a quarter is spoiled or trampled in the riot
+  for (const h of poor) { h.food += share; h.got += share; }
+  const burnt = rich.find(h => (h.kiln && !h.kilnBroken) || (h.forge && !h.forgeBroken));
+  let wreck = '';
+  if (burnt && R() < 0.3) {
+    const k = burnt.forge && !burnt.forgeBroken ? 'forge' : 'kiln'; burnt[k + 'Broken'] = true; burnt[k + 'BrokenDay'] = S.day; S.dirty = true;
+    wreck = ` La ${PLANT[k].name} dels ${burnt.surname} queda destrossada.`;
+  }
+  S.unrest -= 20; S.st.riots = (S.st.riots || 0) + 1;
+  log(`Aldarulls! La gent que passa gana assalta els rebostos dels ${rich.map(h => h.surname).join(', ')} i s'emporta ${fmt(loot)} de menjar${poor.length ? `, que es reparteix entre ${poor.length} ${poor.length > 1 ? 'cases' : 'casa'}` : ''}. Una part es fa malbé.${wreck}`, 'bad');
+}
+function revolution(active) {
+  S.st.revolutions = (S.st.revolutions || 0) + 1;
+  const old = laws.length;
+  for (let i = laws.length - 1; i >= 0; i--) laws.splice(i, 1);
+  recomputeLaws();
+  // the richest tenth lose half their stores to the common granary and every field beyond two to families with none
+  const live = active.filter(h => h.members.length), ws = wealthsOf(live);
+  const order = live.map((h, i) => [h, ws[i]]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  const rich = order.slice(0, Math.max(1, Math.ceil(order.length / 10)));
+  const landless = live.filter(h => !h.fields.length && h.members.length);
+  let food = 0, fields = 0;
+  const mats = { wood: 0, stone: 0, iron: 0, coal: 0 };
+  for (const h of rich) {
+    const f = h.food / 2; h.food -= f; food += f;
+    for (const k in mats) { const m = h[k] / 2; h[k] -= m; mats[k] += m; }
+    while (h.fields.length > 2 && landless.length) { const fl = h.fields.pop(); fl.used = S.day; landless.shift().fields.push(fl); fields++; }
+    tagHome(h, 'EXPROPIADA', 'bad');
+  }
+  S.granary += food;
+  const worth = food + mats.wood + mats.stone * S.stonePrice + mats.iron * S.ironPrice + mats.coal * S.coalPrice;
+  // the materials go to the poorest quarter, in equal shares
+  const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
+  for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
+  for (const k of ['granary', 'share', 'agrarian']) laws.push({ text: LAWDEFS[k].name, fx: [k], day: S.day });
+  recomputeLaws(); renderLaws();
+  S.unrest = 20; S.revDay = S.day;
+  log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es deroguen les ${old} lleis vigents. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa.`, 'bad');
+  tag(W / 2, H / 2, 'REVOLUCIÓ', 'bad');
+  if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis del batlle s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
+}
+
+// ---------- disaster effects on the map ----------
+// short animations run on the wall clock (they play out even when the game is paused) and never touch the game's dice
+const FX = [];
+function makeCracks() { // jagged lines across the ground, branching now and then
+  const out = [];
+  for (let c = 0; c < 7; c++) {
+    let x = Math.random() * W * T, y = Math.random() * H * T, a = Math.random() * 6.28;
+    const pts = [[x, y]], len = 8 + (Math.random() * 14 | 0);
+    for (let k = 0; k < len; k++) {
+      a += (Math.random() - 0.5) * 1.1; x += Math.cos(a) * 6; y += Math.sin(a) * 6; pts.push([x, y]);
+      if (Math.random() < 0.12) out.push([[x, y], [x + Math.cos(a + 1) * 10, y + Math.sin(a + 1) * 10], [x + Math.cos(a + 0.7) * 18, y + Math.sin(a + 0.7) * 18]]);
+    }
+    out.push(pts);
+  }
+  return out;
+}
+function drawFX(now) {
+  let shake = 0;
+  for (let i = FX.length - 1; i >= 0; i--) {
+    const f = FX[i], t = (now - f.t0) / f.dur;
+    if (t >= 1) { FX.splice(i, 1); continue; }
+    if (f.type === 'quake') {
+      if (t < 0.3) shake = Math.max(shake, (1 - t / 0.3) * 4);
+      const a = t < 0.7 ? 1 : (1 - t) / 0.3;
+      ctx.lineWidth = 2; ctx.strokeStyle = `rgba(25,18,12,${0.85 * a})`;
+      for (const pts of f.cracks) { ctx.beginPath(); pts.forEach(([x, y], k) => k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); }
+      ctx.lineWidth = 1; ctx.strokeStyle = `rgba(255,240,210,${0.25 * a})`;
+      for (const pts of f.cracks) { ctx.beginPath(); pts.forEach(([x, y], k) => k ? ctx.lineTo(x + 1, y + 1) : ctx.moveTo(x + 1, y + 1)); ctx.stroke(); }
+    } else if (f.type === 'flood') {
+      const grow = Math.min(1, t / 0.2), a = t < 0.7 ? 1 : (1 - t) / 0.3;
+      for (const [k, d] of f.ks) {
+        if (d > grow * FLOOD_REACH + 0.01) continue;
+        const x = k % W, y = (k / W) | 0, w = Math.sin(now / 300 + x * 0.7 + y * 0.4);
+        ctx.fillStyle = `rgba(60,105,175,${(0.75 - d * 0.1 + w * 0.08) * a})`; ctx.fillRect(x * T, y * T, T, T);
+      }
+    } else if (f.type === 'fire') {
+      const a = t < 0.75 ? 1 : (1 - t) / 0.25;
+      for (const k of f.ks) {
+        const x = (k % W) * T, y = ((k / W) | 0) * T, fl = Math.random();
+        ctx.fillStyle = fl < 0.4 ? `rgba(255,200,60,${a})` : fl < 0.8 ? `rgba(240,110,30,${a})` : `rgba(180,40,20,${a})`;
+        ctx.fillRect(x + (Math.random() * 4 | 0), y + 1 + (Math.random() * 3 | 0), 2, 2 + (Math.random() * 2 | 0));
+        const sy = (now / 25 + k * 7) % 22;
+        ctx.fillStyle = `rgba(90,90,90,${0.45 * a * (1 - sy / 22)})`; ctx.fillRect(x + 1 + Math.sin(sy / 3 + k) * 2, y - sy, 3, 3);
+      }
+    }
+  }
+  cv.style.transform = shake && !reduceMotion ? `translate(${(Math.random() - 0.5) * 2 * shake}px,${(Math.random() - 0.5) * 2 * shake}px)` : '';
+}
+// the slower marks live on the terrain layer: a narrower, cracked river in a drought, a frozen one in a bitter winter,
+// and burnt ground where a fire went through, for a few months
+function drawDisasterTerrain(s) {
+  if (dry()) {
+    tctx.fillStyle = 'rgba(205,160,70,.16)'; tctx.fillRect(0, 0, W * T, H * T); // parched grass
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const k = idx(x, y); if (!S.water[k]) continue;
+      if ((x > 0 && !S.water[k - 1]) || (x < W - 1 && !S.water[k + 1])) { // the river shrinks away from its banks
+        const px = x * T, py = y * T;
+        tctx.fillStyle = '#9c8458'; tctx.fillRect(px, py, T, T);
+        tctx.fillStyle = '#6e5a3a'; tctx.fillRect(px + (hash(x, y, 3) * 3 | 0), py + 1, 2, 1); tctx.fillRect(px + 1, py + 3, 1, 2);
+      }
+    }
+  }
+  if (freezing()) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const k = idx(x, y); if (!S.water[k]) continue;
+      const px = x * T, py = y * T;
+      tctx.fillStyle = hash(x, y, 9) > 0.8 ? '#e9f3fa' : '#c9dff0'; tctx.fillRect(px, py, T, T);
+      if (hash(x, y, 13) > 0.7) { tctx.fillStyle = 'rgba(120,150,180,.6)'; tctx.fillRect(px + 1, py + 2, 3, 1); }
+    }
+  }
+  if (S.burnt) {
+    S.burnt = S.burnt.filter(b => S.day - b.day < 150);
+    for (const b of S.burnt) {
+      const a = 0.55 * (1 - (S.day - b.day) / 150);
+      for (const k of b.ks) { if (S.tree[k]) continue; const x = k % W, y = (k / W) | 0;
+        tctx.fillStyle = `rgba(38,30,24,${a})`; tctx.fillRect(x * T, y * T, T, T);
+        tctx.fillStyle = `rgba(90,80,70,${a})`; tctx.fillRect(x * T + (hash(x, y, 5) * 4 | 0), y * T + 2, 1, 1); }
+    }
+  }
+}
+
 // ---------- natural disasters ----------
 // droughts, floods, hard winters, epidemics, wolves, forest fires and, very rarely, earthquakes. They can be switched
 // off; with them off no dice are rolled for them, and the village runs exactly as it did before they existed
@@ -2554,6 +2785,14 @@ function flood() {
   let hit = 0;
   const near = (x, y) => { for (let j = y - FLOOD_REACH; j <= y + 1 + FLOOD_REACH; j++) for (let i = x - FLOOD_REACH; i <= x + 2 + FLOOD_REACH; i++) if (inMap(i, j) && S.water[idx(i, j)]) return true; return false; };
   for (const h of S.homes) for (const f of h.fields) if (f.stage < 2 && near(f.x, f.y)) { f.flood = true; f.care *= 0.5; hit++; }
+  { // the water spreads over the banks for a few seconds
+    const ks = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (S.water[idx(x, y)]) continue;
+      for (let d = 1; d <= FLOOD_REACH; d++) if ((inMap(x - d, y) && S.water[idx(x - d, y)]) || (inMap(x + d, y) && S.water[idx(x + d, y)])) { ks.push([idx(x, y), d]); break; }
+    }
+    FX.push({ type: 'flood', t0: performance.now(), dur: 6000, ks });
+  }
   disaster(hit ? `El riu es desborda i inunda ${hit} ${hit > 1 ? 'camps' : 'camp'} de la vora: aquest any hi haurà molt poca collita.` : 'El riu es desborda, però no arriba a cap camp.', 'INUNDACIÓ');
   S.dirty = true;
 }
@@ -2569,6 +2808,7 @@ function quake() {
     }
   }
   for (const o of S.homes) for (const k of ['kiln', 'forge']) if (o[k] && !o[k + 'Broken'] && R() < 0.3) { o[k + 'Broken'] = true; o[k + 'BrokenDay'] = S.day; }
+  FX.push({ type: 'quake', t0: performance.now(), dur: 4000, cracks: makeCracks() });
   S.dirty = true;
   disaster(`Terratrèmol! S'han ensorrat ${fell} ${fell === 1 ? 'cabana' : 'cabanes'} i ${floors} ${floors === 1 ? 'pis' : 'pisos'}. ${homeless} ${homeless === 1 ? 'família s\'ha quedat' : 'famílies s\'han quedat'} sense casa. Les cases de pedra han aguantat.`, 'TERRATRÈMOL');
 }
@@ -2589,11 +2829,13 @@ function wolves() {
 function fire() {
   const ts = treeList(); if (!ts.length) return;
   const k0 = ts[ri(0, ts.length - 1)], x0 = k0 % W, y0 = (k0 / W) | 0, r = ri(3, dry() ? 9 : 5);
-  let n = 0;
+  let n = 0; const burnt = [];
   for (let j = y0 - r; j <= y0 + r; j++) for (let i = x0 - r; i <= x0 + r; i++) {
     if (!inMap(i, j) || (i - x0) ** 2 + (j - y0) ** 2 > r * r) continue;
-    const k = idx(i, j); if (S.tree[k] && R() < 0.8) { S.tree[k] = 0; n++; }
+    const k = idx(i, j); if (S.tree[k] && R() < 0.8) { S.tree[k] = 0; n++; burnt.push(k); }
   }
+  (S.burnt ||= []).push({ ks: burnt, day: S.day });
+  if (burnt.length) FX.push({ type: 'fire', t0: performance.now(), dur: 4500, ks: burnt });
   S.treeVer = (S.treeVer || 0) + 1; S.dirty = true;
   if (n < 3) return; // a few trees burning is no disaster
   disaster(`Un incendi crema ${n} arbres del bosc${dry() ? ', sec per la sequera' : ''}.`, 'INCENDI', x0, y0);
@@ -2713,6 +2955,11 @@ let MODE = 'batlle';
 $('startBtn').onclick = () => { MODE = 'batlle'; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
 $('familyBtn').onclick = () => { $('startBtn').click(); MODE = 'familia'; pickPlayer(); };
 $('playBtn').onclick = () => { if (!$('intro').hidden) { $('startBtn').click(); return; } running = !running; syncPlay(); };
+$('quakeBtn').onclick = () => { // works even with natural disasters switched off
+  if (!$('intro').hidden) return;
+  quake(); updateHud(); if (!$('houses').hidden) renderHouses(true);
+};
+$('logAll').onchange = e => { logAll = e.target.checked; };
 $('disBtn').onclick = () => {
   DISASTERS = !DISASTERS; syncDis();
   try { localStorage.setItem('batlle.disasters', DISASTERS ? '1' : '0'); } catch (e) {}
@@ -2726,7 +2973,7 @@ document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
   document.querySelectorAll('[data-speed]').forEach(o => o.setAttribute('aria-pressed', o === b));
 });
 $('resetBtn').onclick = () => {
-  bases = {}; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
+  bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
@@ -2845,6 +3092,11 @@ $('housesBody').addEventListener('click', e => { const tr = e.target.closest('tr
 $('housesBody').addEventListener('keydown', e => { const tr = e.target.closest('tr.row'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleRow(tr); $('housesBody').querySelector(`tr[data-id="${tr.dataset.id}"]`)?.focus(); } });
 // help window: every rule the simulation follows
 const RULES = [
+  ['MALESTAR SOCIAL', [
+    'El primer any no hi ha malestar: la gent acaba d\'arribar. Després, la desigualtat posa un mínim: amb un índex de Gini per sobre de 0,25, el malestar no pot baixar de (Gini − 0,25) × 140, fins a un màxim del 70% (la part ratllada de la barra). A més, el malestar puja cada dia segons la part de la gent que passa gana (3 punts al dia si tothom en passa) i fa un salt amb cada mort de gana (6 punts en un poble de 100 persones, menys com més gran és el poble, però mai menys de 3). Quan gairebé ningú no passa gana, baixa mig punt al dia.',
+    'Aldarulls: a partir del 75%, cada dia hi ha una probabilitat (més alta com més malestar) que la gent que passa gana assalti els rebostos de les tres cases amb més menjar. S\'emporten el 40% del seu menjar: tres quartes parts es reparteixen entre les cases que passen gana i la resta es fa malbé. A vegades destrossen una farga o una carbonera. Després el malestar baixa 20 punts.',
+    'Revolució: si el malestar arriba al 100%, el poble s\'aixeca. Es deroguen totes les lleis, el 10% de cases més riques perd la meitat del menjar, que va al graner comú, i la meitat de la fusta, la pedra, el ferro i el carbó, que es reparteix entre el 25% de cases més pobres. Els camps que tinguin de més de dos passen a famílies sense terra. El nou consell proclama el Graner comú, la Solidaritat obligatòria i La terra per a qui la treballa. Després el batlle pot tornar a canviar les lleis. El malestar torna al 20%, i durant dos anys no hi pot haver una altra revolució (però sí aldarulls).',
+  ]],
   ['DESASTRES NATURALS', [
     'Es poden activar o desactivar amb el botó Desastres. Quan estan desactivats no passa cap d\'aquests fenòmens.',
     'Sequera: un estiu de cada deu, aproximadament. Els camps donen menys de la meitat de collita i al bosc i al riu es recull un 30% menys.',
@@ -2853,7 +3105,7 @@ const RULES = [
     'Epidèmia: rara. La meitat de la gent emmalalteix i perd salut, i els vells i els febles tenen més risc de morir.',
     'Llops: a l\'hivern, de tant en tant, entren en un corral i s\'emporten d\'una a tres ovelles. Un corral millorat els atura gairebé sempre.',
     'Incendi: a l\'estiu i a la tardor un foc pot cremar un tros de bosc, molt més gran si hi ha sequera.',
-    'Terratrèmol: molt rar. S\'ensorren alguns pisos i algunes cabanes, i les famílies que hi vivien es queden sense casa. Les cases de pedra aguanten. Algunes carboneres i fargues queden en ruïnes.',
+    'Terratrèmol: molt rar, però el botó Terratrèmol! en provoca un quan vulguis, encara que els desastres estiguin desactivats. S\'ensorren alguns pisos i algunes cabanes, i les famílies que hi vivien es queden sense casa. Les cases de pedra aguanten. Algunes carboneres i fargues queden en ruïnes.',
   ]],
   ['MODE CAP DE FAMÍLIA', [
     'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. En aquest mode també pots proclamar lleis.',
@@ -2902,6 +3154,7 @@ const RULES = [
   ['MENJAR', [
     'Cada casa té camps. A la primavera es llauren i a l\'estiu se sega la collita, que és més gran com més cura n\'han tingut.',
     'Fora de la feina dels camps, la gent cull fruits al bosc o pesca al riu. Al bosc, a l\'hivern gairebé no s\'hi troba res.',
+    'El bosc i el riu tenen un límit. El riu alimenta bé unes 45 persones pescant: si n\'hi ha més, cadascú pesca menys. Al bosc hi cap un recol·lector per cada 30 arbres: amb menys arbres o més gent, cadascú en treu menys, i un bosc talat del tot no dona res.',
     'El menjar guardat es fa malbé a poc a poc, més a l\'estiu. Les famílies llestes i les cases de pedra en perden menys.',
     'Un camp que no es fa servir durant un any desapareix i hi torna a créixer l\'herba. Un corral millorat que passa un any sense ovelles torna a ser un corral normal, i un corral normal que passa un any sense ovelles desapareix.',
   ]],
@@ -2929,6 +3182,7 @@ const RULES = [
   ]],
   ['JORNALERS', [
     'Les cases que tenen feina de sobres contracten gent d\'altres cases i els paguen un jornal en menjar.',
+    'El jornal puja quan falten braços i baixa quan sobren. No passa mai de 3 de menjar al dia, que és el que pot donar un dia de feina al camp. Tampoc baixa del que la gent trauria pescant o collint pel seu compte (com a màxim 1,2), perquè per menys ningú no hi aniria. Si el bosc s\'acaba i el riu va ple, aquest mínim baixa fins a 0,3. Amb Mercat lliure total el mínim és 0,3, i amb la llei del salari mínim és 3,5.',
     'El jornal puja quan molta gent busca treballadors i baixa quan molta gent busca feina.',
     'El jornaler treballa amb les eines de la casa que el contracta.',
   ]],
