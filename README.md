@@ -1,4 +1,4 @@
-<p align="center"><img src="img/el-batlle-icona.svg" alt="El batlle" width="160"></p>
+<p align="center"><img src="img/el-batlle-social.png" alt="El batlle" width="160"></p>
 
 # El batlle
 
