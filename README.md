@@ -1,1 +1,16 @@
-# El-Batlle
+# El batlle
+
+Joc de navegador en català on fas de batlle d'un poble. Tot el joc és un sol fitxer, `index.html`, sense dependències ni passos de compilació.
+
+## Jugar
+
+- En línia: https://miquel25.github.io/El-Batlle/ (un cop activat GitHub Pages)
+- En local: obre `index.html` amb qualsevol navegador.
+
+## Publicar amb GitHub Pages
+
+1. Ves a **Settings → Pages** del repositori.
+2. A **Build and deployment**, tria **Deploy from a branch**.
+3. Branca `main`, carpeta `/ (root)`, i desa.
+
+En un parell de minuts el joc serà accessible a l'adreça de dalt.
