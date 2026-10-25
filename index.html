@@ -2308,7 +2308,10 @@ function drawTerrain() {
     tctx.fillStyle = 'rgba(0,0,0,.3)'; tctx.fillRect(px + 2, py + 2, 10, 9);
     tctx.fillStyle = '#8c8a84'; tctx.fillRect(px, py + 3, 10, 7);
     tctx.fillStyle = '#6e6c66'; for (let k = 0; k < 3; k++) tctx.fillRect(px, py + 4 + k * 2, 10, 1);
-    tctx.fillStyle = s === 3 ? '#eef1f4' : '#4a4038'; tctx.fillRect(px - 1, py + 1, 12, 3);
+    const fr = h.gone ? [120, 108, 96] : h.rgb.map(v => v * 0.85 + 20); // the roof in the owners' colour
+    tctx.fillStyle = rgb(fr); tctx.fillRect(px - 1, py + 1, 12, 3);
+    tctx.fillStyle = rgb(fr, 1.12); tctx.fillRect(px, py + 1, 10, 1);
+    if (s === 3) { tctx.fillStyle = '#eef1f4'; tctx.fillRect(px - 1, py + 1, 12, 1); }
     tctx.fillStyle = '#5a5650'; tctx.fillRect(px + 7, py - 2, 2, 4);
     tctx.fillStyle = '#1a1512'; tctx.fillRect(px + 3, py + 6, 3, 4);
   }
@@ -2325,6 +2328,10 @@ function drawTerrain() {
     tctx.fillStyle = '#3b3029'; tctx.fillRect(px + 1, py + 2, 8, 7); tctx.fillRect(px + 2, py + 1, 6, 9);
     tctx.fillStyle = '#5a4a3c'; tctx.fillRect(px + 3, py + 2, 3, 2);
     tctx.fillStyle = '#241b16'; tctx.fillRect(px + 4, py + 7, 2, 1); // the mouth; it glows only while lit (see render)
+    if (!h.gone) { // a pennant in the owners' colour on a stick by the mound
+      tctx.fillStyle = '#4a3220'; tctx.fillRect(px + 9, py - 1, 1, 6);
+      tctx.fillStyle = h.color; tctx.fillRect(px + 10, py - 1, 2, 2);
+    }
   }
   // water mills: a stone mill house with a wooden roof by the river; the wheel turns in render()
   for (const h of S.homes) if (h.mill) {
@@ -2338,7 +2345,10 @@ function drawTerrain() {
     tctx.fillStyle = 'rgba(0,0,0,.3)'; tctx.fillRect(px + 1, py + 2, 10, 9);
     tctx.fillStyle = '#a8a294'; tctx.fillRect(px, py + 3, 10, 7);
     tctx.fillStyle = '#8c867a'; for (let k = 0; k < 3; k++) tctx.fillRect(px + (k % 2) * 3, py + 4 + k * 2, 10 - (k % 2) * 3, 1);
-    tctx.fillStyle = s === 3 ? '#eef1f4' : '#7a4a2a'; tctx.fillRect(px - 1, py, 12, 3); tctx.fillRect(px + 1, py - 1, 8, 1);
+    const mr = h.gone ? [120, 108, 96] : h.rgb.map(v => v * 0.85 + 20); // the roof in the owners' colour
+    tctx.fillStyle = rgb(mr); tctx.fillRect(px - 1, py, 12, 3); tctx.fillRect(px + 1, py - 1, 8, 1);
+    tctx.fillStyle = rgb(mr, 0.8); tctx.fillRect(px - 1, py + 2, 12, 1);
+    if (s === 3) { tctx.fillStyle = '#eef1f4'; tctx.fillRect(px + 1, py - 1, 8, 1); }
     tctx.fillStyle = '#2a1d14'; tctx.fillRect(px + 6, py + 6, 2, 4);
     tctx.fillStyle = '#3a2a1c'; tctx.fillRect(px + 2, py + 5, 2, 2);
     // the wheel's rim and axle, half in the water; its spokes turn in render()
@@ -3012,17 +3022,22 @@ function civicLaws(active, c) {
 // far to the right never protects them, and one far to the left never lifts the protection
 function ecoLaws(c) {
   const trees = treeList().length / Math.max(1, S.trees0 || 1), fish = (S.fishStock ?? FISH_CAP) / FISH_CAP;
+  // to judge whether the forest has come back, the forest on land where houses and fields can go (east of the river)
+  // doesn't count: only the original forest across the river, where nobody builds but charcoal burners
+  let wild = 0, grown = 0;
+  for (let y = 0; y < H; y++) for (let x = 0; x < S.riverX(y); x++) { const i = idx(x, y); if (S.forest[i] && !S.water[i]) { wild++; if (S.tree[i]) grown++; } }
+  const back = wild ? grown / wild : 1;
   // a left-wing council bans charcoal when the forest is nearly gone; whatever its colour, it lifts the ban once the
   // forest is back to half of what it was
   const nc = laws.findIndex(l => l.fx.includes('nocoal'));
   if (nc < 0 && trees < 0.25 && c < -0.15 && R() < 0.5) { log(`Gairebé no queda bosc i el consell ${councilType(c)} prohibeix fer carbó.`, 'good'); proclaim('nocoal', true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
-  else if (nc >= 0 && trees > 0.5 && R() < 0.5) { log('El bosc s\'ha refet i el consell torna a permetre fer carbó.', 'amber'); repeal(nc, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
-  for (const [k, level, what] of [['forest', trees, 'el bosc'], ['fishing', fish, 'el riu']]) {
+  else if (nc >= 0 && back > 0.5 && R() < 0.5) { log('El bosc s\'ha refet i el consell torna a permetre fer carbó.', 'amber'); repeal(nc, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
+  for (const [k, level, what, up] of [['forest', trees, 'el bosc', back], ['fishing', fish, 'el riu', fish]]) {
     const i = laws.findIndex(l => l.fx.includes(k));
     if (i < 0 && level < 0.4 && c < 0.6 && R() < 0.5) {
       log(`Queda poc ${k === 'forest' ? 'bosc' : 'peix'} i el consell decideix protegir ${what}: s'aprova «${LAWDEFS[k].name}».`, 'good');
       proclaim(k, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
-    } else if (i >= 0 && level > (k === 'forest' ? 0.55 : 0.85) && c > -0.6 && R() < 0.5) {
+    } else if (i >= 0 && up > (k === 'forest' ? 0.7 : 0.85) && c > -0.6 && R() < 0.5) {
       log(`${k === 'forest' ? 'El bosc' : 'El riu'} s'ha recuperat i el consell aixeca la protecció.`, 'amber');
       repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
     }
@@ -3701,8 +3716,8 @@ const HELP_TABS = [
     ]],
     ['LLEIS DE MEDI AMBIENT', [
       'Si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc. Si al riu queden menys del 40% dels peixos, la Pesca regulada.',
-      'Les pot derogar quan el bosc torna al 55% o el riu al 85%. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
-      'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc torna a la meitat, qualsevol consell aixeca la prohibició.',
+      'Les pot derogar quan el riu torna al 85% o quan el bosc torna al 70%. Per saber si el bosc s\'ha recuperat només es compta el bosc de l\'altra banda del riu, on no s\'hi pot construir: el de la banda del poble es tala per fer cases i camps i no torna mai del tot. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
+      'Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó. Quan el bosc de l\'altra banda del riu torna a la meitat, qualsevol consell aixeca la prohibició.',
     ]],
     ['LLEIS GENERALS I DE SEGURETAT', [
       'Escola: un consell d\'esquerres aprova l\'Escola pública i un de dretes l\'Escola privada. Un de centre no en toca cap.',
