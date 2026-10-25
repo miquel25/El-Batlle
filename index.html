@@ -128,7 +128,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .propose input,.propose textarea{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font:inherit;font-size:13px;resize:vertical}
 .propose input:focus,.propose textarea:focus{outline:none;border-color:var(--amber)}
 .propose .btn{margin-top:4px;align-self:flex-start}
-.proplink{font-size:12px;color:var(--amber)}
+.propmsg{margin:2px 0 0;font-size:12px;color:var(--amber)}.propmsg a{color:inherit}
+.propose .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 .gnote{margin:6px 0 0;font-size:11px;color:var(--muted)}.gnote b{color:var(--ink)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden}
 .stats div{background:var(--panel);padding:6px 8px}
@@ -397,10 +398,13 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <input type="text" id="propTitle" maxlength="120" required placeholder="Per exemple: Dret a pescar al riu">
         <label for="propText">Què hauria de fer?</label>
         <textarea id="propText" rows="4" maxlength="3000" required placeholder="Explica com hauria de funcionar i què canviaria al poble."></textarea>
-        <button class="btn primary" type="submit">Envia la proposta a GitHub</button>
-        <a id="propLink" class="proplink" target="_blank" rel="noopener" hidden>Si no s'ha obert GitHub, clica aquí</a>
+        <label for="propName">El teu nom (opcional)</label>
+        <input type="text" id="propName" maxlength="60" placeholder="Anònim">
+        <div class="hp" aria-hidden="true"><label for="propWeb">Deixa-ho buit</label><input type="text" id="propWeb" tabindex="-1" autocomplete="off"></div>
+        <button class="btn primary" type="submit" id="propBtn">Envia la proposta</button>
+        <p id="propMsg" class="propmsg" role="status" hidden></p>
       </form>
-      <p class="gnote">S'obre GitHub amb la proposta ja escrita: només cal prémer «Create» per desar-la. Cal tenir un compte de GitHub.</p>
+      <p class="gnote">La proposta es publica a la llista de propostes del joc a GitHub. No cal tenir cap compte.</p>
     </section>
     <p class="credit">Basat en la idea de @an_ai_tries_youtube · Llicència MIT</p>
   </aside>
@@ -2966,16 +2970,27 @@ function updateFamily() {
   put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${h.hut ? (stoneHouse(h) ? 'Casa de pedra' : h.tenant ? 'Viuen de lloguer en un pis' : 'Cabana pròpia') : 'Encara sense casa'}.`);
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ask').hidden) e.stopImmediatePropagation(); }, true);
-// law proposals become GitHub issues: the page only opens a filled-in "new issue" form, so it needs no token
-const ISSUES = 'https://github.com/miquel25/El-Batlle/issues/new';
-$('propForm').addEventListener('submit', e => {
+// law proposals become GitHub issues through a Cloudflare Worker (worker/worker.js) that holds the token, so visitors need no account
+const PROPOSALS = 'https://el-batlle-propostes.miquel-delaiglesia.workers.dev';
+const propMsg = (html) => { $('propMsg').innerHTML = html; $('propMsg').hidden = false; };
+$('propForm').addEventListener('submit', async e => {
   e.preventDefault();
   const t = $('propTitle').value.trim(), d = $('propText').value.trim();
   if (!t || !d) return;
-  const body = `${d}\n\n---\nProposta enviada des del joc. Lleis vigents: ${laws.length ? laws.map(l => l.text).join(' · ') : 'cap'}.`;
-  const url = `${ISSUES}?${new URLSearchParams({ title: `Proposta de llei: ${t}`, body, labels: 'enhancement' })}`;
-  window.open(url, '_blank', 'noopener');
-  $('propLink').href = url; $('propLink').hidden = false; // in case the browser blocked the new tab
+  const current = (laws.length ? laws.map(l => l.text).join(' · ') : 'cap').slice(0, 900);
+  $('propBtn').disabled = true; propMsg('Enviant…');
+  try {
+    const r = await fetch(PROPOSALS, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ titol: t, text: `${d}\n\nLleis vigents al joc: ${current}.`, nom: $('propName').value.trim(), web: $('propWeb').value }),
+    });
+    const res = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(res.error || 'No s\'ha pogut enviar la proposta.');
+    $('propForm').reset();
+    propMsg(res.url ? `Gràcies! La proposta s'ha desat: <a href="${res.url}" target="_blank" rel="noopener">mira-la a GitHub</a>.` : 'Gràcies! La proposta s\'ha desat.');
+  } catch (err) {
+    propMsg(err instanceof TypeError ? 'No s\'ha pogut connectar. Torna-ho a provar d\'aquí una estona.' : esc(err.message));
+  } finally { $('propBtn').disabled = false; }
 });
 $('forgetBtn').onclick = () => { // every answer is forgotten, the remembered ones and the recent ones: the family asks again
   S.pol = {}; updateFamily(); log('Has oblidat totes les respostes: la família et tornarà a preguntar cada decisió.', 'info');
