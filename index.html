@@ -1283,6 +1283,7 @@ function daily() {
   }
 
   // wages follow supply and demand: jobs left undone push them up, idle hands push them down
+  S.jobless = 0.95 * (S.jobless || 0) + 0.05 * pool.length; // labourers left without a job today, smoothed
   if (short) S.wage *= 1.01; else if (pool.length > 3) S.wage *= 0.993;
   // under laissez there is no floor at all; the tiny value only keeps the multiplicative update alive
   S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.02 : Math.max(0.3, Math.min(1.2, S.wildPay ?? 1.2)), S.wage);
@@ -2702,10 +2703,22 @@ const councilType = c => c < -0.5 ? 'socialista' : c < -0.15 ? 'socialdemòcrata
 function lobby(active, u) {
   const { rich, poor, top } = S.press || pressures(active, u), c = S.council || 0;
   ecoLaws(c); civicLaws(active, c);
+  // a council far to one side sweeps away a law of the other side
+  const sweep = c > 0.6 ? ['SOCIALISTES', 'SOCIALDEMÒCRATES'] : c < -0.6 ? ['TURBOCAPITALISTES', 'TECNOFEUDALS'] : null;
+  if (sweep && R() < 0.4) {
+    const ks = new Set(LAW_CATS.filter(x => sweep.includes(x[0])).flatMap(x => x[1])), i = laws.findIndex(l => l.fx.some(f => ks.has(f)));
+    if (i >= 0) { log(`El consell ${councilType(c)} deroga «${laws[i].text}», una llei ${c > 0 ? 'd\'esquerres' : 'de dretes'}.`, 'amber'); repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
+  }
   const push = Math.max(rich, poor);
   if (push <= 0 || R() > push * 0.6) return;
   // the poor ask for reforms, and for socialism outright once anger is high or the council already leans far left;
   // the rich for the free market, and for technofeudalism once they own more than half of everything
+  // when the rich win and a tax is still standing, half the time they get rid of the tax instead
+  const tax = laws.findIndex(l => l.fx.some(f => f === 'wealthtax' || f === 'inhtax'));
+  if (rich > poor && tax >= 0 && R() < 0.5) {
+    log(`Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell derogui «${laws[tax].text}».`, 'bad');
+    repeal(tax, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; return;
+  }
   const cat = poor >= rich ? (u >= 75 || c < -0.5 ? 'SOCIALISTES' : 'SOCIALDEMÒCRATES') : top > 0.5 ? 'TECNOFEUDALS' : 'TURBOCAPITALISTES';
   const options = LAW_CATS.find(x => x[0] === cat)[1].filter(k => !L[k]);
   if (!options.length) return;
@@ -2713,7 +2726,7 @@ function lobby(active, u) {
   log(poor >= rich
     ? `La gent que passa gana omple la plaça i el consell cedeix: s'aprova «${LAWDEFS[k].name}».`
     : `Les famílies més riques, que tenen el ${Math.round(top * 100)}% de tota la riquesa, aconsegueixen que el consell aprovi «${LAWDEFS[k].name}».`, poor >= rich ? 'good' : 'bad');
-  proclaim(k);
+  proclaim(k, true);
   S.st.autoLaws = (S.st.autoLaws || 0) + 1;
 }
 // how hard each side pushes: the rich from the share of wealth the richest tenth hold (from 30%), the poor from the
@@ -2753,6 +2766,14 @@ function civicLaws(active, c) {
   else if (L.theft && thefts === 0 && left && chance(0.2)) vote('theft', false, 'ja no hi ha robatoris');
   if (food / nd < 8 && !L.ration && chance(0.5)) vote('ration', true, 'el menjar del poble s\'acaba');
   else if (L.ration && food / nd > 40 && chance(0.5)) vote('ration', false, 'tornen a haver-hi reserves');
+  if (S.order) { // after a riot a technofeudal council tightens its grip
+    S.order = false;
+    if (t === 'tecnofeudal') { vote('theft', true, 'cal mantenir l\'ordre després dels aldarulls'); vote('closed', true, 'no es vol més gent després dels aldarulls'); }
+  }
+  if ((S.jobless || 0) > n * 0.05 && chance(0.4)) { // many labourers and little work
+    if (t === 'socialdemòcrata' && !L.wage) vote('wage', true, `${Math.round(S.jobless)} jornalers no troben feina i els jornals s\'enfonsen`);
+    else if (t === 'turbocapitalista' && !L.laissez) vote('laissez', true, 'amb tants jornalers, que el mercat decideixi el jornal');
+  }
   if (hs > 0.05 && !L.work && (t === 'socialista' || t === 'turbocapitalista') && chance(0.4)) vote('work', true, 'cal treballar més per no passar gana');
   else if (L.work && hs < 0.01 && chance(0.15)) vote('work', false, 'ja no cal');
 }
@@ -2760,14 +2781,19 @@ function civicLaws(active, c) {
 // far to the right never protects them, and one far to the left never lifts the protection
 function ecoLaws(c) {
   const trees = treeList().length / Math.max(1, S.trees0 || 1), fish = (S.fishStock ?? FISH_CAP) / FISH_CAP;
+  // a left-wing council bans charcoal when the forest is nearly gone; whatever its colour, it lifts the ban once the
+  // forest is back to half of what it was
+  const nc = laws.findIndex(l => l.fx.includes('nocoal'));
+  if (nc < 0 && trees < 0.25 && c < -0.15 && R() < 0.5) { log(`Gairebé no queda bosc i el consell ${councilType(c)} prohibeix fer carbó.`, 'good'); proclaim('nocoal', true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
+  else if (nc >= 0 && trees > 0.5 && R() < 0.5) { log('El bosc s\'ha refet i el consell torna a permetre fer carbó.', 'amber'); repeal(nc, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1; }
   for (const [k, level, what] of [['forest', trees, 'el bosc'], ['fishing', fish, 'el riu']]) {
     const i = laws.findIndex(l => l.fx.includes(k));
     if (i < 0 && level < 0.4 && c < 0.6 && R() < 0.5) {
       log(`Queda poc ${k === 'forest' ? 'bosc' : 'peix'} i el consell decideix protegir ${what}: s'aprova «${LAWDEFS[k].name}».`, 'good');
-      proclaim(k); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+      proclaim(k, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
     } else if (i >= 0 && level > (k === 'forest' ? 0.7 : 0.85) && c > -0.6 && R() < 0.5) {
       log(`${k === 'forest' ? 'El bosc' : 'El riu'} s'ha recuperat i el consell aixeca la protecció.`, 'amber');
-      repeal(i); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
+      repeal(i, true); S.st.autoLaws = (S.st.autoLaws || 0) + 1;
     }
   }
 }
@@ -2809,6 +2835,7 @@ function riot(active) {
     wreck = ` La ${PLANT[k].name} dels ${burnt.surname} queda destrossada.`;
   }
   S.unrest -= 20; S.st.riots = (S.st.riots || 0) + 1;
+  if (POLITICS && councilType(S.council || 0) === 'tecnofeudal') S.order = true; // the council answers with order, at its next sitting
   log(`Aldarulls! La gent que passa gana assalta els rebostos dels ${rich.map(h => h.surname).join(', ')} i s'emporta ${fmt(loot)} de menjar${poor.length ? `, que es reparteix entre ${poor.length} ${poor.length > 1 ? 'cases' : 'casa'}` : ''}. Una part es fa malbé.${wreck}`, 'bad');
 }
 function revolution(active) {
@@ -3296,6 +3323,7 @@ const RULES = [
   ['MALESTAR SOCIAL', [
     'Tipus de consell (amb política dinàmica): segons la seva posició, el consell és socialista (molt a l\'esquerra), socialdemòcrata (a l\'esquerra), de centre, turbocapitalista (a la dreta) o tecnofeudal (molt a la dreta). Un consell de centre no aprova cap escola ni obre ni tanca fronteres.',
     'Lleis generals i de seguretat (amb política dinàmica), cada dos mesos: un consell d\'esquerres pot aprovar l\'Escola pública i un de dretes l\'Escola privada. Els consells socialistes i tecnofeudals tanquen les fronteres si més del 10% de la gent passa gana, prohibeixen marxar del poble si en dos mesos marxa més del 3% de la gent, limiten els naixements si hi ha gana i fomenten la natalitat si el poble s\'encongeix. Els socialdemòcrates i els turbocapitalistes tornen a obrir les fronteres i deixen marxar la gent, i mai aproven lleis sobre els naixements. Qualsevol consell pot aprovar la llei contra els robatoris si n\'hi ha molts (els de dretes, més fàcilment), el racionament si el menjar del poble s\'acaba, i els socialistes i turbocapitalistes Tothom a treballar si hi ha gana. Quan el problema desapareix, les poden derogar.',
+    'Més dinàmiques (amb política dinàmica): un consell molt de dretes deroga lleis socialistes i socialdemòcrates, i un de molt d\'esquerres lleis turbocapitalistes i tecnofeudals. Quan els rics guanyen i hi ha l\'impost a les grans fortunes o el de les herències, sovint en lloc d\'una llei nova n\'aconsegueixen la derogació. Si queda menys d\'un quart del bosc, un consell d\'esquerres prohibeix fer carbó, i qualsevol consell aixeca la prohibició quan el bosc torna a la meitat. Després d\'uns aldarulls, un consell tecnofeudal aprova la llei contra els robatoris i tanca les fronteres. Si hi ha molts jornalers sense feina, un consell socialdemòcrata aprova el salari mínim i un de turbocapitalista el mercat lliure total.',
     'Medi ambient (amb política dinàmica): si queden menys del 40% dels arbres que hi havia al principi, el consell pot aprovar la Protecció del bosc, i si al riu queden menys del 40% dels peixos, la Pesca regulada. Quan el bosc torna al 70% o el riu al 85%, les pot derogar. Un consell molt de dretes mai les aprova, i un de molt d\'esquerres mai les deroga.',
     'El malestar es calcula sempre, però només té efectes amb el botó «Política dinàmica: sí». Si està en «no», no hi ha aldarulls, ni revolucions, ni lleis que s\'aprovin soles.',
     'Lleis que s\'aproven soles (amb política dinàmica): cada dos mesos, els rics i els pobres pressionen el consell. Els rics pressionen més com més riquesa té el 10% de cases més riques (a partir del 30% del total); els pobres, com més malestar hi ha (a partir del 40%). Segons qui pressiona més, el consell es mou cap a l\'esquerra o cap a la dreta (l\'indicador «Orientació del consell»). Qui pressiona més pot aconseguir que s\'aprovi una de les seves lleis: els pobres, una de socialdemòcrata, o una de socialista si el malestar passa del 75% o el consell és molt d\'esquerres; els rics, una de turbocapitalista, o una de tecnofeudal si tenen més de la meitat de tota la riquesa. Com més pressió, més probable és. El batlle les pot derogar després.',
