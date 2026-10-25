@@ -237,6 +237,42 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   .members{grid-template-columns:minmax(0,1fr)}
 }
 .houses footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+/* shared village */
+.mp .win{width:min(480px,100%)}
+.mp .body{padding:16px 18px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+.mp .body>label{font-size:12px;color:var(--muted)}
+.mp .body>label:has(input[type=checkbox]){display:flex;gap:8px;align-items:flex-start;color:var(--ink)}
+.mp .body>label input[type=checkbox]{margin-top:3px}
+.mp input:not([type]){background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:15px;min-width:0}
+.mp input:not([type]):focus{outline:none;border-color:var(--amber)}
+.mp #mpCode{width:9ch;text-transform:uppercase;letter-spacing:.2em;font-family:var(--f-display)}
+.mp .opt{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mp .opt span{color:var(--muted);font-size:12px}
+.mp .or{margin:6px 0 0;color:var(--muted);font-size:12px;text-align:center}
+.mp .msg{margin:4px 0 0;min-height:1.2em;color:var(--amber);font-size:12px}
+.mp .lbl{margin:10px 0 0;font-size:10px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.mp .lbl:first-child{margin-top:0}
+.mp .code{font-family:var(--f-display);font-size:32px;letter-spacing:.18em;color:var(--amber);line-height:1.1}
+.players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.players li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:5px 8px;background:var(--panel);font-size:12.5px}
+.players li b{font:600 10px/16px var(--f-mono);letter-spacing:.06em;padding:0 5px;border-radius:3px;background:var(--line);color:var(--ink)}
+.players li b.me{background:var(--amber);color:#1d1406}
+.players li.off{opacity:.55}
+.players .sw{width:10px;height:10px;border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+.players .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.players .f{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.mprow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.mprow .btn{font-size:12px;padding:4px 10px}
+.houses .you.other{background:var(--line);color:var(--ink)}
+.waitbar{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(14,19,24,.9);border:1px solid #5aa0ee;color:var(--ink);border-radius:4px;padding:6px 10px;font-size:12px;text-align:center;pointer-events:none}
+.scroll .votes{display:flex;flex-direction:column;gap:8px;width:100%}
+.scroll .vote{border:1px solid rgba(59,45,24,.35);border-radius:4px;padding:8px 10px;background:rgba(255,255,255,.3)}
+.scroll .vote p{margin:0}
+.scroll .vote .vq{font-family:var(--f-serif);font-size:17px;line-height:1.25}
+.scroll .vote .vm{font-size:11px;margin:2px 0 6px}
+.scroll .vote .row{justify-content:flex-start}
+.scroll .vote .btn{font-size:12px;padding:4px 16px;background:transparent;color:var(--parch-ink)}
+.scroll .vote .btn[aria-pressed="true"]{background:var(--parch-ink);color:var(--parch)}
 </style>
 
 <div class="app">
@@ -253,11 +289,12 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         </div>
       </div>
       <div class="console" id="console"></div>
+      <div class="waitbar" id="waitBar" hidden></div>
       <div class="intro" id="intro">
         <div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjEwIDkwIDk4MCA2MzAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icmciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTQ3MCIgeTE9IjAiIHgyPSI0NzAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAuMSIgc3RvcC1jb2xvcj0iI0QyMkIzQyIvPjxzdG9wIG9mZnNldD0iMC45IiBzdG9wLWNvbG9yPSIjMkE1QkQ3Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGRlZnM+PGNsaXBQYXRoIGlkPSJmcm9udGMiPjxyZWN0IHg9Ii02MDAiIHk9Ii0wLjUiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjQwMCIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJiYWNrYyI+PHJlY3QgeD0iLTYwMCIgeT0iLTQwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNDAzIi8+PC9jbGlwUGF0aD48bWFzayBpZD0ibU1jIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIj48cmVjdCB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzk2LDMzNCkiPjxwYXRoIGQ9Ik0xMiw1MiBDMTIsMjYgMzAsOCA1MCw4IEM3Miw4IDg4LDI0IDg4LDQ2IEM4OCw2NiA3Niw4MCA2MCw5NCBMMTAsMTYwIEg5MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbWl0ZXJsaW1pdD0iNCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MTIsMzM0KSI+PHBhdGggZD0iTTg2LDggSDI2IEwxOCw4MCBNMTgsODAgQzMwLDcwIDQ0LDY2IDU2LDY2IEM3OCw2NiA5Miw4NiA5MiwxMTIgQzkyLDE0MCA3MiwxNjIgNDgsMTYyIEMzMCwxNjIgMTYsMTU0IDgsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1taXRlcmxpbWl0PSI0Ii8+PGNpcmNsZSBjeD0iMTgiIGN5PSI4MCIgcj0iNyIgZmlsbD0iIzAwMCIvPjwvZz48cGF0aCBkPSJNMzcwLDM5MiBMNjMwLDQ1NyIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjkiIGZpbGw9Im5vbmUiLz48L21hc2s+PG1hc2sgaWQ9Im1CYyIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCI+PHJlY3QgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zNDQuMCw3MDAuMCBRMzMwLDcwMCAzMzAuMCw2ODYuMCBMMzMwLjAsMTE4LjAgUTMzMCwxMTAgMzM1LjEsMTE2LjIgTDQ5My43LDMxMC4zIFE1MDAsMzE4IDUwNi4zLDMxMC4zIEw2NjQuOSwxMTYuMiBRNjcwLDExMCA2NzAuMCwxMTguMCBMNjcwLjAsNjg2LjAgUTY3MCw3MDAgNjU2LjAsNzAwLjAgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9tYXNrPjwvZGVmcz48ZyBtYXNrPSJ1cmwoI21CYykiPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwMCw0ODYpIHJvdGF0ZSgxNCkiIGNsaXAtcGF0aD0idXJsKCNiYWNrYykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L2c+PGcgbWFzaz0idXJsKCNtTWMpIj48cGF0aCBkPSJNMzQ0LjAsNzAwLjAgUTMzMCw3MDAgMzMwLjAsNjg2LjAgTDMzMC4wLDExOC4wIFEzMzAsMTEwIDMzNS4xLDExNi4yIEw0OTMuNywzMTAuMyBRNTAwLDMxOCA1MDYuMywzMTAuMyBMNjY0LjksMTE2LjIgUTY3MCwxMTAgNjcwLjAsMTE4LjAgTDY3MC4wLDY4Ni4wIFE2NzAsNzAwIDY1Ni4wLDcwMC4wIFoiIGZpbGw9IiNGMkYwRUIiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=" alt="Marca de Miquel (M/25)"><div class="title">EL BATLLE</div></div>
         <h1>Un poble. Cent persones. <em>Cap llei.</em></h1>
         <p>Mira com s'organitzen sols: aixequen cabanes, llauren camps, cullen i passen l'hivern. Quan falti menjar, alguns l'agafaran d'altres cases. Quan vulguis, tria una llei i mira què canvia.</p>
-        <div class="modes"><button class="btn primary" id="startBtn">Comença com a batlle</button><button class="btn" id="familyBtn">Sigues cap d'una família</button></div>
+        <div class="modes"><button class="btn primary" id="startBtn">Comença com a batlle</button><button class="btn" id="familyBtn">Sigues cap d'una família</button><button class="btn" id="mpBtn">Juga amb amics</button></div>
       </div>
     </div>
     <div class="controls">
@@ -282,9 +319,10 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     <div class="scroll">
       <h2 id="lawTitle">Llei #1</h2>
       <div class="pick">
-        <p class="by">proclamada per: el batlle</p>
+        <p class="by" id="lawBy">proclamada per: el batlle</p>
         <button class="btn" type="button" id="lawPickBtn">Tria una llei</button>
         <p class="msg" id="lawMsg"></p>
+        <div class="votes" id="voteBox" hidden></div>
       </div>
     </div>
 
@@ -300,6 +338,12 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       </div>
       <p class="empty" id="fWho"></p>
       <button class="btn forget" type="button" id="forgetBtn">Oblida les respostes recordades</button>
+    </section>
+
+    <section class="sec" id="mpSec" hidden>
+      <h3 id="mpSecTitle">SALA</h3>
+      <ul class="players" id="mpList"></ul>
+      <div class="mprow"><button class="btn" type="button" id="mpInvite">Copia l'enllaç per convidar</button><button class="btn" type="button" id="mpExit">Surt de la sala</button></div>
     </section>
 
     <section class="sec" id="uSec">
@@ -454,10 +498,39 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </div>
   </div>
 </div>
+<div class="houses mp" id="mp" hidden role="dialog" aria-modal="true" aria-labelledby="mpTitle">
+  <div class="win">
+    <header>
+      <div><h2 id="mpTitle">JUGA AMB AMICS</h2><p>Un mateix poble per a tots: cada jugador porta una família i les lleis es voten.</p></div>
+      <button class="btn" id="mpClose">Tanca</button>
+    </header>
+    <div class="body" id="mpStart">
+      <label for="mpName">El teu nom</label>
+      <input id="mpName" maxlength="20" placeholder="Com et diuen?" autocomplete="nickname">
+      <div class="opt"><button class="btn primary" type="button" id="mpHost">Crea una sala</button><span>i passa el codi als amics</span></div>
+      <p class="or">o bé</p>
+      <label for="mpCode">Codi d'una sala</label>
+      <div class="opt"><input id="mpCode" maxlength="5" placeholder="ABCDE" autocapitalize="characters" autocomplete="off" spellcheck="false"><button class="btn" type="button" id="mpJoin">Entra-hi</button></div>
+      <p class="msg" id="mpMsg" role="status"></p>
+    </div>
+    <div class="body" id="mpRoom" hidden>
+      <p class="lbl">Codi de la sala</p>
+      <div class="opt"><div class="code" id="mpRoomCode">·····</div><button class="btn" type="button" id="mpCopy">Copia l'enllaç</button></div>
+      <p class="lbl">Jugadors</p>
+      <ul class="players" id="mpPlayers"></ul>
+      <p class="lbl">Regles de la partida</p>
+      <label><input type="checkbox" id="mpo_pol"> Política dinàmica (el consell també aprova i deroga lleis sol)</label>
+      <label><input type="checkbox" id="mpo_dis"> Desastres naturals</label>
+      <label><input type="checkbox" id="mpo_wait"> El poble s'atura mentre algú ha de decidir</label>
+      <div class="opt"><button class="btn primary" type="button" id="mpGo">Comença la partida</button><button class="btn" type="button" id="mpLeave">Surt</button></div>
+      <p class="msg" id="mpWait" role="status"></p>
+    </div>
+  </div>
+</div>
 <div class="houses lawpick" id="lawPick" hidden role="dialog" aria-modal="true" aria-labelledby="lawPickTitle">
   <div class="win">
     <header>
-      <div><h2 id="lawPickTitle">LLEIS DEL POBLE</h2><p>Tria quines lleis vols que regeixin el poble. Les que es contradiuen es deroguen entre elles.</p></div>
+      <div><h2 id="lawPickTitle">LLEIS DEL POBLE</h2><p id="lawPickSub">Tria quines lleis vols que regeixin el poble. Les que es contradiuen es deroguen entre elles.</p></div>
       <button class="btn" id="lawPickClose">Tanca</button>
     </header>
     <div class="scroller" id="lawPickBody"></div>
@@ -575,9 +648,9 @@ const blockers = (k, council) => laws.filter(l => lockedLaw(l) && l.fx.some(f =>
 const lockEnd = () => dateLong(S.revDay + SOC_LOCK);
 
 // ---------- rng / noise ----------
-let seed = 1, rng;
-function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const R = () => rng();
+// mulberry32, with its state in the open (rs) so that a village can be copied exactly to another player
+let seed = 1, rs = 0;
+function R() { rs = rs + 0x6D2B79F5 | 0; let t = Math.imul(rs ^ rs >>> 15, 1 | rs); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
 const rr = (a, b) => a + (b - a) * R();
 const ri = (a, b) => Math.floor(rr(a, b + 1));
 function hash(x, y, s = seed) { let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -592,13 +665,14 @@ function vnoise(x, y, sc, s) {
 let S;
 let laws = [];   // {text, fx}
 let L = {};      // active flags
+let NET = null;  // the shared village this screen plays in, if any (see "shared village" below)
 function recomputeLaws() { L = {}; for (const l of laws) for (const f of l.fx) L[f] = true; }
 
 function newWorld(sd) {
-  seed = sd; rng = mulberry32(sd);
+  seed = sd; rs = sd | 0;
   const ph1 = R() * 6.28, ph2 = R() * 6.28;
   const water = new Uint8Array(W * H), tree = new Uint8Array(W * H), occ = new Uint8Array(W * H);
-  const riverX = y => 15 + 5.5 * Math.sin(y / 15 + ph1) + 2.5 * Math.sin(y / 6.3 + ph2);
+  const riverX = riverFn([ph1, ph2]);
   for (let y = 0; y < H; y++) {
     const cx = riverX(y), w = 1.7 + 0.5 * Math.sin(y / 11 + ph2);
     for (let x = 0; x < W; x++) if (Math.abs(x - cx) < w) water[y * W + x] = 1;
@@ -611,7 +685,7 @@ function newWorld(sd) {
     if ((p > 0.85 && d > 20) || (hash(x, y, seed + 3) > 0.99 && d > 13)) tree[i] = 1;
   }
   S = {
-    day: 0, frame: 0, water, tree, occ, riverX, people: [], homes: [], granary: 0,
+    day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
     st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
     flags: {}, dirty: true, nextId: 1, used: new Set(), animals: [], forest: tree.slice(),
@@ -649,6 +723,7 @@ function newWorld(sd) {
   }
   for (const h of S.homes) h.lazy = avg(h.members.map(m => m.lazy));
 }
+function riverFn([ph1, ph2]) { return y => 15 + 5.5 * Math.sin(y / 15 + ph1) + 2.5 * Math.sin(y / 6.3 + ph2); }
 function avg(a) { return a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0; }
 function freshSurname() {
   const unused = COGNOMS.filter(c => !S.used.has(c));
@@ -701,7 +776,7 @@ function moveTo(p, n) {
     o.gone = true; o.goneDay = S.day; leaveFlat(o);
     for (const k of ['food', 'wood', 'stone', 'iron', 'coal']) { n[k] += Math.max(0, o[k]); o[k] = 0; }
     o.herd = 0; syncHerd(o); S.dirty = true;
-    if (o === S.player) passPlayer(o, n, true);
+    if (o.human != null) passPlayer(o, n, true);
   }
 }
 function family(h, n, food) {
@@ -1268,7 +1343,7 @@ function removePerson(p) {
     h.gone = true; h.goneDay = S.day; leaveFlat(h);
     if (bequeath(h)) { /* children living elsewhere inherit */ }
     else escheat(h);
-    if (h === S.player) passPlayer(h, h.heirHome);
+    if (h.human != null) passPlayer(h, h.heirHome);
     h.food = 0; h.herd = 0; syncHerd(h); S.dirty = true;
   }
 }
@@ -1702,7 +1777,7 @@ function daily() {
       const h = b.h;
       const wantsPlow = !hasPlow(b) && !b.job && h.fields.length >= 2 && h.food > S.plowPrice * share * 2 + 60 && S.plowPrice * share <= 60 * (0.8 + 0.4 * b.int);
       if (wantsPlow && !forges.some(o => o.plows > 0)) unmetPlow++;
-      if ((b.job === 'miner' || b.job === 'picapedrer') && !hasPick(b) && h.food > S.pickPrice * share + 30 && (h !== S.player || forges.some(o => o.picks > 0))
+      if ((b.job === 'miner' || b.job === 'picapedrer') && !hasPick(b) && h.food > S.pickPrice * share + 30 && (h.human == null || forges.some(o => o.picks > 0))
         && ask(h, 'pick' + b.id, `${fullName(b)} pot comprar un pic per ${fmt(S.pickPrice * share)} de menjar: treurà un 50% més de pedra o ferro.`, 'Compra\'l', 'No', 60)) {
         const sl = forges.find(o => o.picks > 0);
         if (!sl) { unmetPick++; continue; }
@@ -1714,14 +1789,14 @@ function daily() {
         const sl = forges.find(o => o.plows > 0);
         sl.plows--; b.plow = S.day + Math.round(TOOL_LIFE * (sl.plowQ.shift() ?? 1)); payTool(h, sl, S.plowPrice); S.st.plowsSold++; soldPlow++;
         tagHome(h, 'COMPRA UNA ARADA', 'amber'); logOnce('plow', `${fullName(b)} compra una arada per ${fmt(S.plowPrice)} de menjar: treballarà el camp un 40% més de pressa.`, 'amber');
-      } else if (!hasRod(b) && !b.job && (b.task === 'fish' || b.id % 2) && h.food > S.rodPrice * share * 2 && S.rodPrice * share <= 15 * (0.8 + 0.4 * b.int) && soldRod < 3 && (h !== S.player || forges.some(o => o.rods > 0))
+      } else if (!hasRod(b) && !b.job && (b.task === 'fish' || b.id % 2) && h.food > S.rodPrice * share * 2 && S.rodPrice * share <= 15 * (0.8 + 0.4 * b.int) && soldRod < 3 && (h.human == null || forges.some(o => o.rods > 0))
         && ask(h, 'rod' + b.id, `${fullName(b)} pot comprar una canya de pescar per ${fmt(S.rodPrice * share)} de menjar: pescarà un 40% més.`, 'Compra-la', 'No', 60)) {
         // people who fish buy a rod
         const sl = forges.find(o => o.rods > 0);
         if (!sl) { unmetRod++; continue; }
         sl.rods--; b.rod = S.day + Math.round(TOOL_LIFE * (sl.rodQ.shift() ?? 1)); payTool(h, sl, S.rodPrice); S.st.rodsSold++; soldRod++;
         if (R() < 0.3) tagHome(h, 'COMPRA UNA CANYA', 'amber'); logOnce('rod', `${fullName(b)} compra una canya de pescar per ${fmt(S.rodPrice)} de menjar: pescarà un 40% més.`, 'amber');
-      } else if (!hasHoe(b) && !hasPlow(b) && !b.job && h.fields.length && h.food > S.hoePrice * share * 2 && S.hoePrice * share <= 30 * (0.8 + 0.4 * b.int) && soldHoe < 3 && (h !== S.player || forges.some(o => o.hoes > 0))
+      } else if (!hasHoe(b) && !hasPlow(b) && !b.job && h.fields.length && h.food > S.hoePrice * share * 2 && S.hoePrice * share <= 30 * (0.8 + 0.4 * b.int) && soldHoe < 3 && (h.human == null || forges.some(o => o.hoes > 0))
         && ask(h, 'hoe' + b.id, `${fullName(b)} pot comprar una aixada per ${fmt(S.hoePrice * share)} de menjar: treballarà el camp un 20% més de pressa.`, 'Compra-la', 'No', 60)) {
         const sl = forges.find(o => o.hoes > 0);
         if (!sl) { unmetHoe++; continue; }
@@ -2566,11 +2641,11 @@ function render() {
     ctx.fillStyle = 'rgba(200,200,200,.55)';
     for (let k = 0; k < 4; k++) { const ph = (t + k * 7) % 28; ctx.fillRect(h.kiln.x * T + 4 + Math.round(Math.sin((ph + k) / 3) * 2), h.kiln.y * T - ph / 2, 2, 2); }
   }
-  if (S.player && S.player.hut) { // the player's house wears a bobbing marker
-    const u = S.player.hut, bob = reduceMotion ? 0 : Math.round(Math.sin(S.frame / 8) * 1.5);
+  for (const h of S.homes) if (h.human != null && h.hut && !h.gone) { // the player's house wears a bobbing marker (blue for the other players)
+    const u = h.hut, bob = reduceMotion ? 0 : Math.round(Math.sin(S.frame / 8) * 1.5);
     const x = u.x * T + 4, y = u.y * T - 7 + bob;
     ctx.fillStyle = '#1d1406'; ctx.fillRect(x - 1, y - 1, 7, 4); ctx.fillRect(x, y + 3, 5, 1); ctx.fillRect(x + 1, y + 4, 3, 1); ctx.fillRect(x + 2, y + 5, 1, 1);
-    ctx.fillStyle = '#eaa441'; ctx.fillRect(x, y, 5, 2); ctx.fillRect(x + 1, y + 2, 3, 1); ctx.fillRect(x + 2, y + 3, 1, 1);
+    ctx.fillStyle = h === ME ? '#eaa441' : '#5aa0ee'; ctx.fillRect(x, y, 5, 2); ctx.fillRect(x + 1, y + 2, 3, 1); ctx.fillRect(x + 2, y + 3, 1, 1);
   }
   if (freezing()) { // a bitter winter: a cold blue light and a blizzard blowing sideways
     ctx.fillStyle = 'rgba(170,200,255,.10)'; ctx.fillRect(0, 0, W * T, H * T);
@@ -2609,7 +2684,7 @@ const logEl = document.getElementById('log');
 const MINOR = /, fill d|, filla d|es casen|es casa amb|es torna a casar|ha mort de vell|s'ha quedat v[ií]du|compra una (canya|aixada|arada)|compra un pic|milloren el corral|maten una ovella|corral buit|s'ha deteriorat|s'ha malmès|s'ha quedat sola|per dues ovelles|deixen el pis|es fa (miner|picapedrer|carboner|ferrer)|deixa (l'ofici|la mina|la pedrera)|torna a encendre|refan la cabana|refan una cabana|venen |compren |aixequen (un|el) pis|família nova al poble|s'ha quedat buida|aixeca una (carbonera|farga)|repara la|és desterrat|lloguen un pis|^Arriba l|^Tardor:|treballa un dia per|el blat es va fer malbé|^Els llops ronden/;
 let logAll = false;
 function log(text, kind = 'info') {
-  if (!logAll && MINOR.test(text) && !(S.player && text.includes(S.player.surname))) return;
+  if (!logAll && MINOR.test(text) && !(ME && text.includes(ME.surname))) return;
   const li = document.createElement('li');
   li.innerHTML = `<span class="d">${cal(S.day).d} ${MSHORT[cal(S.day).m]} A${cal(S.day).y}</span><span class="${kind}"></span>`;
   li.lastChild.textContent = text;
@@ -2895,7 +2970,8 @@ function renderLaws() {
     t.innerHTML = `<b>#${i + 1}</b>`; t.append(l.text);
     const x = document.createElement('button'); x.className = 'x'; x.textContent = 'Deroga'; x.type = 'button';
     x.setAttribute('aria-label', `Deroga la llei ${i + 1}`);
-    x.onclick = () => { repeal(i); updateHud(); };
+    x.onclick = () => { if (NET) { netSend({ t: 'propose', law: l.fx[0], on: false }); x.disabled = true; x.textContent = 'En votació'; } else { repeal(i); updateHud(); } };
+    if (NET) { x.textContent = (NET.shown || []).some(v => v.law === l.fx[0]) ? 'En votació' : 'Proposa derogar-la'; x.disabled = !l.fx.length || x.textContent === 'En votació'; }
     if (lockedLaw(l)) { x.disabled = true; x.textContent = 'Protegida'; x.title = `La revolució la protegeix fins al ${lockEnd()}`; }
     const fx = document.createElement('div');
     fx.className = 'fx' + (l.fx.length ? '' : ' none');
@@ -2931,17 +3007,22 @@ function proclaim(k, quiet) {
   if (k === 'redist') redistribute();
   renderLaws(); updateHud(); return true;
 }
+const voting = k => !!(NET && (NET.shown || []).some(v => v.law === k));
 function renderLawPick() {
   const on = k => laws.findIndex(l => l.fx.includes(k));
   $('lawPickBody').innerHTML = LAW_CATS.map(([cat, ks]) => `<section class="cat"><h3>${cat}</h3><ul>${ks.map(k => {
     const d = LAWDEFS[k], i = on(k), clash = laws.filter(l => l.fx.some(f => clashes(k, f))).map(l => l.text);
     const lock = i >= 0 ? lockedLaw(laws[i]) : blockers(k).length > 0;
-    return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${lock ? `<span class="warn">${i >= 0 ? 'La revolució la protegeix' : 'Xoca amb lleis que la revolució protegeix'} fins al ${esc(lockEnd())}.</span>` : clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}"${lock ? ' disabled' : ''}>${i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
+    return `<li class="${i >= 0 ? 'on' : ''}"><b>${esc(d.name)}</b><p>${esc(d.txt.replace(/^[^:]*: /, '').replace(/^./, c => c.toUpperCase()))}</p>${lock ? `<span class="warn">${i >= 0 ? 'La revolució la protegeix' : 'Xoca amb lleis que la revolució protegeix'} fins al ${esc(lockEnd())}.</span>` : clash.length && i < 0 ? `<span class="warn">Deroga: ${esc(clash.join(', '))}</span>` : ''}<button class="btn" type="button" data-k="${k}"${lock || voting(k) ? ' disabled' : ''}>${voting(k) ? 'En votació' : NET ? (i >= 0 ? 'Proposa derogar-la' : 'Proposa-la') : i >= 0 ? 'Deroga-la' : 'Proclama-la'}</button></li>`;
   }).join('')}</ul></section>`).join('');
 }
 $('lawPickBody').addEventListener('click', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return;
   const k = b.dataset.k, i = laws.findIndex(l => l.fx.includes(k));
+  if (NET) { // in a shared village a law is put to the vote
+    netSend({ t: 'propose', law: k, on: i < 0 }); b.disabled = true; b.textContent = 'En votació';
+    $('lawMsg').textContent = 'Proposada: ara voten tots els jugadors.'; setTimeout(() => $('lawMsg').textContent = '', 4000); return;
+  }
   if (i >= 0) { repeal(i); updateHud(); } else proclaim(k);
   const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top;
   $('lawPickBody').querySelector(`button[data-k="${k}"]`)?.focus();
@@ -3177,7 +3258,7 @@ function revolution(active) {
   S.unrest = 20; S.revDay = S.day;
   log(`REVOLUCIÓ! El poble s'aixeca contra el batlle. ${old ? `Es ${old > 1 ? `deroguen les ${old} lleis de dretes` : 'deroga l\'única llei de dretes'}. ` : ''}Les ${rich.length} cases més riques perden la meitat del menjar i dels materials, per valor de ${fmt(worth)}: el menjar va al graner comú, i la fusta, la pedra, el ferro i el carbó es reparteixen entre les cases més pobres${fields ? `, i ${fields} camps passen a famílies que no en tenien` : ''}. El nou consell proclama totes les lleis socialistes, i ningú no les podrà derogar fins al ${lockEnd()}.`, 'bad');
   tag(W / 2, H / 2, 'REVOLUCIÓ', 'bad');
-  if (S.player) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis de dretes s\'han derogat i les cases més riques han estat expropiades.', rich.includes(S.player) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
+  if (ME) popup('REVOLUCIÓ!', 'El poble s\'ha aixecat. Les lleis de dretes s\'han derogat i les cases més riques han estat expropiades.', rich.includes(ME) ? 'La teva família és de les més riques: heu perdut la meitat del menjar i dels materials.' : 'La teva família no és de les més riques.', [['Endavant', () => closeAsk(true), true]]);
 }
 
 // ---------- disaster effects on the map ----------
@@ -3354,32 +3435,37 @@ function syncPol() { $('polBtn').textContent = 'Política dinàmica: ' + (POLITI
 function syncDis() { $('disBtn').textContent = 'Desastres: ' + (DISASTERS ? 'sí' : 'no'); $('disBtn').setAttribute('aria-pressed', DISASTERS); }
 
 // ---------- family mode ----------
-// the player heads one family: whenever it has to choose, the game stops and asks. S.pol keeps the answers,
-// S.asks the questions waiting to be shown. Outside family mode (or for any other family) ask() always says yes
-// and the village behaves exactly as before.
+// a player heads one family: whenever it has to choose, the game stops and asks. A family a player heads carries the
+// player's number (h.human), its answers (h.pol) and the questions waiting to be shown (h.asks). In a shared village
+// every player heads one family. ME is the family this screen's player heads. For any other family ask() always says
+// yes and the village behaves exactly as before.
+let ME = null;
+const mySlot = () => NET ? NET.slot : 0;
 function ask(h, key, text, yes = 'Sí', no = 'No', ttl = 30, yesDays = 0) {
-  if (!S.player || h !== S.player) return true;
-  S.pol ||= {}; S.asks ||= [];
-  const pol = S.pol[key];
-  if (pol && pol.until >= S.day) { if (pol.once) delete S.pol[key]; return pol.yes; }
-  if (!S.asks.some(q => q.key === key)) { S.asks.push({ key, text, yes, no, ttl, yesDays }); showAsk(); }
+  if (h.human == null) return true;
+  h.pol ||= {}; h.asks ||= [];
+  const pol = h.pol[key];
+  if (pol && pol.until >= S.day) { if (pol.once) delete h.pol[key]; return pol.yes; }
+  if (!h.asks.some(q => q.key === key)) { h.asks.push({ key, text, yes, no, ttl, yesDays }); if (h === ME) showAsk(); }
   return false;
 }
 // the player said yes and the family hasn't acted on it yet: chance checks that would hold the action back are skipped
 // (the dice are still rolled, so a village with no player runs exactly as before)
-function want(h, key) { const q = h === S.player && S.pol && S.pol[key]; return !!(q && q.yes && q.until >= S.day); }
-let askOpen = null, askWasRunning = false;
-function pauseFor() { if (askOpen === null) askWasRunning = running || askWasRunning; running = false; syncPlay(); }
+function want(h, key) { const q = h.human != null && h.pol && h.pol[key]; return !!(q && q.yes && q.until >= S.day); }
+let askOpen = null, askWasRunning = false, askQ = null;
+const sentAns = new Set(); // answers sent to the host that haven't come back yet
+// in a shared village the host decides when the village stops, so a window never pauses it
+function pauseFor() { if (NET) return; if (askOpen === null) askWasRunning = running || askWasRunning; running = false; syncPlay(); }
 function showAsk() {
-  const q = S.asks && S.asks[0];
+  const q = ME && ME.asks && ME.asks.find(q => !sentAns.has(q.key));
   if (!q || (askOpen && askOpen !== 'q')) return;
-  pauseFor(); askOpen = 'q';
-  const h = S.player;
+  pauseFor(); askOpen = 'q'; askQ = q;
+  const h = ME, more = ME.asks.filter(o => o !== q && !sentAns.has(o.key)).length;
   put('askTitle', `DECISIÓ · ELS ${h.surname.toUpperCase()}`);
   put('askSub', dateLong(S.day));
   put('askText', q.text);
   put('askCtx', `${h.members.length} persones · ${fmt(h.food)} de menjar (${Math.floor(daysOf(h))} dies) · riquesa ${fmt(wealth(h))}`);
-  put('askMore', S.asks.length > 1 ? `Hi ha ${S.asks.length - 1} decisió${S.asks.length > 2 ? 'ns' : ''} més esperant.` : '');
+  put('askMore', more ? `Hi ha ${more} decisió${more > 1 ? 'ns' : ''} més esperant.` : '');
   $('askRememberL').hidden = false; $('askRemember').checked = false;
   const b = $('askBtns'); b.innerHTML = '';
   for (const [label, yes] of [[q.yes, true], [q.no, false]]) {
@@ -3389,17 +3475,24 @@ function showAsk() {
   $('ask').hidden = false; b.firstChild.focus();
 }
 function answer(yes) {
-  const q = S.asks.shift(), keep = $('askRemember').checked;
-  // a one-off yes waits until the family next faces that choice (up to two months), and is used up then
-  S.pol[q.key] = yes ? { yes, until: keep ? Infinity : S.day + (q.yesDays || 60), once: !keep && !q.yesDays }
-                     : { yes, until: keep ? Infinity : S.day + q.ttl };
-  askOpen = null;
-  if (S.asks.length) { showAsk(); return; }
+  const q = askQ, keep = $('askRemember').checked;
+  askOpen = null; askQ = null;
+  if (NET) { sentAns.add(q.key); netSend({ t: 'ans', key: q.key, yes, keep }); }
+  else applyAnswer(ME, q.key, yes, keep);
+  if (ME && ME.asks.some(o => !sentAns.has(o.key))) { showAsk(); return; }
   closeAsk(true);
 }
+function applyAnswer(h, key, yes, keep) {
+  const i = h && h.asks ? h.asks.findIndex(q => q.key === key) : -1;
+  if (i < 0) return;
+  const q = h.asks.splice(i, 1)[0];
+  // a one-off yes waits until the family next faces that choice (up to two months), and is used up then
+  h.pol[q.key] = yes ? { yes, until: keep ? Infinity : S.day + (q.yesDays || 60), once: !keep && !q.yesDays }
+                     : { yes, until: keep ? Infinity : S.day + q.ttl };
+}
 function closeAsk(resume) {
-  $('ask').hidden = true; askOpen = null;
-  if (resume && askWasRunning) { running = true; syncPlay(); }
+  $('ask').hidden = true; askOpen = null; askQ = null;
+  if (resume && askWasRunning && !NET) { running = true; syncPlay(); }
   askWasRunning = false;
 }
 function popup(title, text, ctx, btns) { // an information window that also pauses the game
@@ -3416,40 +3509,52 @@ function popup(title, text, ctx, btns) { // an information window that also paus
 function pickPlayer() {
   const c = S.homes.filter(h => !h.gone && h.members.length);
   if (!c.length) return;
-  setPlayer(c[(Math.random() * c.length) | 0]);
-  log(`Ets el cap de la família ${S.player.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good');
-  tagHome(S.player, `ELS ${S.player.surname.toUpperCase()}`, 'amber');
+  setPlayer(c[(Math.random() * c.length) | 0], 0);
+  log(`Ets el cap de la família ${ME.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good');
+  tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber');
 }
-function setPlayer(h) { S.player = h; S.pol = {}; S.asks = []; if (askOpen === 'q') closeAsk(false); }
-// the family the player heads is gone: control passes to the family that keeps the house (or, after a wedding, to
-// the family the last member married into). With nobody left to inherit, the game is over.
+function setPlayer(h, slot) {
+  h.human = slot; h.pol = {}; h.asks = [];
+  if (slot === mySlot()) { ME = h; if (askOpen === 'q') closeAsk(false); }
+}
+// the family a player heads is gone: control passes to the family that keeps the house (or, after a wedding, to
+// the family the last member married into), unless another player already heads it. With nobody left to inherit,
+// the game is over for that player.
 function passPlayer(old, next, married) {
-  const resume = () => { closeAsk(true); if (S.asks && S.asks.length) showAsk(); };
-  if (next && !next.gone && next.members.length) {
-    setPlayer(next); updateFamily();
+  const slot = old.human, mine = old === ME;
+  old.human = null; old.asks = [];
+  if (!(next && !next.gone && next.members.length && next.human == null)) next = null;
+  if (next) setPlayer(next, slot); else if (mine) ME = null;
+  if (!mine) {
+    if (NET) log(next ? `${playerName(slot)} ara porta els ${next.surname}: els ${old.surname} s'han quedat sense ningú.` : `Els ${old.surname} de ${playerName(slot)} s'han extingit sense hereus.`, next ? 'info' : 'bad');
+    return;
+  }
+  const resume = () => { closeAsk(true); if (ME && ME.asks.length) showAsk(); };
+  updateFamily();
+  if (next) {
     const why = married ? `L'últim dels ${old.surname} s'ha casat amb els ${next.surname}.` : `Els ${old.surname} s'han quedat sense ningú. Els hereus que es queden la casa són els ${next.surname}.`;
     log(`${why} Ara ets el cap dels ${next.surname}.`, 'good');
     popup(`ARA ETS DELS ${next.surname.toUpperCase()}`, `${why} A partir d'ara portes aquesta família.`,
       `${next.members.length} persones · ${fmt(next.food)} de menjar · riquesa ${fmt(wealth(next))}`, [['Endavant', resume, true]]);
     tagHome(next, `ELS ${next.surname.toUpperCase()}`, 'amber');
   } else {
-    S.player = null; S.asks = []; updateFamily();
     log(`Els ${old.surname} s'han extingit sense hereus. Fi de la partida.`, 'bad');
     const years = Math.floor(S.day / YEAR), days = S.day % YEAR;
     popup('FI DE LA PARTIDA', `Els ${old.surname} s'han quedat sense ningú i no hi ha hereus que es quedin la casa.`,
-      `Has durat ${years} any${years === 1 ? '' : 's'} i ${days} dies.`,
-      [['Poble nou', () => { closeAsk(false); $('resetBtn').click(); }, true], ['Continua mirant', () => { MODE = 'batlle'; closeAsk(true); }]]);
+      `Has durat ${years} any${years === 1 ? '' : 's'} i ${days} dies.${NET ? ' Pots continuar mirant el poble i votant les lleis.' : ''}`,
+      NET ? [['Continua mirant', () => closeAsk(true), true]]
+          : [['Poble nou', () => { closeAsk(false); $('resetBtn').click(); }, true], ['Continua mirant', () => { MODE = 'batlle'; closeAsk(true); }]]);
   }
 }
 function updateFamily() {
-  const h = S.player;
+  const h = ME;
   $('famSec').hidden = !h;
   if (!h) return;
   put('famTitle', `LA TEVA FAMÍLIA · ELS ${h.surname.toUpperCase()}`);
   put('fMembers', h.members.length); put('fFood', fmt(h.food)); put('fDays', Math.floor(daysOf(h)));
   put('fWealth', fmt(wealth(h))); put('fFields', h.fields.length); put('fHerd', h.herd);
   const ad = h.members.filter(m => m.age >= 360).length;
-  const kept = Object.values(S.pol || {}).filter(q => q.until === Infinity).length;
+  const kept = Object.values(h.pol || {}).filter(q => q.until === Infinity).length;
   put('forgetBtn', kept ? `Oblida les respostes recordades (${kept})` : 'Cap resposta recordada');
   $('forgetBtn').disabled = !kept;
   put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${h.hut ? (stoneHouse(h) ? 'Casa de pedra' : h.tenant ? 'Viuen de lloguer en un pis' : 'Cabana pròpia') : 'Encara sense casa'}.`);
@@ -3478,8 +3583,12 @@ $('propForm').addEventListener('submit', async e => {
   } finally { $('propBtn').disabled = false; }
 });
 $('forgetBtn').onclick = () => { // every answer is forgotten, the remembered ones and the recent ones: the family asks again
-  S.pol = {}; updateFamily(); log('Has oblidat totes les respostes: la família et tornarà a preguntar cada decisió.', 'info');
+  if (NET) netSend({ t: 'forget' }); else forget(ME);
 };
+function forget(h) {
+  if (!h) return;
+  h.pol = {}; if (h === ME) { updateFamily(); log('Has oblidat totes les respostes: la família et tornarà a preguntar cada decisió.', 'info'); }
+}
 
 // ---------- controls ----------
 let running = false, speed = 3;
@@ -3487,18 +3596,24 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let MODE = 'batlle';
 $('startBtn').onclick = () => { MODE = 'batlle'; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
 $('familyBtn').onclick = () => { $('startBtn').click(); MODE = 'familia'; pickPlayer(); };
-$('playBtn').onclick = () => { if (!$('intro').hidden) { $('startBtn').click(); return; } running = !running; syncPlay(); };
+$('playBtn').onclick = () => {
+  if (NET) { if (NET.live) netSend({ t: 'run', on: !running }); return; }
+  if (!$('intro').hidden) { $('startBtn').click(); return; } running = !running; syncPlay();
+};
 $('quakeBtn').onclick = () => { // works even with natural disasters switched off
+  if (NET) { if (NET.role === 'host' && NET.live) queueInput({ k: 'quake' }); return; }
   if (!$('intro').hidden) return;
   quake(); updateHud(); if (!$('houses').hidden) renderHouses(true);
 };
 $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
+  if (NET) { if (NET.role === 'host') { NET.opts.pol = !POLITICS; if (NET.live) queueInput({ k: 'pol', v: !POLITICS }); else { POLITICS = !POLITICS; syncPol(); } } return; }
   POLITICS = !POLITICS; syncPol(); updateHud(); renderLaws();
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
   log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
 $('disBtn').onclick = () => {
+  if (NET) { if (NET.role === 'host') { NET.opts.dis = !DISASTERS; if (NET.live) queueInput({ k: 'dis', v: !DISASTERS }); else { DISASTERS = !DISASTERS; syncDis(); } } return; }
   DISASTERS = !DISASTERS; syncDis();
   try { localStorage.setItem('batlle.disasters', DISASTERS ? '1' : '0'); } catch (e) {}
   if (!DISASTERS && S.dis) { S.dis = {}; updateHud(); } // switching them off also ends a drought or a hard winter under way
@@ -3507,15 +3622,17 @@ $('disBtn').onclick = () => {
 syncDis(); syncPol();
 function syncPlay() { $('playBtn').textContent = running ? 'Pausa' : 'Continua'; }
 document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
+  if (NET && NET.role === 'guest') return;
   speed = +b.dataset.speed;
   document.querySelectorAll('[data-speed]').forEach(o => o.setAttribute('aria-pressed', o === b));
 });
 $('resetBtn').onclick = () => {
+  if (NET) { if (NET.role === 'host' && NET.live) startShared(); return; } // a new village for the whole room, every player with a new family
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
-  closeAsk(false); S.player = null; updateFamily(); MODE = 'batlle';
+  closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
   $('intro').hidden = false; running = false; syncPlay(); $('startBtn').focus();
 };
 cv.addEventListener('click', e => {
@@ -3524,6 +3641,460 @@ cv.addEventListener('click', e => {
   const h = S.homes.find(o => !o.gone && o.hut && x >= o.hut.x - 0.5 && x <= o.hut.x + 2.5 && y >= o.hut.y - 0.5 && y <= o.hut.y + 2.5);
   if (h) { tagHome(h, `${h.surname.toUpperCase()} · ${h.members.length} PERS · ${Math.floor(daysOf(h))} DIES`, 'amber'); if (!$('houses').hidden) { openHouse.add(h.id); renderHouses(true, h.id); } }
 });
+// ---------- shared village (multiplayer) ----------
+// Friends play the same village, each from their own browser. The browsers talk to each other directly (WebRTC,
+// through PeerJS, whose free public server only introduces them), so the game still needs no server of its own.
+// The host's browser keeps the clock: it tells everyone how far the village has run and at which moment each choice
+// takes effect, and every browser runs the very same simulation with the same dice. Every few days the host sends
+// the state of its dice; a browser that has drifted apart gets a full copy of the village.
+const PEERJS = 'https://cdn.jsdelivr.net/npm/peerjs@1.5.5/dist/peerjs.min.js';
+const ROOM_PREFIX = 'elbatlle-', MAX_PLAYERS = 10, VOTE_SECS = 60, CHECK_EVERY = 150, SILENT_MS = 30000;
+const homeOf = slot => S.homes.find(h => h.human === slot && !h.gone) || null;
+function playerName(slot) { const p = NET && NET.players.find(p => p.slot === slot); return p ? p.name : 'Algú'; }
+const isOn = slot => !!(NET && NET.players.some(p => p.slot === slot && p.on));
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script'); s.src = PEERJS; s.crossOrigin = 'anonymous';
+    s.onload = ok; s.onerror = () => ko(new Error('No s\'ha pogut carregar la connexió. Comprova que tens internet.'));
+    document.head.append(s);
+  });
+}
+// ?peer=host:port uses another PeerJS server instead of the free public one
+function peerOpts() {
+  const q = new URLSearchParams(location.search).get('peer');
+  if (!q) return { debug: 0 };
+  const [host, port] = q.split(':');
+  return { host, port: +port || 443, path: '/', secure: !/^(localhost|127\.)/.test(host), debug: 0 };
+}
+function openPeer(id) {
+  return new Promise((ok, ko) => {
+    const p = id ? new Peer(id, peerOpts()) : new Peer(peerOpts());
+    const fail = e => { p.off('open', done); p.destroy(); ko(e); }, done = () => { p.off('error', fail); ok(p); };
+    p.once('open', done); p.once('error', fail);
+  });
+}
+const newCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.random() * 32 | 0]).join('');
+const cleanName = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 20) || 'Veí';
+const netErr = e => ({ 'peer-unavailable': 'No hi ha cap sala amb aquest codi. Revisa\'l o demana\'n un altre.', 'network': 'No es pot connectar amb el servidor de sales. Comprova la connexió.',
+  'server-error': 'El servidor de sales no respon. Torna-ho a provar d\'aquí una estona.', 'browser-incompatible': 'Aquest navegador no permet jugar en línia.' }[e && e.type] || (e && e.message) || 'No s\'ha pogut connectar.');
+
+// a full copy of the village: every object reachable from the state, with references kept (a family and its members
+// point at each other) and the special numbers JSON can't hold (a remembered answer lasts until Infinity)
+function pack(root) {
+  const ids = new Map(), list = [], out = [];
+  const ref = v => { if (!ids.has(v)) { ids.set(v, list.length); list.push(v); } return { $: ids.get(v) }; };
+  const val = v => v === null || typeof v === 'string' || typeof v === 'boolean' ? v
+    : typeof v === 'number' ? (Number.isFinite(v) ? v : { n: String(v) })
+    : typeof v === 'object' ? ref(v) : { u: 1 }; // functions are rebuilt on arrival
+  ref(root);
+  for (let i = 0; i < list.length; i++) {
+    const v = list[i];
+    if (Array.isArray(v)) out.push({ a: Array.from(v, val) });
+    else if (ArrayBuffer.isView(v)) { let b = ''; const u = new Uint8Array(v.buffer, v.byteOffset, v.byteLength); for (let k = 0; k < u.length; k += 8192) b += String.fromCharCode.apply(null, u.subarray(k, k + 8192)); out.push({ t: v.constructor.name, b: btoa(b) }); }
+    else if (v instanceof Set) out.push({ s: Array.from(v, val) });
+    else if (v instanceof Map) out.push({ m: Array.from(v, ([k, x]) => [val(k), val(x)]) });
+    else { const o = {}; for (const k in v) o[k] = val(v[k]); out.push({ o }); }
+  }
+  return out;
+}
+function unpack(out) {
+  const objs = out.map(e => e.a ? [] : e.t ? new globalThis[e.t](Uint8Array.from(atob(e.b), c => c.charCodeAt(0)).buffer) : e.s ? new Set() : e.m ? new Map() : {});
+  const val = x => x === null || typeof x !== 'object' ? x : '$' in x ? objs[x.$] : 'n' in x ? Number(x.n) : undefined;
+  out.forEach((e, i) => {
+    const v = objs[i];
+    if (e.a) for (const x of e.a) v.push(val(x));
+    else if (e.s) for (const x of e.s) v.add(val(x));
+    else if (e.m) for (const [k, x] of e.m) v.set(val(k), val(x));
+    else if (e.o) for (const k in e.o) v[k] = val(e.o[k]);
+  });
+  return objs[0];
+}
+const snapshot = () => JSON.stringify(pack({ S, laws, seed, rs, POLITICS, DISASTERS }));
+function restore(data) {
+  const o = unpack(JSON.parse(data));
+  S = o.S; laws = o.laws; seed = o.seed; rs = o.rs; POLITICS = o.POLITICS; DISASTERS = o.DISASTERS;
+  S.riverX = riverFn(S.ph); S.dirty = true; recomputeLaws();
+  bases = {}; FX.length = 0; labelsEl.innerHTML = ''; openHouse.clear();
+  ME = homeOf(mySlot()); sentAns.clear();
+  if (askOpen === 'q') closeAsk(false);
+  syncPol(); syncDis(); renderLaws(); updateHud(); updateFamily();
+  if (!$('houses').hidden) renderHouses(true);
+}
+const sig = () => [S.frame, rs, S.people.length, laws.length];
+
+// every change to the village that comes from a player goes through here, at the same moment of the village on
+// every screen
+function applyInput(m) {
+  const h = m.slot != null ? homeOf(m.slot) : null;
+  switch (m.k) {
+    case 'ans': applyAnswer(h, m.key, m.yes, m.keep); if (h && h === ME) { sentAns.delete(m.key); updateFamily(); } break;
+    case 'forget': forget(h); break;
+    case 'assign': {
+      const o = S.homes.find(x => x.id === m.home && !x.gone);
+      if (!o) break;
+      if (h) h.human = null;
+      setPlayer(o, m.slot);
+      if (o === ME) { updateFamily(); log(`Portes la família ${o.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good'); tagHome(o, `ELS ${o.surname.toUpperCase()}`, 'amber'); }
+      else log(`${playerName(m.slot)} porta la família ${o.surname}.`, 'info');
+      break;
+    }
+    case 'free': if (h) { h.human = null; h.asks = []; } break;
+    case 'law': {
+      log(m.txt, 'amber');
+      const i = laws.findIndex(l => l.fx.includes(m.law));
+      if (m.on && i < 0) proclaim(m.law); else if (!m.on && i >= 0) repeal(i);
+      updateHud(); if (!$('lawPick').hidden) renderLawPick();
+      break;
+    }
+    case 'pol': POLITICS = m.v; syncPol(); updateHud(); renderLaws(); log(POLITICS ? 'Política dinàmica activada.' : 'Política dinàmica desactivada.', 'info'); break;
+    case 'dis': DISASTERS = m.v; syncDis(); if (!DISASTERS && S.dis) { S.dis = {}; updateHud(); } log(DISASTERS ? 'Desastres naturals activats.' : 'Desastres naturals desactivats.', 'info'); break;
+    case 'quake': quake(); updateHud(); if (!$('houses').hidden) renderHouses(true); break;
+    case 'note': log(m.txt, m.kind || 'info'); break;
+    case 'ck': if (NET.role === 'guest' && JSON.stringify(m.v) !== JSON.stringify(sig())) resync(); break;
+  }
+}
+// the families waiting for their player to decide (the village stops for them if the room says so)
+const waitingOn = () => NET && NET.live && NET.opts.wait ? S.homes.filter(h => h.human != null && !h.gone && h.asks && h.asks.length && isOn(h.human)) : [];
+
+// --- host ---
+async function hostRoom(name) {
+  await loadPeer();
+  NET = { role: 'host', slot: 0, name, players: [{ slot: 0, name, on: true, host: true }], conns: new Map(), live: false,
+    opts: { pol: POLITICS, dis: DISASTERS, wait: true }, pend: [], out: [], votes: [], voteId: 0, lastHome: {}, nextSlot: 1, sentF: -1 };
+  for (let tries = 0; ; tries++) {
+    const code = newCode();
+    try { NET.peer = await openPeer(ROOM_PREFIX + code); NET.code = code; break; }
+    catch (e) { if (e.type !== 'unavailable-id' || tries > 4) { NET = null; throw e; } }
+  }
+  NET.peer.on('connection', c => {
+    c.on('data', m => {
+      if (!m || typeof m !== 'object') return;
+      const p = NET.conns.get(c); if (p) p.seen = Date.now();
+      if (m.t === 'hello') hostHello(c, m); else if (m.t === 'bye') hostDrop(c); else if (p) handle(p, m);
+    });
+    c.on('close', () => hostDrop(c)); c.on('error', () => hostDrop(c));
+  });
+  // losing the introducing server only stops new players from joining: the ones already in keep playing
+  NET.peer.on('disconnected', () => setTimeout(() => { if (NET && NET.peer && !NET.peer.destroyed) try { NET.peer.reconnect(); } catch (e) {} }, 3000));
+  NET.timer = setInterval(() => {
+    if (NET.votes.length) checkVotes();
+    for (const [c, p] of NET.conns) if (Date.now() - p.seen > SILENT_MS) { try { c.close(); } catch (e) {} hostDrop(c); } // gone without saying goodbye
+  }, 1000);
+}
+const toAll = m => { for (const c of NET.conns.keys()) try { c.send(m); } catch (e) {} };
+function hostHello(c, m) {
+  if (NET.conns.has(c)) return;
+  let name = cleanName(m.name);
+  const old = NET.players.find(p => !p.on && !p.host && p.name === name); // somebody coming back
+  if (!old && NET.players.filter(p => p.on).length >= MAX_PLAYERS) { c.send({ t: 'full' }); setTimeout(() => c.close(), 1000); return; }
+  if (!old) { const base = name; for (let n = 2; NET.players.some(p => p.name === name); n++) name = `${base} ${n}`; }
+  const p = old || { slot: NET.nextSlot++, name };
+  p.on = true; p.seen = Date.now(); if (!old) NET.players.push(p);
+  NET.conns.set(c, p);
+  c.send({ t: 'hi', slot: p.slot, code: NET.code });
+  broadcastPlayers();
+  if (NET.live) { // a player who joins a village already running heads a family straight away: the one they had, if it's still free
+    const h = freeHome(NET.lastHome[p.name]);
+    queueInput(h ? { k: 'assign', slot: p.slot, home: h.id } : { k: 'note', txt: `${p.name} entra a la sala, però no queda cap família lliure.` });
+    sendSnap([c]);
+  } else log(`${p.name} entra a la sala.`, 'info');
+  broadcastVotes();
+}
+function freeHome(id) {
+  const ok = h => !h.gone && h.members.length && h.human == null, back = S.homes.find(h => h.id === id && ok(h));
+  if (back) return back;
+  const c = S.homes.filter(ok);
+  return c.length ? c[(Math.random() * c.length) | 0] : null;
+}
+function hostDrop(c) {
+  const p = NET && NET.conns.get(c);
+  if (!p) return;
+  NET.conns.delete(c); p.on = false;
+  if (NET.live) {
+    const h = homeOf(p.slot);
+    if (h) NET.lastHome[p.name] = h.id;
+    queueInput({ k: 'note', txt: `${p.name} ha sortit de la sala${h ? `: els ${h.surname} tornen a decidir sols` : ''}.`, kind: 'bad' });
+    if (h) queueInput({ k: 'free', slot: p.slot });
+  } else NET.players.splice(NET.players.indexOf(p), 1);
+  broadcastPlayers(); checkVotes();
+}
+function broadcastPlayers() {
+  const m = { t: 'players', players: NET.players.map(({ slot, name, on, host }) => ({ slot, name, on, host: !!host })), opts: NET.opts };
+  toAll(m); renderRoom();
+}
+// what a player asks for: the host checks it, and anything that changes the village goes into the queue of inputs
+function handle(p, m) {
+  switch (m.t) {
+    case 'ans': if (NET.live) queueInput({ k: 'ans', slot: p.slot, key: String(m.key), yes: !!m.yes, keep: !!m.keep }); break;
+    case 'forget': if (NET.live) queueInput({ k: 'forget', slot: p.slot }); break;
+    case 'propose': propose(p.slot, m.law, !!m.on); break;
+    case 'vote': castVote(p.slot, m.id, !!m.yes); break;
+    case 'run': if (NET.live && running !== !!m.on) { running = !!m.on; syncPlay(); queueInput({ k: 'note', txt: `${p.name} ${running ? 'torna a posar en marxa' : 'atura'} el poble.` }); } break;
+    case 'resync': if (NET.live) { const c = [...NET.conns].find(([, o]) => o === p); if (c) sendSnap([c[0]]); } break;
+  }
+}
+function queueInput(m) { NET.pend.push(m); }
+function applyPending() {
+  if (!NET.live) { NET.pend = []; return; }
+  for (const m of NET.pend) { m.at = S.frame; applyInput(m); NET.out.push(m); }
+  NET.pend = [];
+}
+function hostFlush() {
+  applyPending();
+  if (!NET.live || (!NET.out.length && NET.sentF === S.frame && NET.sentRun === running && NET.sentSp === speed && Date.now() - NET.sentAt < 2000)) return;
+  toAll({ t: 'tick', f: S.frame, run: running, sp: speed, ins: NET.out });
+  NET.out = []; NET.sentF = S.frame; NET.sentRun = running; NET.sentSp = speed; NET.sentAt = Date.now();
+}
+function hostRun(steps) {
+  applyPending();
+  for (let k = 0; k < steps && running && !waitingOn().length; k++) {
+    step();
+    if (S.frame % CHECK_EVERY === 0) NET.out.push({ at: S.frame, k: 'ck', v: sig() });
+  }
+  hostFlush();
+}
+// everything already sent goes first, so the copy is exactly the village that follows it
+function sendSnap(cs, start) {
+  hostFlush();
+  const data = snapshot();
+  for (const c of cs) try { c.send({ t: 'snap', data, start: !!start, run: running, sp: speed }); } catch (e) {}
+}
+function startShared() {
+  newWorld((Math.random() * 1e9) | 0);
+  laws = []; recomputeLaws(); POLITICS = NET.opts.pol; DISASTERS = NET.opts.dis;
+  bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
+  ME = null; NET.pend = []; NET.out = []; NET.votes = []; NET.lastHome = {};
+  NET.players = NET.players.filter(p => p.on);
+  const free = S.homes.filter(h => h.members.length).sort(() => Math.random() - 0.5);
+  for (const p of NET.players) setPlayer(free.pop(), p.slot);
+  NET.live = true; running = true;
+  begin(true);
+  broadcastPlayers(); broadcastVotes();
+  sendSnap([...NET.conns.keys()], true);
+}
+
+// --- votes: every law is proposed by a player and needs more than half of the players in the room ---
+function propose(slot, law, on) {
+  if (!NET.live || !LAWDEFS[law] || NET.votes.some(v => v.law === law)) return;
+  if (on === laws.some(l => l.fx.includes(law))) return;
+  const v = { id: ++NET.voteId, law, on, by: slot, yes: [slot], no: [], ends: Date.now() + VOTE_SECS * 1000 };
+  NET.votes.push(v);
+  queueInput({ k: 'note', txt: `${playerName(slot)} proposa ${on ? 'aprovar' : 'derogar'} «${LAWDEFS[law].name}». Tothom vota.`, kind: 'amber' });
+  checkVotes();
+}
+function castVote(slot, id, yes) {
+  const v = NET.votes.find(v => v.id === id);
+  if (!v) return;
+  v.yes = v.yes.filter(s => s !== slot); v.no = v.no.filter(s => s !== slot);
+  (yes ? v.yes : v.no).push(slot);
+  checkVotes();
+}
+function checkVotes() {
+  if (!NET || NET.role !== 'host') return;
+  const on = NET.players.filter(p => p.on).map(p => p.slot), n = on.length;
+  for (const v of [...NET.votes]) {
+    const y = v.yes.filter(s => on.includes(s)).length, no = v.no.filter(s => on.includes(s)).length;
+    const pass = y * 2 > n, fail = !pass && ((n - no) * 2 <= n || Date.now() >= v.ends);
+    if (!pass && !fail) continue;
+    NET.votes.splice(NET.votes.indexOf(v), 1);
+    const what = `«${LAWDEFS[v.law].name}»`, rest = n - y - no, tally = `${y} a favor, ${no} en contra${rest ? `, ${rest} sense votar` : ''}`;
+    queueInput(pass ? { k: 'law', law: v.law, on: v.on, txt: `Votació: ${v.on ? 's\'aprova' : 'es deroga'} ${what} (${tally}).` }
+                    : { k: 'note', txt: `Votació: no ${v.on ? 's\'aprova' : 'es deroga'} ${what} (${tally}).`, kind: 'bad' });
+  }
+  broadcastVotes();
+}
+function broadcastVotes() {
+  const now = Date.now();
+  NET.shown = NET.votes.map(({ id, law, on, by, yes, no, ends }) => ({ id, law, on, by, yes, no, left: Math.max(0, Math.ceil((ends - now) / 1000)) }));
+  toAll({ t: 'votes', votes: NET.shown }); renderVotes();
+}
+
+// --- guest ---
+async function joinRoom(name, code) {
+  await loadPeer();
+  NET = { role: 'guest', name, code, slot: null, players: [], opts: {}, live: false, q: [], target: 0, shown: [] };
+  try {
+    NET.peer = await openPeer();
+    const c = NET.conn = NET.peer.connect(ROOM_PREFIX + code, { reliable: true });
+    await new Promise((ok, ko) => {
+      const t = setTimeout(() => ko(new Error('La sala no respon. Potser la xarxa no deixa connectar directament els navegadors.')), 20000);
+      c.on('open', () => { clearTimeout(t); ok(); });
+      NET.peer.on('error', e => { clearTimeout(t); ko(e); });
+    });
+    NET.seen = Date.now();
+    c.on('data', guestMsg);
+    c.on('close', hostGone);
+    c.send({ t: 'hello', name });
+  } catch (e) { if (NET && NET.peer) NET.peer.destroy(); NET = null; throw e; }
+}
+function guestMsg(m) {
+  if (!m || typeof m !== 'object' || !NET) return;
+  NET.seen = Date.now();
+  switch (m.t) {
+    case 'hi': NET.slot = m.slot; break;
+    case 'bye': hostGone(); break;
+    case 'full': NET.full = true; $('mpMsg').textContent = 'La sala és plena.'; break;
+    case 'players': NET.players = m.players; NET.opts = m.opts; renderRoom(); break;
+    case 'votes': NET.shown = m.votes; renderVotes(); break;
+    case 'snap': {
+      restore(m.data);
+      NET.q = []; NET.target = S.frame; NET.wantSync = false; running = m.run; speed = m.sp; syncPlay(); syncSpeed();
+      if (m.start || !NET.live) { logEl.innerHTML = ''; NET.live = true; begin(m.start); }
+      else log('El poble s\'ha tornat a sincronitzar amb el de l\'amfitrió.', 'info');
+      if (ME && ME.asks && ME.asks.length) showAsk();
+      break;
+    }
+    case 'tick':
+      if (!NET.live) return;
+      for (const x of m.ins) NET.q.push(x);
+      NET.target = m.f; speed = m.sp;
+      if (running !== m.run) { running = m.run; syncPlay(); }
+      syncSpeed();
+      break;
+  }
+}
+// the guest runs its village up to where the host's is, applying each input at its moment
+function guestRun(max) {
+  if (NET.target - S.frame > 6000) return resync(); // far behind (a tab left in the background): a fresh copy is quicker
+  for (let n = 0; ;) {
+    while (NET.q.length && NET.q[0].at <= S.frame) { const m = NET.q.shift(); if (m.at === S.frame) applyInput(m); else return resync(); }
+    if (S.frame >= NET.target || n++ >= max) return;
+    step();
+  }
+}
+function resync() { if (NET.wantSync) return; NET.wantSync = true; NET.q = []; NET.target = S.frame; NET.conn.send({ t: 'resync' }); }
+function hostGone() {
+  if (!NET || NET.leaving) return;
+  const live = NET.live;
+  try { NET.peer.destroy(); } catch (e) {}
+  if (!live) { const full = NET.full; NET = null; showMpStart(full ? 'La sala és plena.' : 'S\'ha perdut la connexió amb la sala.'); return; }
+  NET.live = false;
+  popup('LA SALA S\'HA TANCAT', 'L\'amfitrió ha marxat o s\'ha perdut la connexió.', ME ? `Pots continuar sol amb els ${ME.surname}: les altres famílies decidiran soles.` : 'Pots continuar mirant el poble sol.',
+    [['Continua sol', () => { closeAsk(false); goSolo(); }, true], ['Torna a l\'inici', () => { location.href = location.pathname; }]]);
+}
+function goSolo() { // the village goes on in this browser alone
+  for (const h of S.homes) if (h.human != null && h !== ME) { h.human = null; h.asks = []; }
+  if (ME) ME.human = 0;
+  NET = null; sentAns.clear(); MODE = ME ? 'familia' : 'batlle';
+  running = true; syncPlay(); netUI(); renderLaws();
+  if (ME && ME.asks.length) showAsk();
+}
+function netSend(m) {
+  if (!NET) return;
+  if (NET.role === 'host') handle(NET.players[0], m);
+  else try { NET.conn.send(m); } catch (e) {}
+}
+function leaveRoom() {
+  if (NET) { NET.leaving = true; if (NET.role === 'host') { toAll({ t: 'bye' }); clearInterval(NET.timer); } setTimeout(() => { try { NET.peer.destroy(); } catch (e) {} location.href = location.pathname; }, 150); }
+}
+addEventListener('pagehide', () => { if (NET && NET.role === 'host') toAll({ t: 'bye' }); else if (NET) try { NET.conn.send({ t: 'bye' }); } catch (e) {} });
+// a guest says it's still there, and notices a host that has gone quiet
+setInterval(() => {
+  if (!NET || NET.role !== 'guest' || !NET.conn) return;
+  try { NET.conn.send({ t: 'ping' }); } catch (e) {}
+  if (NET.live && Date.now() - NET.seen > SILENT_MS) hostGone();
+}, 3000);
+// a hidden tab gets no animation frames: the host keeps the village running anyway (slower, the browser allows less)
+setInterval(() => { if (NET && NET.role === 'host' && NET.live && document.hidden) hostRun(speed * 30); }, 500);
+
+// --- screens ---
+function begin(start) { // the shared village starts (or this player arrives in it)
+  $('intro').hidden = true; $('mp').hidden = true; MODE = 'familia';
+  if (start) log('Cent persones arriben a la vora del riu. No hi ha cap llei: les votareu entre tots.', 'info');
+  if (ME) { log(`Portes la família ${ME.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good'); tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber'); }
+  const others = S.homes.filter(h => h.human != null && h !== ME);
+  if (others.length) log(others.map(h => `${playerName(h.human)} porta els ${h.surname}`).join(', ') + '.', 'info');
+  syncPlay(); netUI(); updateFamily(); renderLaws();
+}
+const roomLink = () => { const u = new URL(location.href); u.search = ''; const pr = new URLSearchParams(location.search).get('peer'); if (pr) u.searchParams.set('peer', pr); u.searchParams.set('sala', NET.code); return u.toString(); };
+function copyLink(btn) {
+  const t = roomLink(), done = () => { const o = btn.textContent; btn.textContent = 'Copiat!'; setTimeout(() => btn.textContent = o, 1800); };
+  if (navigator.share && matchMedia('(pointer:coarse)').matches) { navigator.share({ title: 'El batlle', text: `Juguem a El batlle! Codi de la sala: ${NET.code}`, url: t }).catch(() => {}); return; }
+  navigator.clipboard ? navigator.clipboard.writeText(t).then(done, () => prompt('Copia l\'enllaç:', t)) : prompt('Copia l\'enllaç:', t);
+}
+function showMpStart(msg) {
+  $('mpStart').hidden = false; $('mpRoom').hidden = true; $('mp').hidden = false;
+  $('mpMsg').textContent = msg || '';
+  $('mpHost').disabled = $('mpJoin').disabled = false;
+}
+function renderRoom() {
+  if (!NET) return;
+  const host = NET.role === 'host';
+  if (!NET.live) {
+    $('mpStart').hidden = true; $('mpRoom').hidden = false;
+    put('mpRoomCode', NET.code || '·····');
+    $('mpPlayers').innerHTML = NET.players.filter(p => p.on).map(p => `<li><span>${esc(p.name)}</span>${p.host ? '<b>AMFITRIÓ</b>' : ''}${p.slot === NET.slot ? '<b class="me">TU</b>' : ''}</li>`).join('');
+    for (const k of ['pol', 'dis', 'wait']) { $('mpo_' + k).checked = !!NET.opts[k]; $('mpo_' + k).disabled = !host; }
+    $('mpGo').hidden = !host;
+    const n = NET.players.filter(p => p.on).length;
+    put('mpWait', host ? (n > 1 ? `Sou ${n}. Quan hi siguin tots, comença la partida.` : 'Comparteix el codi o l\'enllaç amb els amics. També pots començar sol i que s\'hi afegeixin després.') : 'Esperant que l\'amfitrió comenci la partida…');
+  }
+  renderPlayers();
+}
+function renderPlayers() {
+  $('mpSec').hidden = !(NET && NET.live);
+  if (!NET || !NET.live) return;
+  put('mpSecTitle', `SALA ${NET.code || ''} · ${NET.players.filter(p => p.on).length} JUGADORS`);
+  const asking = new Set(waitingOn().map(h => h.human));
+  $('mpList').innerHTML = NET.players.map(p => {
+    const h = homeOf(p.slot);
+    return `<li class="${p.on ? '' : 'off'}"><span class="sw" style="background:${h ? h.color : 'transparent'}"></span><span class="n">${esc(p.name)}${p.slot === NET.slot ? ' <b class="me">TU</b>' : ''}</span><span class="f">${!p.on ? 'fora' : h ? `els ${esc(h.surname)}` : 'sense família'}${asking.has(p.slot) ? ' · decidint…' : ''}</span></li>`;
+  }).join('');
+  const w = waitingOn().filter(h => h !== ME);
+  $('waitBar').hidden = !w.length;
+  if (w.length) put('waitBar', `El poble s'espera: ${w.map(h => `${playerName(h.human)} (els ${h.surname})`).join(', ')} ${w.length > 1 ? 'han' : 'ha'} de decidir`);
+}
+function renderVotes() {
+  if (!$('lawPick').hidden) { const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top; }
+  if (NET) renderLaws();
+  const box = $('voteBox'), vs = NET && NET.live ? NET.shown || [] : [];
+  box.hidden = !vs.length;
+  const n = NET ? NET.players.filter(p => p.on).length : 0;
+  box.innerHTML = vs.map(v => {
+    const mine = v.yes.includes(NET.slot) ? 1 : v.no.includes(NET.slot) ? 0 : -1;
+    return `<div class="vote"><p class="vq">${v.on ? 'Aprovar' : 'Derogar'} <b>${esc(LAWDEFS[v.law].name)}</b></p>
+      <p class="vm">Ho proposa ${esc(playerName(v.by))} · ${v.yes.length} sí · ${v.no.length} no · en calen ${Math.floor(n / 2) + 1} de ${n} · ${v.left} s</p>
+      <div class="row"><button class="btn" type="button" data-vote="${v.id}" data-yes="1" aria-pressed="${mine === 1}">Sí</button><button class="btn" type="button" data-vote="${v.id}" data-yes="0" aria-pressed="${mine === 0}">No</button></div></div>`;
+  }).join('');
+}
+$('voteBox').addEventListener('click', e => { const b = e.target.closest('button[data-vote]'); if (b) netSend({ t: 'vote', id: +b.dataset.vote, yes: b.dataset.yes === '1' }); });
+// the controls that change the whole village belong to the host; laws are voted
+function netUI() {
+  const guest = !!(NET && NET.role === 'guest'), shared = !!NET;
+  for (const id of ['resetBtn', 'polBtn', 'disBtn', 'quakeBtn']) { $(id).disabled = guest; $(id).title = guest ? 'Només ho pot fer l\'amfitrió de la sala' : ''; }
+  document.querySelectorAll('[data-speed]').forEach(b => { b.disabled = guest; });
+  put('lawBy', shared ? 'aprovada per: votació dels veïns' : 'proclamada per: el batlle');
+  put('lawPickBtn', shared ? 'Proposa una llei' : 'Tria una llei');
+  put('lawPickSub', shared ? 'Proposa una llei o la derogació d\'una de vigent. S\'aplica si hi vota a favor més de la meitat dels jugadors de la sala.' : 'Tria quines lleis vols que regeixin el poble. Les que es contradiuen es deroguen entre elles.');
+  renderPlayers(); renderVotes();
+}
+function syncSpeed() { document.querySelectorAll('[data-speed]').forEach(o => o.setAttribute('aria-pressed', +o.dataset.speed === speed)); }
+
+$('mpBtn').onclick = () => { showMpStart(); try { $('mpName').value ||= localStorage.getItem('batlle.name') || ''; } catch (e) {} ($('mpName').value ? $('mpHost') : $('mpName')).focus(); };
+$('mpClose').onclick = () => { if (NET && !NET.live) { leaveRoom(); return; } $('mp').hidden = true; $('mpBtn').focus(); };
+const mpName = () => { const n = cleanName($('mpName').value); try { localStorage.setItem('batlle.name', n); } catch (e) {} return n; };
+$('mpHost').onclick = async () => {
+  $('mpHost').disabled = $('mpJoin').disabled = true; $('mpMsg').textContent = 'Creant la sala…';
+  try { await hostRoom(mpName()); renderRoom(); $('mpGo').focus(); } catch (e) { showMpStart(netErr(e)); }
+};
+async function doJoin() {
+  const code = $('mpCode').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 5) { $('mpMsg').textContent = 'El codi té 5 lletres o xifres.'; $('mpCode').focus(); return; }
+  $('mpHost').disabled = $('mpJoin').disabled = true; $('mpMsg').textContent = 'Connectant…';
+  try { await joinRoom(mpName(), code); $('mpMsg').textContent = ''; renderRoom(); } catch (e) { showMpStart(netErr(e)); }
+}
+$('mpJoin').onclick = doJoin;
+$('mpCode').addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); });
+$('mpCopy').onclick = () => copyLink($('mpCopy'));
+$('mpInvite').onclick = () => copyLink($('mpInvite'));
+$('mpLeave').onclick = $('mpExit').onclick = () => leaveRoom();
+$('mpGo').onclick = () => { if (NET && NET.role === 'host') startShared(); };
+for (const k of ['pol', 'dis', 'wait']) $('mpo_' + k).onchange = e => { if (NET && NET.role === 'host') { NET.opts[k] = e.target.checked; broadcastPlayers(); } };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mp').hidden) $('mpClose').click(); });
+setInterval(() => { if (NET && NET.live) renderPlayers(); if (NET && NET.role === 'guest' && NET.shown && NET.shown.length) { for (const v of NET.shown) v.left = Math.max(0, v.left - 1); renderVotes(); } }, 1000);
+{ const sala = new URLSearchParams(location.search).get('sala'); if (sala) { $('mpBtn').click(); $('mpCode').value = sala.toUpperCase().slice(0, 5); ($('mpName').value ? $('mpJoin') : $('mpName')).focus(); } }
+
 // ---------- houses register ----------
 // the houses a family owns: the one it lives in (unless it rents) and the blocks it lets whole
 const ownedHuts = h => [...new Set([...(h.hut && !h.tenant ? [h.hut] : []), ...S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut)])].filter(u => u.ruin == null);
@@ -3534,7 +4105,7 @@ const toolsTxt = h => [['plow', hasPlow, 'arada', 'arades'], ['hoe', hasHoe, 'ai
 const dash = (v, txt = v) => v ? txt : '<span class="dim">—</span>';
 // each column: key, title, the value it sorts by, and the cell it shows
 const COLS = [
-  ['surname', 'Família', h => h.surname, h => `<td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === S.player ? '<b class="you">TU</b>' : ''}</td>`],
+  ['surname', 'Família', h => h.surname, h => `<td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === ME ? '<b class="you">TU</b>' : h.human != null && NET ? `<b class="you other">${esc(playerName(h.human))}</b>` : ''}</td>`],
   ['members', 'Membres / màx.', h => h.members.length, h => { const kids = h.members.length - h.members.filter(m => m.age >= 360).length; return `<td>${h.members.length}<span class="dim">/${famLimit(h)}</span>${kids ? ` <span class="dim">(${kids} ${kids > 1 ? 'nens' : 'nen'})</span>` : ''}</td>`; }],
   ['wealth', 'Riquesa', h => wealth(h), h => `<td title="menjar, materials, ovelles i cases">${fmt(wealth(h))}</td>`],
   ['food', 'Menjar', h => h.food, h => `<td>${fmt(h.food)}</td>`],
@@ -3587,7 +4158,7 @@ function renderHouses(force, focusId) {
   });
   let html = '';
   for (const h of homes) {
-    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}${h === S.player ? ' me' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">${COLS.map(c => c[3](h)).join('')}</tr>`;
+    html += `<tr class="row${openHouse.has(h.id) ? ' sel' : ''}${h === ME ? ' me' : ''}" data-id="${h.id}" tabindex="0" aria-expanded="${openHouse.has(h.id)}">${COLS.map(c => c[3](h)).join('')}</tr>`;
     if (openHouse.has(h.id)) {
       const ms = h.members.slice().sort((a, b) => b.age - a.age).map(m => `<div class="member"><div class="n">${esc(fullName(m))}</div>
         <div class="meta">${m.job ? m.job + ' · ' : ''}${hasPlow(m) ? 'arada · ' : ''}${hasRod(m) ? 'canya · ' : ''}${hasHoe(m) ? 'aixada · ' : ''}${hasPick(m) ? 'pic · ' : ''}${ageTxt(m)}${m.married ? (m.sex === 'f' ? ' · casada' : ' · casat') : m.widow != null ? (m.sex === 'f' ? ' · vídua' : ' · vidu') : m.age >= 360 ? (m.sex === 'f' ? ' · soltera' : ' · solter') : ''}${m.parents ? ` · ${esc(parentsTxt(m))}` : ''}${m.hunger ? ` · <span class="bad">${m.hunger} dies amb gana</span>` : ''}</div>
@@ -3624,6 +4195,7 @@ const HELP_TABS = [
       'Com a batlle pots proclamar i derogar lleis (generals, de medi ambient, de seguretat, socialistes, socialdemòcrates, turbocapitalistes i tecnofeudals) i veure què canvia. O pots ser el cap d\'una família i decidir per ella.',
       'L\'índex de Gini i els gràfics mostren com de repartida està la riquesa. El malestar social puja quan la gent passa gana o hi ha molta desigualtat.',
       'Amb «Política dinàmica: sí», el malestar porta aldarulls i revolucions, i un consell que es mou d\'esquerres a dretes aprova i deroga lleis tot sol.',
+      'Amb «Juga amb amics», diversos jugadors porten cadascun una família del mateix poble i les lleis es voten entre tots.',
       'Amb «Desastres: sí» hi ha sequeres, inundacions, hiverns molt freds, epidèmies, llops, incendis i terratrèmols.',
       'Les altres pestanyes expliquen exactament què fa la simulació.',
     ]],
@@ -3802,6 +4374,24 @@ const HELP_TABS = [
       'Si no hi ha hereus, la partida s\'acaba. Pots començar un poble nou o continuar mirant el poble.',
     ]],
   ]],
+  ['Multijugador', [
+    ['JUGAR AMB AMICS', [
+      'A la pantalla d\'inici, «Juga amb amics» crea una sala o et fa entrar en la d\'un amic. Qui la crea (l\'amfitrió) rep un codi de 5 lletres i un enllaç per passar als altres. Hi caben fins a 10 jugadors.',
+      'Tots jugueu el mateix poble. Quan comença la partida, a cada jugador li toca una família a l\'atzar, i decideix per ella com al mode família. Al mapa, la teva casa porta un marcador groc i les dels altres jugadors, un de blau. El panell SALA diu quina família porta cadascú.',
+      'Les lleis es voten. Qualsevol jugador pot proposar aprovar una llei o derogar-ne una de vigent. S\'aplica si hi vota a favor més de la meitat dels jugadors de la sala. Si en un minut no hi arriba, o ja no hi pot arribar, no s\'aplica: qui no vota compta com a no.',
+      'La política dinàmica funciona igual que sempre: el consell aprova i deroga lleis sol, i hi pot haver aldarulls i revolucions.',
+      'L\'amfitrió tria les regles de la partida (política dinàmica, desastres i si el poble s\'atura mentre algú ha de decidir), la velocitat, el terratrèmol i quan es fa un poble nou. Tothom pot aturar el poble i tornar-lo a posar en marxa.',
+      'Si el poble s\'atura per les decisions, s\'espera fins que cada jugador ha respost les seves. Si no, el poble segueix i la família no fa res que encara no hagis decidit.',
+      'Si la teva família s\'extingeix, passes a portar la família hereva, si no la porta un altre jugador. Si no, continues mirant el poble i votant les lleis.',
+      'Si algú surt de la sala, la seva família torna a decidir sola. Si torna a entrar amb el mateix nom, recupera la família si encara hi és. També es pot entrar en una partida començada: et toca una família lliure.',
+      'Si l\'amfitrió marxa, la sala es tanca i cadascú pot continuar sol amb la seva família.',
+    ]],
+    ['COM FUNCIONA', [
+      'Els navegadors es connecten directament entre ells, sense cap servidor del joc: un servei gratuït (PeerJS) només els ajuda a trobar-se. L\'amfitrió marca el ritme i tots els navegadors calculen exactament el mateix poble, amb els mateixos daus.',
+      'L\'amfitrió ha de tenir el joc obert: si tanca la pestanya, la sala s\'acaba. Si la deixa en segon pla, el poble va més a poc a poc.',
+      'Algunes xarxes (de feina, d\'escola o de dades mòbils) no deixen connectar dos navegadors directament. Si no podeu entrar a la sala, proveu-ho des d\'una altra xarxa.',
+    ]],
+  ]],
 ];
 let helpTab = 0;
 function renderHelp() {
@@ -3822,9 +4412,9 @@ $('help').addEventListener('click', e => { if (e.target.id === 'help') $('helpCl
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('help').hidden) $('helpClose').click(); });
 $('housesBtn').onclick = () => { $('houses').hidden = false; renderHouses(); $('housesClose').focus(); };
 const openMyHouse = () => { // the family panel opens the village houses on the player's own family, unfolded
-  if (!S.player || S.player.gone) return;
-  openHouse.add(S.player.id); $('houses').hidden = false; renderHouses(true, S.player.id);
-  const r = $('housesBody').querySelector(`tr[data-id="${S.player.id}"]`); (r || $('housesClose')).focus({ preventScroll: true });
+  if (!ME || ME.gone) return;
+  openHouse.add(ME.id); $('houses').hidden = false; renderHouses(true, ME.id);
+  const r = $('housesBody').querySelector(`tr[data-id="${ME.id}"]`); (r || $('housesClose')).focus({ preventScroll: true });
 };
 $('famCard').onclick = openMyHouse;
 $('famCard').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMyHouse(); } };
@@ -3838,7 +4428,8 @@ setInterval(() => {
 }, 800);
 
 function frame() {
-  for (let k = 0; k < speed && running; k++) step();
+  if (NET && NET.live) NET.role === 'host' ? hostRun(speed) : guestRun(Math.max(60, speed * 4));
+  else for (let k = 0; k < speed && running; k++) step();
   render();
   requestAnimationFrame(frame);
 }
