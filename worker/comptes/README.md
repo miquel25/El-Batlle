@@ -18,9 +18,9 @@ Es desplega sol amb GitHub Actions (`.github/workflows/comptes.yml`) cada vegada
 
 Quan acabi en verd, https://el-batlle-comptes.miquel-delaiglesia.workers.dev ha de dir «Origen no permès».
 
-## Propostes de lleis
+## Propostes de millora
 
-Només els jugadors amb la sessió iniciada poden proposar lleis. El Worker crea l'issue a GitHub amb l'etiqueta `proposta`, signada amb el nom de jugador (que no es pot falsejar des del joc). Límit: 5 propostes per hora i compte. Cal un secret:
+Només els jugadors amb la sessió iniciada poden proposar millores (abans, lleis). El títol de l'issue és el començament de la descripció. El Worker crea l'issue a GitHub amb l'etiqueta `proposta`, signada amb el nom de jugador (que no es pot falsejar des del joc). Límit: 5 propostes per hora i compte. Cal un secret:
 
 1. Crea un token a https://github.com/settings/personal-access-tokens/new: **Only select repositories** → `El-Batlle`, **Repository permissions** → **Issues** → **Read and write**. Copia'l (no l'enviïs pel xat).
 2. A Cloudflare: **Workers & Pages** → `el-batlle-comptes` → **Settings** → **Variables and Secrets** → **Add**, tipus *Secret*, nom `GITHUB_TOKEN`, valor: el token.
