@@ -251,7 +251,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .controls .tromsg{flex-basis:100%;margin:0;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--amber)}
 .controls .tromsg .btn{font-size:12px;padding:4px 10px}
 .tdefs{position:absolute;width:0;height:0;overflow:hidden}
-.tro .win{width:min(620px,100%);position:relative}
+.tro .win{width:min(720px,100%);position:relative}
 .tro .scroller{padding:16px}
 .vitrina{position:relative;border:2px solid #4a5a68;border-radius:14px 14px 4px 4px;background:linear-gradient(180deg,rgba(140,190,220,.07),rgba(140,190,220,.02));padding:4px 12px 0;overflow:hidden}
 .vitrina::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.05) 34%,transparent 40%,transparent 62%,rgba(255,255,255,.035) 65%,transparent 69%)}
@@ -289,6 +289,10 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .tier{font-family:var(--f-display);font-size:10px;letter-spacing:.12em}
 .tier.d{color:#8fe3ff}.tier.o{color:#f2c14e}.tier.p{color:#c9d1d8}.tier.b{color:#d8945a}
 .tdet .when{color:var(--muted)}
+.tdet .who{list-style:none;margin:2px 0 0;padding:0;width:100%;max-height:180px;overflow:auto;display:flex;flex-direction:column;gap:3px;text-align:left}
+.tdet .who li{display:flex;justify-content:space-between;gap:10px;font-size:12px;border-bottom:1px solid var(--line);padding:3px 2px}
+.tdet .who span{color:var(--muted);font-size:11px}
+.trophy small b{font-weight:400;color:var(--amber)}
 .tdet .btn{margin-top:8px}
 .tronew{z-index:30}
 .tronew .win{width:min(360px,100%);background:none;border:0;box-shadow:none}
@@ -548,17 +552,15 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <ul class="log" id="log"></ul>
     </section>
     <section class="sec">
-      <h3>PROPOSA UNA LLEI</h3>
+      <h3>PROPOSA UNA MILLORA</h3>
       <form class="propose" id="propForm">
-        <label for="propTitle">Nom de la llei</label>
-        <input type="text" id="propTitle" maxlength="120" required placeholder="Per exemple: Dret a pescar al riu">
-        <label for="propText">Què hauria de fer?</label>
-        <textarea id="propText" rows="4" maxlength="3000" required placeholder="Explica com hauria de funcionar i què canviaria al poble."></textarea>
+        <label for="propText">Què milloraries del joc?</label>
+        <textarea id="propText" rows="4" maxlength="3000" required placeholder="Una llei nova, un canvi en les regles, alguna cosa que no funciona… Explica com hauria de ser."></textarea>
         <p class="propwho" id="propWho"></p>
         <button class="btn primary" type="submit" id="propBtn">Envia la proposta</button>
         <p id="propMsg" class="propmsg" role="status" hidden></p>
       </form>
-      <div class="propout" id="propOut" hidden><p>Per proposar una llei has d'entrar al teu compte de jugador. La proposta sortirà signada amb el teu nom.</p><button class="btn primary" type="button" id="propLogin">Entra o crea un compte</button></div>
+      <div class="propout" id="propOut" hidden><p>Per proposar una millora has d'entrar al teu compte de jugador. La proposta sortirà signada amb el teu nom.</p><button class="btn primary" type="button" id="propLogin">Entra o crea un compte</button></div>
       <p class="gnote">La proposta es publica a la llista de propostes del joc a GitHub, signada amb el teu nom de jugador.</p>
     </section>
     <p class="credit">Basat en la idea de @an_ai_tries_youtube · Llicència MIT · <a href="https://github.com/miquel25/El-Batlle" target="_blank" rel="noopener" aria-label="Repositori a GitHub de @miquel25"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>@miquel25</a><img class="mark" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjEwIDkwIDk4MCA2MzAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icmciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTQ3MCIgeTE9IjAiIHgyPSI0NzAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAuMSIgc3RvcC1jb2xvcj0iI0QyMkIzQyIvPjxzdG9wIG9mZnNldD0iMC45IiBzdG9wLWNvbG9yPSIjMkE1QkQ3Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGRlZnM+PGNsaXBQYXRoIGlkPSJmcm9udGMiPjxyZWN0IHg9Ii02MDAiIHk9Ii0wLjUiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjQwMCIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJiYWNrYyI+PHJlY3QgeD0iLTYwMCIgeT0iLTQwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNDAzIi8+PC9jbGlwUGF0aD48bWFzayBpZD0ibU1jIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIj48cmVjdCB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzk2LDMzNCkiPjxwYXRoIGQ9Ik0xMiw1MiBDMTIsMjYgMzAsOCA1MCw4IEM3Miw4IDg4LDI0IDg4LDQ2IEM4OCw2NiA3Niw4MCA2MCw5NCBMMTAsMTYwIEg5MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbWl0ZXJsaW1pdD0iNCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MTIsMzM0KSI+PHBhdGggZD0iTTg2LDggSDI2IEwxOCw4MCBNMTgsODAgQzMwLDcwIDQ0LDY2IDU2LDY2IEM3OCw2NiA5Miw4NiA5MiwxMTIgQzkyLDE0MCA3MiwxNjIgNDgsMTYyIEMzMCwxNjIgMTYsMTU0IDgsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1taXRlcmxpbWl0PSI0Ii8+PGNpcmNsZSBjeD0iMTgiIGN5PSI4MCIgcj0iNyIgZmlsbD0iIzAwMCIvPjwvZz48cGF0aCBkPSJNMzcwLDM5MiBMNjMwLDQ1NyIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjkiIGZpbGw9Im5vbmUiLz48L21hc2s+PG1hc2sgaWQ9Im1CYyIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCI+PHJlY3QgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zNDQuMCw3MDAuMCBRMzMwLDcwMCAzMzAuMCw2ODYuMCBMMzMwLjAsMTE4LjAgUTMzMCwxMTAgMzM1LjEsMTE2LjIgTDQ5My43LDMxMC4zIFE1MDAsMzE4IDUwNi4zLDMxMC4zIEw2NjQuOSwxMTYuMiBRNjcwLDExMCA2NzAuMCwxMTguMCBMNjcwLjAsNjg2LjAgUTY3MCw3MDAgNjU2LjAsNzAwLjAgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9tYXNrPjwvZGVmcz48ZyBtYXNrPSJ1cmwoI21CYykiPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwMCw0ODYpIHJvdGF0ZSgxNCkiIGNsaXAtcGF0aD0idXJsKCNiYWNrYykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L2c+PGcgbWFzaz0idXJsKCNtTWMpIj48cGF0aCBkPSJNMzQ0LjAsNzAwLjAgUTMzMCw3MDAgMzMwLjAsNjg2LjAgTDMzMC4wLDExOC4wIFEzMzAsMTEwIDMzNS4xLDExNi4yIEw0OTMuNywzMTAuMyBRNTAwLDMxOCA1MDYuMywzMTAuMyBMNjY0LjksMTE2LjIgUTY3MCwxMTAgNjcwLjAsMTE4LjAgTDY3MC4wLDY4Ni4wIFE2NzAsNzAwIDY1Ni4wLDcwMC4wIFoiIGZpbGw9IiNGMkYwRUIiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=" alt="Marca de Miquel (M/25)"></p>
@@ -659,6 +661,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <div class="opt"><input id="accMail" type="email" maxlength="120" placeholder="nom@exemple.cat" autocomplete="email"><button class="btn" type="button" id="accMailGo">Desa el correu</button><button class="btn" type="button" id="accMailDel">Treu el correu</button></div>
       <p class="note">El correu és opcional i només serveix per recuperar la contrasenya si l'oblides. No s'utilitzarà per a cap altre fi: no rebràs cap altre correu ni es passarà a ningú. Ni tan sols es desa tal qual, només una empremta xifrada per comprovar-lo, per això aquí no es pot mostrar.</p>
       <p class="msg" id="accMailMsg" role="status"></p>
+      <p class="lbl" id="accTroLbl" hidden>Trofeus dels jugadors</p>
+      <div class="opt" id="accTroRow" hidden><button class="btn" type="button" id="accTroAll">Mira qui ha guanyat cada trofeu</button></div>
       <p class="lbl">Esborrar el compte</p>
       <label for="accDelClau">S'esborren el compte i totes les partides. Escriu la contrasenya:</label>
       <div class="opt"><input id="accDelClau" type="password" maxlength="100" autocomplete="current-password"><button class="btn" type="button" id="accDel">Esborra el compte</button></div>
@@ -682,7 +686,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </header>
     <div class="scroller"><div class="vitrina" id="troCase"></div></div>
     <div class="tdet" id="troDet" hidden role="dialog" aria-modal="true" aria-labelledby="troDetName">
-      <div class="card"><div class="fig" id="troDetFig"></div><p class="tier" id="troDetTier"></p><h3 id="troDetName"></h3><p id="troDetDesc"></p><p class="when" id="troDetWhen"></p><button class="btn" type="button" id="troDetClose">D'acord</button></div>
+      <div class="card"><div class="fig" id="troDetFig"></div><p class="tier" id="troDetTier"></p><h3 id="troDetName"></h3><p id="troDetDesc"></p><p class="when" id="troDetWhen"></p><ul class="who" id="troDetWho" hidden></ul><button class="btn" type="button" id="troDetClose">D'acord</button></div>
     </div>
   </div>
 </div>
@@ -860,7 +864,7 @@ function newWorld(sd) {
     day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
     st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
-    flags: {}, dirty: true, nextId: 1, watch: true, used: new Set(), animals: [], forest: tree.slice(),
+    flags: {}, dirty: true, nextId: 1, watch: true, hands: false, polOn: false, polOff: false, used: new Set(), animals: [], forest: tree.slice(),
   };
   // the quarry sits in the bottom-right corner
   // an irregular blob cut into the hillside; each tile knows how far it is from the rim (deeper tiles get dug out later)
@@ -3215,7 +3219,7 @@ function renderLaws() {
     t.innerHTML = `<b>#${i + 1}</b>`; t.append(l.text);
     const x = document.createElement('button'); x.className = 'x'; x.textContent = 'Deroga'; x.type = 'button';
     x.setAttribute('aria-label', `Deroga la llei ${i + 1}`);
-    x.onclick = () => { if (NET) { netSend({ t: 'propose', law: l.fx[0], on: false }); x.disabled = true; x.textContent = 'En votació'; } else { S.watch = false; repeal(i); updateHud(); } };
+    x.onclick = () => { if (NET) { netSend({ t: 'propose', law: l.fx[0], on: false }); x.disabled = true; x.textContent = 'En votació'; } else { S.watch = false; S.hands = true; repeal(i); updateHud(); } };
     if (NET) { x.textContent = (NET.shown || []).some(v => v.law === l.fx[0]) ? 'En votació' : 'Proposa derogar-la'; x.disabled = !l.fx.length || x.textContent === 'En votació'; }
     if (lockedLaw(l)) { x.disabled = true; x.textContent = 'Protegida'; x.title = `La revolució la protegeix fins al ${lockEnd()}`; }
     const fx = document.createElement('div');
@@ -3268,7 +3272,7 @@ $('lawPickBody').addEventListener('click', e => {
     netSend({ t: 'propose', law: k, on: i < 0 }); b.disabled = true; b.textContent = 'En votació';
     $('lawMsg').textContent = 'Proposada: ara voten tots els jugadors.'; setTimeout(() => $('lawMsg').textContent = '', 4000); return;
   }
-  S.watch = false; // the mayor has passed or repealed a law by hand
+  S.watch = false; S.hands = true; // the mayor has passed or repealed a law by hand
   if (i >= 0) { repeal(i); updateHud(); } else proclaim(k);
   const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top;
   $('lawPickBody').querySelector(`button[data-k="${k}"]`)?.focus();
@@ -3634,6 +3638,7 @@ function flood() {
   S.dirty = true;
 }
 function quake() {
+  S.st.quakes = (S.st.quakes || 0) + 1;
   const huts = new Set(); for (const o of S.homes) if (o.hut && o.hut.ruin == null) huts.add(o.hut);
   let fell = 0, floors = 0, homeless = 0;
   for (const u of huts) {
@@ -3758,7 +3763,7 @@ function popup(title, text, ctx, btns) { // an information window that also paus
 function pickPlayer() {
   const c = S.homes.filter(h => !h.gone && h.members.length);
   if (!c.length) return;
-  setPlayer(c[(Math.random() * c.length) | 0], 0); S.watch = false;
+  setPlayer(c[(Math.random() * c.length) | 0], 0); S.watch = false; S.fam = true;
   log(`Ets el cap de la família ${ME.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good');
   tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber');
 }
@@ -3829,8 +3834,11 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ask').
 const propMsg = (html) => { $('propMsg').innerHTML = html; $('propMsg').hidden = false; };
 $('propForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const t = $('propTitle').value.trim(), d = $('propText').value.trim();
-  if (!t || !d) return;
+  const d = $('propText').value.trim();
+  if (!d) return;
+  if (d.length < 10) { propMsg('Explica-ho una mica més.'); return; }
+  // the issue's title is the start of the description, cut at a word
+  const line = d.split('\n')[0].trim(), t = line.length <= 70 ? line : line.slice(0, 70).replace(/\s+\S*$/, '') + '…';
   const current = (laws.length ? laws.map(l => l.text).join(' · ') : 'cap').slice(0, 900);
   if (!ACC) { propSync(); return; }
   $('propBtn').disabled = true; propMsg('Enviant…');
@@ -3854,7 +3862,7 @@ function forget(h) {
 let running = false, speed = 3;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let MODE = 'batlle';
-$('startBtn').onclick = () => { MODE = 'batlle'; if (!POLITICS) S.watch = false; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
+$('startBtn').onclick = () => { MODE = 'batlle'; if (!POLITICS) S.watch = false; S.polOn = POLITICS; S.polOff = !POLITICS; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
 $('familyBtn').onclick = () => { $('startBtn').click(); MODE = 'familia'; pickPlayer(); };
 $('playBtn').onclick = () => {
   if (NET) { if (NET.live) netSend({ t: 'run', on: !running }); return; }
@@ -3869,7 +3877,7 @@ $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
   if (NET) { if (NET.role === 'host') { NET.opts.pol = !POLITICS; if (NET.live) queueInput({ k: 'pol', v: !POLITICS }); else { POLITICS = !POLITICS; syncPol(); } } return; }
   POLITICS = !POLITICS; syncPol(); updateHud(); renderLaws();
-  if (!POLITICS) S.watch = false;
+  if (POLITICS) S.polOn = true; else S.watch = false, S.polOff = true;
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
   log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
@@ -3891,7 +3899,7 @@ $('resetBtn').onclick = () => {
   if (NET) { if (NET.role === 'host' && NET.live) startShared(); return; } // a new village for the whole room, every player with a new family
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
-  if (laws.length) S.watch = false; // the laws the mayor brings along count as passed by hand
+  if (laws.length) S.watch = false, S.hands = true; // the laws the mayor brings along count as passed by hand
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
   closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
@@ -4045,13 +4053,13 @@ function applyInput(m) {
     }
     case 'free': if (h) { h.human = null; h.asks = []; } break;
     case 'law': {
-      log(m.txt, 'amber');
+      log(m.txt, 'amber'); S.hands = true; // voted by the players: passed by hand
       const i = laws.findIndex(l => l.fx.includes(m.law));
       if (m.on && i < 0) proclaim(m.law); else if (!m.on && i >= 0) repeal(i);
       updateHud(); if (!$('lawPick').hidden) renderLawPick();
       break;
     }
-    case 'pol': POLITICS = m.v; syncPol(); updateHud(); renderLaws(); log(POLITICS ? 'Política dinàmica activada.' : 'Política dinàmica desactivada.', 'info'); break;
+    case 'pol': POLITICS = m.v; if (POLITICS) S.polOn = true; else S.polOff = true; syncPol(); updateHud(); renderLaws(); log(POLITICS ? 'Política dinàmica activada.' : 'Política dinàmica desactivada.', 'info'); break;
     case 'dis': DISASTERS = m.v; syncDis(); if (!DISASTERS && S.dis) { S.dis = {}; updateHud(); } log(DISASTERS ? 'Desastres naturals activats.' : 'Desastres naturals desactivats.', 'info'); break;
     case 'quake': quake(); updateHud(); if (!$('houses').hidden) renderHouses(true); break;
     case 'note': log(m.txt, m.kind || 'info'); break;
@@ -4182,7 +4190,7 @@ function sendSnap(cs, start) {
 }
 function startShared() {
   newWorld((Math.random() * 1e9) | 0);
-  laws = []; recomputeLaws(); POLITICS = NET.opts.pol; DISASTERS = NET.opts.dis;
+  laws = []; recomputeLaws(); POLITICS = NET.opts.pol; DISASTERS = NET.opts.dis; S.polOn = POLITICS; S.polOff = !POLITICS;
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   ME = null; NET.pend = []; NET.out = []; NET.votes = []; NET.lastHome = {};
   NET.players = NET.players.filter(p => p.on);
@@ -4449,12 +4457,30 @@ const TROPHIES = [
     art: '<path class="m" d="M38 40c-14 9-22 26-22 38 0 12 10 18 34 18s34-6 34-18c0-12-8-29-22-38z"/><path class="m" d="M36 30l6 4h16l6-4 3 6c-4 4-9 6-17 6s-13-2-17-6z"/><rect class="m" x="40" y="4" width="20" height="22" rx="2"/><rect class="m" x="32" y="25" width="36" height="5" rx="2.5"/><rect class="k" x="40" y="19" width="20" height="4"/><path class="ks" d="M58 62c-2-4-6-5-9-5-5 0-8 3-8 6 0 8 18 4 18 12 0 4-4 7-9 7-4 0-8-2-10-5M50 52v38"/>' },
   { id: 'seixanta', tier: 'p', name: 'Això ja és Can Seixanta', desc: 'Arriba a 500 habitants en qualsevol mode de joc.',
     art: '<path class="m" d="M41 96V34l9-20 9 20v62z"/><path class="m" d="M14 96V66l13-11 13 11v30z"/><path class="m" d="M60 96V62l13-11 13 11v34z"/><rect class="k" x="46" y="38" width="8" height="10" rx="4"/><rect class="k" x="23" y="80" width="8" height="16"/><rect class="k" x="69" y="78" width="8" height="18"/><rect class="k" x="47" y="80" width="6" height="16"/>' },
-  { id: 'camps', tier: 'b', name: 'Abans això eren camps', desc: 'Aconsegueix que es construeixi qualsevol edificació (camps inclosos) a la banda del riu on es pot construir, en qualsevol mode de joc.',
+  { id: 'camps', tier: 'b', name: 'Abans això eren camps', desc: 'En qualsevol mode, omple de cases, camps i altres edificis tota la banda del riu on es pot construir, fins que no hi càpiga ni una cabana més.',
     art: '<path class="m" d="M10 96l10-20h60l10 20z"/><path class="ks" d="M20 92l7-13M35 92l4-13M50 92v-13M65 92l-4-13M80 92l-7-13"/><path class="m" d="M32 80V54l18-16 18 16v26z"/><path class="m" d="M26 56l24-22 24 22-4 4-20-18-20 18z"/><rect class="k" x="45" y="64" width="10" height="16"/>' },
   { id: 'illustrada', tier: 'b', name: 'Família il·lustrada', desc: 'Jugant com a cap de família, aconsegueix que la intel·ligència més alta de casa sigui de 100 punts.',
     art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M12 86V50c13-5 28-3 38 5 10-8 25-10 38-5v36c-13-5-28-3-38 5-10-8-25-10-38-5z"/><path class="ks" d="M50 56v32M20 58c8-2 16-1 22 3M20 67c8-2 16-1 22 3M58 61c6-4 14-5 22-3M58 70c6-4 14-5 22-3"/><path class="m" d="M50 6l32 12-32 12-32-12z"/><path class="m" d="M32 24v10c11 7 25 7 36 0V24l-18 7z"/><path class="ks" d="M80 19v14"/>' },
   { id: 'tovarishch', tier: 'b', name: 'Ampunt tovarishch!', desc: 'Aconsegueix que esclati la revolució en qualsevol mode de joc.',
     art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
+  { id: 'completista', tier: 'd', name: 'Completista', desc: 'Aconsegueix tots els altres trofeus.',
+    art: '<path class="m" d="M28 18H14c0 18 8 26 18 26v-6c-6 0-11-6-12-14h8z"/><path class="m" d="M72 18h14c0 18-8 26-18 26v-6c6 0 11-6 12-14h-8z"/><path class="m" d="M28 12h44v20c0 18-10 28-22 30-12-2-22-12-22-30z"/><path class="m" d="M45 62h10v18H45z"/><path class="m" d="M34 80h32l4 16H30z"/><path class="k" d="M50 22l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L50 36.3l-5.9 3.7 1.7-6.7-5.3-4.4 6.9-.5z"/>' },
+  { id: 'malvat', tier: 'o', name: 'El malvado plan', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que el Gini passi de més de 0,8 a menys de 0,25.',
+    art: '<rect class="m" x="44" y="72" width="12" height="24"/><circle class="m" cx="50" cy="52" r="22"/><path class="m" d="M32 33c0-16 8-25 18-25s18 9 18 25z"/><rect class="m" x="20" y="30" width="60" height="6" rx="3"/><path class="k" d="M37 45l10 4-10 1zM63 45l-10 4 10 1z"/><path class="k" d="M50 60c-6-6-14-7-19-1-3 4 0 9 4 8-3-2-2-6 1-6 4 0 8 4 14 4s10-4 14-4c3 0 4 4 1 6 4 1 7-4 4-8-5-6-13-5-19 1z"/>' },
+  { id: 'mansa', tier: 'o', name: 'Mansa Musa', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que una sola família tingui el 90% de la riquesa del poble.',
+    art: '<path class="m" d="M24 96l8-20h36l8 20z"/><rect class="m" x="44" y="68" width="12" height="9"/><path class="m" d="M18 58l6-34 14 16 12-26 12 26 14-16 6 34z"/><rect class="m" x="18" y="57" width="64" height="11" rx="2"/><circle class="k" cx="34" cy="62.5" r="3"/><circle class="k" cx="50" cy="62.5" r="3"/><circle class="k" cx="66" cy="62.5" r="3"/><path class="ks" d="M36 86h28"/>' },
+  { id: 'palantir', tier: 'p', name: 'Palantir', desc: 'En qualsevol mode, amb la política dinàmica sempre activada i sense aprovar ni derogar cap llei a mà, fes que hi hagi totes les lleis tecnofeudals alhora.',
+    art: '<path class="m" d="M28 96l8-22h28l8 22z"/><circle class="m" cx="50" cy="44" r="28"/><path class="k" d="M28 44q22-18 44 0q-22 18-44 0z"/><circle class="m" cx="50" cy="44" r="7"/>' },
+  { id: 'milei', tier: 'p', name: '¡Viva la Libertad Carajo!', desc: 'En qualsevol mode, amb la política dinàmica sempre activada i sense aprovar ni derogar cap llei a mà, fes que hi hagi totes les lleis turbocapitalistes alhora.',
+    art: '<rect class="m" x="24" y="82" width="14" height="14"/><path class="m" d="M16 48c0-16 26-16 26 0h-6c0-9-14-9-14 0z"/><path class="m" d="M12 50h32l8 10v24H12z"/><path class="m" d="M50 54h36a9 9 0 0 1 0 18H50z"/><path class="ks" d="M54 54l3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4M54 72l3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4M20 66h20"/>' },
+  { id: 'cabres', tier: 'p', name: 'Saben més que les cabres', desc: 'En qualsevol mode, fes que la intel·ligència mitjana del poble passi dels 90 punts.',
+    art: '<path class="m" d="M42 42c-10-6-17-18-13-32 4 10 11 17 19 23z"/><path class="m" d="M58 42c10-6 17-18 13-32-4 10-11 17-19 23z"/><path class="m" d="M38 50l-20-5 4 9 16 3zM62 50l20-5-4 9-16 3z"/><path class="m" d="M50 36c-12 0-17 10-15 24l6 22c2 6 16 6 18 0l6-22c2-14-3-24-15-24z"/><path class="m" d="M45 84l5 12 5-12z"/><circle class="k" cx="43" cy="56" r="2.6"/><circle class="k" cx="57" cy="56" r="2.6"/><path class="ks" d="M46 76q4 3 8 0"/>' },
+  { id: 'oligopoli', tier: 'b', name: 'Oligopoli', desc: 'En qualsevol mode, fes que el 10% de les famílies més riques tinguin el 80% de la riquesa del poble.',
+    art: Array.from({ length: 12 }, (_, i) => `<rect class="m" x="50" y="${90 - i * 6}" width="30" height="6" rx="2.5"/>`).join('') + Array.from({ length: 3 }, (_, i) => `<rect class="m" x="22" y="${90 - i * 6}" width="22" height="6" rx="2.5"/>`).join('') + '<rect class="m" x="10" y="90" width="12" height="6" rx="2.5"/>' },
+  { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, fes que s\'acabin alhora tots els arbres i tots els peixos.',
+    art: '<path class="m" d="M30 96l5-7V62h30v27l5 7z"/><ellipse class="m" cx="50" cy="62" rx="15" ry="6"/><ellipse class="ks" cx="50" cy="62" rx="8" ry="3"/><rect class="m" x="32" y="28" width="38" height="3.5"/><path class="m" d="M69 21c10 0 15 8 15 9s-5 9-15 9z"/><path class="m" d="M34 30l-12-9v18z"/><rect class="m" x="39" y="21" width="2.5" height="18"/><rect class="m" x="47" y="19" width="2.5" height="22"/><rect class="m" x="55" y="19" width="2.5" height="22"/><rect class="m" x="63" y="21" width="2.5" height="18"/><circle class="k" cx="76" cy="28" r="1.8"/>' },
+  { id: 'bigone', tier: 'b', name: 'The Big One', desc: 'En qualsevol mode, fes que hi hagi 10 terratrèmols en una mateixa partida.',
+    art: '<path class="m" d="M10 96V62l12-4 10 6 6-6 6 10-6 10 6 8-4 10z"/><path class="m" d="M90 96V58l-12-6-10 6-6-4-2 10 8 8-6 10 6 14z"/><path class="m" d="M38 30l7-5 7 4-2 8h-9z"/><path class="m" d="M60 16l6-2 4 5-3 6-7-2z"/><path class="m" d="M22 36l5-1 2 5-4 3-4-3z"/><path class="ks" d="M44 44l-2 6M66 32l2 6M26 48l1 5"/>' },
 ];
 const TRO = Object.fromEntries(TROPHIES.map(t => [t.id, t]));
 function troSvg(t, got) {
@@ -4505,6 +4531,10 @@ function branches(root) { // root's house and every house founded by its childre
   for (let i = root.id + 1; i < S.homes.length; i++) { const h = S.homes[i]; if (out.has(h.from)) out.add(i); }
   return out;
 }
+// a mayor's village with the dynamic politics off from the first day to today
+const troAlone = () => !NET && !ME && !S.fam && MODE === 'batlle' && S.polOn === false && !POLITICS;
+// every law of a camp in force at once, brought by the council alone: politics always on and no law by hand
+const troAllLaws = cat => S.polOff === false && S.hands === false && POLITICS && LAW_CATS.find(c => c[0] === cat)[1].every(k => L[k]);
 const TESTS = {
   armageddon: () => S.day > 0 && !S.people.some(p => !p.leaving),
   mirava: () => !NET && !ME && MODE === 'batlle' && S.watch && POLITICS && S.day >= 500 * YEAR,
@@ -4513,7 +4543,16 @@ const TESTS = {
   nombrosa: () => !!troMine() && ME.members.length >= 14,
   endogamia: () => { const me = troMine(); if (!me) return false; const hs = troLive(), mine = branches(me), n = hs.filter(h => mine.has(h.id)).length; return n > 1 && n * 2 >= hs.length; },
   gilito: () => { const me = troMine(); if (!me) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); return hs.length > 1 && tot > 0 && ws[hs.indexOf(me)] >= 0.8 * tot; },
-  camps: () => S.homes.some(h => h.hut || h.fields.length),
+  camps: () => !!S.siteFail && S.siteFail['2x2'] === (S.occVer || 0), // the last search for a hut site found none, and nothing has been built or cleared since
+  completista: () => TROPHIES.every(t => t.id === 'completista' || troGot[t.id]),
+  malvat: () => { if (!troAlone()) return false; const g = S.gini, i = g.findIndex(x => x[1] > 0.8); return i >= 0 && g.length - 1 > i && g[g.length - 1][1] < 0.25; },
+  mansa: () => { if (!troAlone()) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); return hs.length > 1 && tot > 0 && Math.max(...ws) >= 0.9 * tot; },
+  palantir: () => troAllLaws('TECNOFEUDALS'),
+  milei: () => troAllLaws('TURBOCAPITALISTES'),
+  cabres: () => { const a = S.people.filter(p => !p.leaving); return a.length > 0 && avg(a.map(p => p.int)) * 100 > 90; },
+  oligopoli: () => { const hs = troLive(); return hs.length >= 10 && topShare(hs) >= 0.8; },
+  cromatic: () => countTrees() === 0 && (S.fishStock ?? FISH_CAP) < 1,
+  bigone: () => (S.st.quakes || 0) >= 10,
   illustrada: () => !!troMine() && Math.round(famInt(ME) * 100) >= 100,
   tovarishch: () => (S.st.revolutions || 0) > troRev, // a revolution since this village began or was loaded
 };
@@ -4542,25 +4581,38 @@ function troNewClose() {
 $('troNewOk').onclick = troNewClose;
 $('troNewSee').onclick = () => { troNewClose(); troOpen(); };
 // the case: diamond on the top shelf, then gold, silver and bronze at the bottom
+// the same case shows the player's own trophies or, for the admin, every trophy that any player has won (troWho)
+let troWho = null;
+const troDate = q => new Date(q).toLocaleString('ca', { dateStyle: 'long', timeStyle: 'short' });
 function troRender() {
-  const got = troGot || {}, n = TROPHIES.filter(t => got[t.id]).length;
-  put('troSub', !troGot ? 'Carregant…' : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
+  const all = troWho && troWho.guanyadors, got = all || troGot || {}, n = TROPHIES.filter(t => got[t.id]).length;
+  put('troTitle', all ? 'TROFEUS DELS JUGADORS' : 'TROFEUS');
+  put('troSub', troWho === 'wait' || (!all && !troGot) ? 'Carregant…' : all ? `${n} de ${TROPHIES.length} guanyats per algú. Toca'n un per veure qui.` : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
+  const sub = t => all ? (got[t.id] ? `${got[t.id].length} jugador${got[t.id].length > 1 ? 's' : ''}` : 'ningú') : '';
   $('troCase').innerHTML = ['d', 'o', 'p', 'b'].map(k => `<div class="shelf ${k}"><span class="sl">${TIERS[k]}</span><ul>${TROPHIES.filter(t => t.tier === k).map(t =>
-    `<li><button class="trophy${got[t.id] ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id])}<small>${esc(t.name)}</small></button></li>`).join('')}</ul></div>`).join('');
+    `<li><button class="trophy${got[t.id] ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id])}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
 }
 function troOpen() {
   if (!ACC) { $('troMsg').hidden = false; $('troLogin').focus(); return; }
-  troRender(); $('troDet').hidden = true; $('tro').hidden = false; $('troClose').focus();
+  troWho = null; troRender(); $('troDet').hidden = true; $('tro').hidden = false; $('troClose').focus();
+}
+const troAdmin = () => !!ACC && ACC.nom.toLocaleLowerCase('ca') === 'miquel';
+async function troOpenAll() {
+  troWho = 'wait'; troRender(); $('troDet').hidden = true; $('tro').hidden = false; $('troClose').focus();
+  try { troWho = await api('/guanyadors'); troRender(); } catch (e) { put('troSub', e.message); }
 }
 $('troBtn').onclick = troOpen;
+$('accTroAll').onclick = troOpenAll;
 $('troLogin').onclick = () => { $('troMsg').hidden = true; openAcc(); };
-$('troClose').onclick = () => { $('tro').hidden = true; $('troBtn').focus(); };
+$('troClose').onclick = () => { $('tro').hidden = true; (troWho ? $('accTroAll') : $('troBtn')).focus(); troWho = null; };
 $('troCase').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if (!b) return;
-  const t = TRO[b.dataset.t], when = troGot && troGot[t.id];
-  $('troDetFig').innerHTML = troSvg(t, when); $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
+  const t = TRO[b.dataset.t], all = troWho && troWho.guanyadors, who = all && all[t.id], when = !all && troGot && troGot[t.id];
+  $('troDetFig').innerHTML = troSvg(t, all ? who : when); $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
   put('troDetName', t.name); put('troDetDesc', t.desc);
-  put('troDetWhen', when ? 'Aconseguit el ' + new Date(when).toLocaleString('ca', { dateStyle: 'long', timeStyle: 'short' }) + '.' : 'Encara no l\'has aconseguit.');
+  put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.');
+  $('troDetWho').hidden = !who;
+  $('troDetWho').innerHTML = who ? who.map(w => `<li><b>${esc(w.nom)}</b><span>${esc(troDate(w.quan))}</span></li>`).join('') : '';
   $('troDet').hidden = false; $('troDet').dataset.from = t.id; $('troDetClose').focus();
 });
 const troDetClose = () => { $('troDet').hidden = true; $('troCase').querySelector(`button[data-t="${$('troDet').dataset.from}"]`)?.focus(); };
@@ -4569,7 +4621,8 @@ $('troDet').addEventListener('click', e => { if (e.target.id === 'troDet') troDe
 $('tro').addEventListener('click', e => { if (e.target.id === 'tro') $('troClose').click(); });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (!$('troNew').hidden) troNewClose(); else if (!$('troDet').hidden) troDetClose(); else if (!$('tro').hidden) $('troClose').click();
+  if (!$('troNew').hidden) troNewClose(); else if (!$('troDet').hidden) troDetClose(); else if (!$('tro').hidden) $('troClose').click(); else return;
+  e.stopImmediatePropagation(); // the accounts window under the case stays open
 });
 
 // ---------- saved games ----------
@@ -4632,7 +4685,7 @@ function accShow(view) {
     $('accClau').autocomplete = accNew ? 'new-password' : 'current-password';
   }
   if (v === 'slots') { put('accWho', ACC.nom); $('accSaveName').placeholder = accName(); renderSlots(); }
-  if (v === 'user') { put('accUserNom', ACC.nom); for (const id of ['accNomMsg', 'accMailMsg', 'accAccMsg']) put(id, ''); accMailNote(); }
+  if (v === 'user') { put('accUserNom', ACC.nom); $('accTroLbl').hidden = $('accTroRow').hidden = !troAdmin(); for (const id of ['accNomMsg', 'accMailMsg', 'accAccMsg']) put(id, ''); accMailNote(); }
 }
 function renderSlots() {
   put('accHint', NET ? 'Les partides amb amics no es poden desar. Aquí només pots mirar les que tens.'

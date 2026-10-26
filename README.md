@@ -25,7 +25,7 @@ Els missatges entre jugadors passen per un petit repetidor a Cloudflare ([`worke
 
 ## Trofeus
 
-Amb el compte iniciat, **Trofeus** obre la vitrina: a dalt els de diamant, després or, plata i, a baix, bronze. Els que encara no tens surten en silueta; toca'n un per veure què demana i, si ja el tens, quin dia el vas aconseguir. Es guarden al compte i compten en qualsevol mode, també jugant amb amics.
+Amb el compte iniciat, **Trofeus** obre la vitrina: a dalt els de diamant, després or, plata i, a baix, bronze. Els que encara no tens surten en silueta; toca'n un per veure què demana i, si ja el tens, quin dia el vas aconseguir. Es guarden al compte i compten en qualsevol mode, també jugant amb amics. Des de **El meu usuari**, el compte de l'administrador (Miquel) pot veure quants jugadors han guanyat cada trofeu i qui són.
 
 ## Publicar amb GitHub Pages
 

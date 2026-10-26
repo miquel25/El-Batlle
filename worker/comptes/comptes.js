@@ -8,7 +8,8 @@
 // contrasenya; el codi s'envia a l'adreça que s'escriu en aquell moment.
 //
 // Trofeus: cada compte guarda els que ha aconseguit i quan. Només s'accepten els noms de la llista TROFEUS, i un
-// trofeu ja aconseguit no canvia de data.
+// trofeu ja aconseguit no canvia de data. A més, un registre comú (el Durable Object Registre) apunta qui ha guanyat
+// cada trofeu, que només pot consultar el compte ADMIN.
 //
 // Propostes de lleis: un jugador amb la sessió iniciada envia una proposta i aquí es crea l'issue a GitHub, signada
 // amb el seu nom de jugador. Cal el secret GITHUB_TOKEN (token fine-grained amb Issues: write només a El-Batlle).
@@ -22,7 +23,9 @@ const ORIGENS = ['https://miquel25.github.io'];
 const MAX_PARTIDES = 5, MAX_DADES = 1_900_000, MAX_SESSIONS = 10;
 const REPO = 'miquel25/El-Batlle', MAX_TITOL = 120, MAX_TEXT = 4000, PROPOSTES_HORA = 5;
 const NOM_AGAFAT = 'Aquest nom ja el fa servir un altre jugador (els noms no es poden repetir, encara que canviïn les majúscules). Tria\'n un altre.';
-const TROFEUS = ['armageddon', 'mirava', 'miler', 'nombrosa', 'endogamia', 'gilito', 'seixanta', 'camps', 'illustrada', 'tovarishch'];
+const TROFEUS = ['armageddon', 'mirava', 'completista', 'miler', 'nombrosa', 'endogamia', 'gilito', 'malvat', 'mansa', 'seixanta', 'palantir', 'milei', 'cabres',
+  'camps', 'illustrada', 'tovarishch', 'oligopoli', 'cromatic', 'bigone'];
+const ADMIN = 'miquel'; // l'únic compte que pot veure qui ha guanyat cada trofeu
 const DIES_SESSIO = 180, MINUTS_CODI = 30, MAX_ERRORS = 10, MINUTS_BLOQUEIG = 15;
 
 const permès = o => ORIGENS.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
@@ -66,6 +69,7 @@ async function ruta(req, env) {
   let d = {};
   if (m === 'POST' || m === 'PUT') { try { d = await req.json(); } catch (e) { return err(400, 'Dades no vàlides.'); } if (!d || typeof d !== 'object') return err(400, 'Dades no vàlides.'); }
   const compte = n => env.COMPTES.get(env.COMPTES.idFromName(clauNom(n)));
+  const registre = env.REGISTRE.get(env.REGISTRE.idFromName('tots'));
 
   // sense sessió: crear un compte, entrar i recuperar la contrasenya
   if (m === 'POST' && ['/registre', '/entra', '/recupera', '/nova-clau'].includes(camí)) {
@@ -104,18 +108,27 @@ async function ruta(req, env) {
   if (m === 'POST' && camí === '/canvia-nom') {
     const nou = netNom(d.nom);
     if (!nomValid(nou)) return err(400, 'El nom ha de tenir de 3 a 20 lletres, xifres, espais, punts o guions.');
-    if (clauNom(nou) === clauNom(nom)) return c.reanomena(tok, String(d.clau ?? ''), nou);
+    if (clauNom(nou) === clauNom(nom)) { const r = await c.reanomena(tok, String(d.clau ?? ''), nou); if (!r.estat) await registre.reanomena(clauNom(nom), nou); return r; }
     if (!(await porta('nom', 10, 60))) return err(429, 'Massa canvis de nom seguits. Torna-ho a provar d\'aquí una hora.');
     const vell = await c.exporta(tok, String(d.clau ?? ''));
     if (vell.estat) return vell;
     const r = await compte(nou).importa(nou, String(d.clauNova ?? ''), vell);
-    if (!r.estat) await c.tanca(); // el nom vell queda lliure
+    if (!r.estat) { await c.tanca(); await registre.reanomena(clauNom(nom), nou); } // el nom vell queda lliure
     return r;
   }
-  if (m === 'GET' && camí === '/trofeus') return c.trofeus(tok);
-  if (m === 'POST' && camí === '/trofeus') return TROFEUS.includes(d.id) ? c.trofeu(tok, d.id) : err(400, 'Aquest trofeu no existeix.');
+  // el registre comú s'omple també amb els trofeus que cada jugador ja tenia, cada vegada que els carrega
+  if (m === 'GET' && camí === '/trofeus') { const r = await c.trofeus(tok); if (!r.estat) await registre.posa(r.nom, r.llista); return r.estat ? r : { trofeus: r.trofeus }; }
+  if (m === 'POST' && camí === '/trofeus') {
+    if (!TROFEUS.includes(d.id)) return err(400, 'Aquest trofeu no existeix.');
+    const r = await c.trofeu(tok, d.id); if (!r.estat) await registre.posa(r.nom, [{ id: r.id, quan: r.quan }]);
+    return r.estat ? r : { id: r.id, quan: r.quan };
+  }
+  if (m === 'GET' && camí === '/guanyadors') {
+    const qui = await c.qui(tok); if (qui.estat) return qui;
+    return clauNom(qui.nom) === ADMIN ? registre.llista() : err(403, 'Només ho pot veure l\'administrador.');
+  }
   if (m === 'POST' && camí === '/proposta') return proposta(env, c, tok, d, porta);
-  if (m === 'POST' && camí === '/esborra-compte') return c.esborraCompte(tok, String(d.clau ?? ''));
+  if (m === 'POST' && camí === '/esborra-compte') { const r = await c.esborraCompte(tok, String(d.clau ?? '')); if (!r.estat) await registre.esborra(clauNom(nom)); return r; }
   return err(404, 'No existeix.');
 }
 
@@ -153,6 +166,29 @@ export class Porter extends DurableObject {
     return true;
   }
   async alarm() { await this.ctx.storage.deleteAll(); this.taules(); }
+}
+
+// qui ha guanyat cada trofeu, per a tots els comptes: una fila per compte (el nom en minúscules) i trofeu
+export class Registre extends DurableObject {
+  constructor(ctx, env) { super(ctx, env); this.sql = ctx.storage.sql; this.sql.exec('CREATE TABLE IF NOT EXISTS g (clau TEXT, nom TEXT, id TEXT, quan INTEGER, PRIMARY KEY (clau, id))'); }
+  posa(nom, llista) {
+    const clau = clauNom(nom);
+    for (const t of llista) this.sql.exec('INSERT OR IGNORE INTO g VALUES (?, ?, ?, ?)', clau, nom, t.id, t.quan);
+    this.sql.exec('UPDATE g SET nom = ? WHERE clau = ?', nom, clau);
+    return { ok: true };
+  }
+  reanomena(vella, nom) {
+    const clau = clauNom(nom);
+    if (clau !== vella) this.sql.exec('DELETE FROM g WHERE clau = ?', clau); // restes d'un compte esborrat amb aquest nom
+    this.sql.exec('UPDATE g SET clau = ?, nom = ? WHERE clau = ?', clau, nom, vella);
+    return { ok: true };
+  }
+  esborra(clau) { this.sql.exec('DELETE FROM g WHERE clau = ?', clau); return { ok: true }; }
+  llista() {
+    const guanyadors = {};
+    for (const r of this.sql.exec('SELECT nom, id, quan FROM g ORDER BY quan').toArray()) (guanyadors[r.id] ||= []).push({ nom: r.nom, quan: r.quan });
+    return { guanyadors };
+  }
 }
 
 export class Compte extends DurableObject {
@@ -287,13 +323,14 @@ export class Compte extends DurableObject {
   }
   async trofeus(t) {
     if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
-    return { trofeus: Object.fromEntries(this.sql.exec('SELECT id, quan FROM trofeus').toArray().map(r => [r.id, r.quan])) };
+    const llista = this.sql.exec('SELECT id, quan FROM trofeus').toArray();
+    return { nom: this.c.nom, llista, trofeus: Object.fromEntries(llista.map(r => [r.id, r.quan])) };
   }
   // el primer cop queda la data; si ja el tenia, es torna la data de llavors
   async trofeu(t, id) {
     if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
     this.sql.exec('INSERT OR IGNORE INTO trofeus VALUES (?, ?)', id, Date.now());
-    return { id, quan: this.sql.exec('SELECT quan FROM trofeus WHERE id = ?', id).toArray()[0].quan };
+    return { nom: this.c.nom, id, quan: this.sql.exec('SELECT quan FROM trofeus WHERE id = ?', id).toArray()[0].quan };
   }
   async surt(t) {
     if (/^[0-9a-f]{48}$/.test(t)) this.sql.exec('DELETE FROM sessions WHERE t = ?', await sha(t));
