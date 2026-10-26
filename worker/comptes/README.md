@@ -5,7 +5,8 @@ Permet crear un compte amb un nom de jugador i una contrasenya i desar-hi fins a
 - La contrasenya no surt mai del navegador: el joc n'envia una clau derivada (PBKDF2) i aquí se'n desa un altre hash amb sal pròpia.
 - El correu és opcional i només serveix per recuperar la contrasenya. No es desa tal qual, només un hash: quan algú el torna a escriure, es comprova i s'hi envia un codi de 6 xifres que val 30 minuts.
 - Límits contra abusos: 5 comptes nous per hora i connexió, bloqueig de 15 minuts després de 10 contrasenyes errònies, 5 partides per compte i fins a ~1,9 MB per partida.
-- Es pot esborrar el compte i totes les partides des del joc.
+- Els noms no es poden repetir, encara que canviïn les majúscules: cada nom (en minúscules) té el seu propi Durable Object, i només el primer que el reclama el pot fer servir.
+- Des de «El meu usuari» es pot canviar el nom (el compte i les partides passen al nom nou, que ha d'estar lliure, i el vell queda lliure), posar, canviar o treure el correu, i esborrar el compte amb totes les partides.
 
 ## Desplegar
 

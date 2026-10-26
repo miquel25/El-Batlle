@@ -270,9 +270,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .acc .slots .si small{color:var(--muted);font-size:11.5px}
 .acc .slots .sb{display:flex;gap:6px;flex-wrap:wrap}
 .acc .slots .btn{font-size:12px;padding:5px 9px}
-.acc details{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
-.acc details summary{cursor:pointer;font-size:12px;color:var(--muted)}
-.acc details>div{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.acc .who .sb{display:flex;gap:6px}
+.acc #accUser .lbl:not(:first-of-type){border-top:1px solid var(--line);padding-top:12px;margin-top:8px}
 .mp .code{font-family:var(--f-display);font-size:32px;letter-spacing:.18em;color:var(--amber);line-height:1.1}
 .players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .players li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:5px 8px;background:var(--panel);font-size:12.5px}
@@ -587,24 +586,33 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <button class="link" type="button" id="accRecBack">Torna</button>
       <p class="msg" id="accRecMsg" role="status"></p>
     </form>
+    <div class="body" id="accUser" hidden>
+      <button class="link" type="button" id="accUserBack">← Torna a les partides</button>
+      <p class="lbl">Nom de jugador</p>
+      <p class="note">Ara et dius <b id="accUserNom"></b>. Els noms no es poden repetir: si un altre jugador ja fa servir el nom que tries (encara que sigui amb majúscules diferents), no te'l deixarà agafar. Les partides es queden al compte, i als altres navegadors on el tinguis obert hauràs de tornar a entrar.</p>
+      <label for="accNewNom">Nom nou</label>
+      <input id="accNewNom" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <label for="accNewNomClau">La teva contrasenya</label>
+      <div class="opt"><input id="accNewNomClau" type="password" maxlength="100" autocomplete="current-password"><button class="btn primary" type="button" id="accNomGo">Canvia el nom</button></div>
+      <p class="msg" id="accNomMsg" role="status"></p>
+      <p class="lbl">Correu per recuperar la contrasenya</p>
+      <p class="note" id="accMailNote"></p>
+      <label for="accMail" id="accMailLbl">Correu</label>
+      <div class="opt"><input id="accMail" type="email" maxlength="120" placeholder="nom@exemple.cat" autocomplete="email"><button class="btn" type="button" id="accMailGo">Desa el correu</button><button class="btn" type="button" id="accMailDel">Treu el correu</button></div>
+      <p class="note">El correu és opcional i només serveix per recuperar la contrasenya si l'oblides. No s'utilitzarà per a cap altre fi: no rebràs cap altre correu ni es passarà a ningú. Ni tan sols es desa tal qual, només una empremta xifrada per comprovar-lo, per això aquí no es pot mostrar.</p>
+      <p class="msg" id="accMailMsg" role="status"></p>
+      <p class="lbl">Esborrar el compte</p>
+      <label for="accDelClau">S'esborren el compte i totes les partides. Escriu la contrasenya:</label>
+      <div class="opt"><input id="accDelClau" type="password" maxlength="100" autocomplete="current-password"><button class="btn" type="button" id="accDel">Esborra el compte</button></div>
+      <p class="msg" id="accAccMsg" role="status"></p>
+    </div>
     <div class="body" id="accSlots" hidden>
-      <p class="who"><span>Has entrat com a <b id="accWho"></b></span><button class="btn" type="button" id="accOut">Surt</button></p>
+      <p class="who"><span>Has entrat com a <b id="accWho"></b></span><span class="sb"><button class="btn" type="button" id="accMe">El meu usuari</button><button class="btn" type="button" id="accOut">Surt</button></span></p>
       <p class="note" id="accHint"></p>
       <label for="accSaveName">Nom de la partida que desis</label>
       <input id="accSaveName" maxlength="40" placeholder="">
       <ul class="slots" id="accList"></ul>
       <p class="msg" id="accSlotMsg" role="status"></p>
-      <details>
-        <summary>El teu compte</summary>
-        <div>
-          <label for="accMail">Correu per recuperar la contrasenya (opcional)</label>
-          <div class="opt"><input id="accMail" type="email" maxlength="120" placeholder="nom@exemple.cat" autocomplete="email"><button class="btn" type="button" id="accMailGo">Desa el correu</button></div>
-          <p class="note" id="accMailNote"></p>
-          <label for="accDelClau">Esborrar el compte i totes les partides (escriu la contrasenya)</label>
-          <div class="opt"><input id="accDelClau" type="password" maxlength="100" autocomplete="current-password"><button class="btn" type="button" id="accDel">Esborra el compte</button></div>
-          <p class="msg" id="accAccMsg" role="status"></p>
-        </div>
-      </details>
     </div>
   </div>
 </div>
@@ -4352,7 +4360,7 @@ async function api(path, method = 'GET', body) {
       headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(ACC ? { Authorization: 'Bearer ' + ACC.testimoni } : {}) } });
   } catch (e) { throw new Error('No es pot connectar amb el servidor de partides. Torna-ho a provar d\'aquí una estona.'); }
   const d = await r.json().catch(() => ({}));
-  if (r.status === 401 && ACC && !['/entra', '/esborra-compte'].includes(path)) { ACC = null; accKeep(); accShow(); }
+  if (r.status === 401 && ACC && path !== '/entra') { ACC = null; accKeep(); accShow(); }
   if (!r.ok) throw new Error(d.error || 'No s\'ha pogut fer.');
   return d;
 }
@@ -4380,7 +4388,7 @@ const accName = () => ME ? `Els ${ME.surname}, ${dateLong(S.day)}` : `El poble, 
 const canSave = () => !NET && $('intro').hidden;
 function accShow(view) {
   const v = view || (ACC ? 'slots' : 'login');
-  $('accLogin').hidden = v !== 'login'; $('accRec').hidden = v !== 'rec'; $('accSlots').hidden = v !== 'slots';
+  $('accLogin').hidden = v !== 'login'; $('accRec').hidden = v !== 'rec'; $('accSlots').hidden = v !== 'slots'; $('accUser').hidden = v !== 'user';
   if (v === 'login') {
     $('accTabIn').setAttribute('aria-pressed', !accNew); $('accTabNew').setAttribute('aria-pressed', accNew);
     $('accNewOnly').hidden = !accNew; $('accForgot').hidden = accNew;
@@ -4388,6 +4396,7 @@ function accShow(view) {
     $('accClau').autocomplete = accNew ? 'new-password' : 'current-password';
   }
   if (v === 'slots') { put('accWho', ACC.nom); $('accSaveName').placeholder = accName(); renderSlots(); }
+  if (v === 'user') { put('accUserNom', ACC.nom); for (const id of ['accNomMsg', 'accMailMsg', 'accAccMsg']) put(id, ''); accMailNote(); }
 }
 function renderSlots() {
   put('accHint', NET ? 'Les partides amb amics no es poden desar. Aquí només pots mirar les que tens.'
@@ -4407,8 +4416,11 @@ async function accRefresh() {
   accList = null; renderSlots();
   try { accList = await api('/partides'); ACC.correu = accList.correu; renderSlots(); accMailNote(); } catch (e) { put('accSlotMsg', e.message); }
 }
-const accMailNote = () => put('accMailNote', (ACC && ACC.correu ? 'Ara tens un correu per recuperar la contrasenya. Deixa-ho buit i desa per treure\'l. ' : 'Ara no tens cap correu: si oblides la contrasenya no es podrà recuperar. ')
-  + 'Només serveix per recuperar la contrasenya i no s\'utilitzarà per a cap altre fi; no es desa tal qual, només una empremta xifrada.');
+function accMailNote() {
+  const has = !!(ACC && ACC.correu);
+  put('accMailNote', has ? 'Tens un correu posat. Pots canviar-lo per un altre o treure\'l.' : 'No tens cap correu posat: si oblides la contrasenya, no es podrà recuperar el compte.');
+  put('accMailLbl', has ? 'Correu nou' : 'Correu'); $('accMailDel').hidden = !has;
+}
 // a button that does something that can't be undone asks once more
 function sure(b, txt, fn) {
   if (b.dataset.sure) { fn(); return; }
@@ -4416,7 +4428,7 @@ function sure(b, txt, fn) {
   setTimeout(() => { b.textContent = o; delete b.dataset.sure; }, 3000);
 }
 function openAcc() {
-  $('acc').hidden = false; put('accMsg', ''); put('accSlotMsg', ''); put('accAccMsg', '');
+  $('acc').hidden = false; put('accMsg', ''); put('accSlotMsg', '');
   accShow();
   if (ACC) { accRefresh(); $('accClose').focus(); } else ($('accNom').value ? $('accClau') : $('accNom')).focus();
 }
@@ -4501,10 +4513,30 @@ async function loadGame(slot) {
     if (ME && ME.asks && ME.asks.length) showAsk();
   } catch (err) { put('accSlotMsg', err.message || 'No s\'ha pogut carregar la partida.'); }
 }
-$('accMailGo').onclick = async () => {
+async function setMail(correu) {
+  try { const d = await api('/correu', 'POST', { correu }); ACC.correu = d.correu; $('accMail').value = ''; accMailNote(); put('accMailMsg', d.correu ? 'Correu desat.' : 'Correu tret.'); } catch (err) { put('accMailMsg', err.message); }
+}
+$('accMailGo').onclick = () => {
   const correu = $('accMail').value.trim();
-  if (correu && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correu)) { put('accAccMsg', 'Aquest correu no sembla vàlid.'); return; }
-  try { const d = await api('/correu', 'POST', { correu }); ACC.correu = d.correu; $('accMail').value = ''; accMailNote(); put('accAccMsg', d.correu ? 'Correu desat.' : 'Correu tret.'); } catch (err) { put('accAccMsg', err.message); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correu)) { put('accMailMsg', correu ? 'Aquest correu no sembla vàlid.' : 'Escriu el correu.'); $('accMail').focus(); return; }
+  setMail(correu);
+};
+$('accMailDel').onclick = () => sure($('accMailDel'), 'Segur? Treu-lo', () => setMail(''));
+$('accMe').onclick = () => { accShow('user'); $('accUserBack').focus(); };
+$('accUserBack').onclick = () => { accShow('slots'); };
+$('accNomGo').onclick = async () => {
+  const nom = $('accNewNom').value.replace(/\s+/g, ' ').trim(), pass = $('accNewNomClau').value;
+  if (!/^[\p{L}\p{N}_. -]{3,20}$/u.test(nom)) { put('accNomMsg', 'El nom ha de tenir de 3 a 20 lletres, xifres, espais, punts o guions.'); $('accNewNom').focus(); return; }
+  if (nom === ACC.nom) { put('accNomMsg', 'Ja et dius així.'); return; }
+  if (!pass) { put('accNomMsg', 'Escriu la contrasenya.'); $('accNewNomClau').focus(); return; }
+  $('accNomGo').disabled = true; put('accNomMsg', 'Canviant el nom…');
+  try {
+    const [clau, clauNova] = await Promise.all([passKey(ACC.nom, pass), passKey(nom, pass)]);
+    const d = await api('/canvia-nom', 'POST', { nom, clau, clauNova });
+    ACC = { ...ACC, ...d }; accKeep(); $('accNewNom').value = ''; $('accNewNomClau').value = '';
+    put('accUserNom', ACC.nom); put('accNomMsg', `Fet: ara et dius ${ACC.nom}.`);
+  } catch (err) { put('accNomMsg', err.message); }
+  $('accNomGo').disabled = false;
 };
 $('accDel').onclick = () => sure($('accDel'), 'Segur? No es pot desfer', async () => {
   try {

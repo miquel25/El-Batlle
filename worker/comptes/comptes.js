@@ -14,6 +14,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 const ORIGENS = ['https://miquel25.github.io'];
 const MAX_PARTIDES = 5, MAX_DADES = 1_900_000, MAX_SESSIONS = 10;
+const NOM_AGAFAT = 'Aquest nom ja el fa servir un altre jugador (els noms no es poden repetir, encara que canviïn les majúscules). Tria\'n un altre.';
 const DIES_SESSIO = 180, MINUTS_CODI = 30, MAX_ERRORS = 10, MINUTS_BLOQUEIG = 15;
 
 const permès = o => ORIGENS.includes(o) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
@@ -92,6 +93,17 @@ async function ruta(req, env) {
   if (p && m === 'DELETE') return c.esborra(tok, slot);
   if (m === 'POST' && camí === '/surt') return c.surt(tok);
   if (m === 'POST' && camí === '/correu') return c.canviaCorreu(tok, d.correu ? String(d.correu).trim() : '');
+  if (m === 'POST' && camí === '/canvia-nom') {
+    const nou = netNom(d.nom);
+    if (!nomValid(nou)) return err(400, 'El nom ha de tenir de 3 a 20 lletres, xifres, espais, punts o guions.');
+    if (clauNom(nou) === clauNom(nom)) return c.reanomena(tok, String(d.clau ?? ''), nou);
+    if (!(await porta('nom', 10, 60))) return err(429, 'Massa canvis de nom seguits. Torna-ho a provar d\'aquí una hora.');
+    const vell = await c.exporta(tok, String(d.clau ?? ''));
+    if (vell.estat) return vell;
+    const r = await compte(nou).importa(nou, String(d.clauNova ?? ''), vell);
+    if (!r.estat) await c.tanca(); // el nom vell queda lliure
+    return r;
+  }
   if (m === 'POST' && camí === '/esborra-compte') return c.esborraCompte(tok, String(d.clau ?? ''));
   return err(404, 'No existeix.');
 }
@@ -138,14 +150,40 @@ export class Compte extends DurableObject {
   }
   info() { const c = this.c; return { nom: c.nom, correu: !!c.correu, max: MAX_PARTIDES }; }
 
+  // el nom és lliure si aquest objecte (un per nom, sense comptar majúscules) encara no té compte. Els càlculs es
+  // fan abans de mirar-ho, perquè entre la comprovació i l'escriptura no s'hi pugui colar una altra petició
   async registre(nom, clau, correu) {
-    if (this.c) return err(409, 'Aquest nom ja el fa servir un altre jugador. Tria\'n un altre.');
     if (!/^[0-9a-f]{64}$/.test(clau)) return err(400, 'Contrasenya no vàlida.');
     if (correu && !correuValid(correu)) return err(400, 'Aquest correu no sembla vàlid.');
-    const sal = atzar(16);
-    this.sql.exec('INSERT INTO compte (nom, sal, hash, correu, creat) VALUES (?, ?, ?, ?, ?)',
-      nom, sal, await pbkdf2(clau, sal), correu ? await sha(`${sal}:${correu.toLowerCase()}`) : null, Date.now());
+    const sal = atzar(16), hash = await pbkdf2(clau, sal), hc = correu ? await sha(`${sal}:${correu.toLowerCase()}`) : null;
+    if (this.c) return err(409, NOM_AGAFAT);
+    this.sql.exec('INSERT INTO compte (nom, sal, hash, correu, creat) VALUES (?, ?, ?, ?, ?)', nom, sal, hash, hc, Date.now());
     return { testimoni: await this.nouTestimoni(), ...this.info() };
+  }
+  // canviar de nom: el compte vell s'exporta, el nou l'importa (si el nom és lliure) i el vell s'esborra.
+  // La clau derivada depèn del nom, per això cal la contrasenya: la vella per comprovar-la i la nova (mateixa
+  // contrasenya, nom nou) per desar-la
+  async exporta(t, clau) {
+    if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
+    const c = this.c;
+    if (!/^[0-9a-f]{64}$/.test(clau) || !iguals(await pbkdf2(clau, c.sal), c.hash)) return err(403, 'La contrasenya no és correcta.');
+    return { sal: c.sal, correu: c.correu, creat: c.creat, partides: this.sql.exec('SELECT * FROM partides').toArray() };
+  }
+  async importa(nom, clau, d) {
+    if (!/^[0-9a-f]{64}$/.test(clau)) return err(400, 'Contrasenya no vàlida.');
+    const hash = await pbkdf2(clau, d.sal);
+    if (this.c) return err(409, NOM_AGAFAT);
+    this.sql.exec('INSERT INTO compte (nom, sal, hash, correu, creat) VALUES (?, ?, ?, ?, ?)', nom, d.sal, hash, d.correu, d.creat);
+    for (const p of d.partides) this.sql.exec('INSERT INTO partides VALUES (?, ?, ?, ?, ?)', p.slot, p.nom, p.desat, p.meta, p.dades);
+    return { testimoni: await this.nouTestimoni(), ...this.info() };
+  }
+  async tanca() { await this.ctx.storage.deleteAll(); this.taules(); return { ok: true }; }
+  // només canvien majúscules, accents no: és el mateix compte
+  async reanomena(t, clau, nom) {
+    if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
+    if (!/^[0-9a-f]{64}$/.test(clau) || !iguals(await pbkdf2(clau, this.c.sal), this.c.hash)) return err(403, 'La contrasenya no és correcta.');
+    this.sql.exec('UPDATE compte SET nom = ?', nom);
+    return { testimoni: `${t}.${encodeURIComponent(clauNom(nom))}`, ...this.info() };
   }
   async entra(clau) {
     const c = this.c, ara = Date.now();
@@ -225,7 +263,7 @@ export class Compte extends DurableObject {
   }
   async esborraCompte(t, clau) {
     if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
-    if (!/^[0-9a-f]{64}$/.test(clau) || !iguals(await pbkdf2(clau, this.c.sal), this.c.hash)) return err(401, 'La contrasenya no és correcta.');
+    if (!/^[0-9a-f]{64}$/.test(clau) || !iguals(await pbkdf2(clau, this.c.sal), this.c.hash)) return err(403, 'La contrasenya no és correcta.');
     await this.ctx.storage.deleteAll();
     this.taules();
     return { ok: true };
