@@ -160,6 +160,9 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .ask .row{display:flex;gap:8px;flex-wrap:wrap}
 .ask .row .btn{flex:1;min-width:120px;padding:9px 12px}
 .ask label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.ask .cands{display:flex;flex-direction:column;gap:8px;margin-top:2px}
+.ask .cand{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;color:var(--muted)}
+.ask .cand b{font-family:var(--f-serif);font-size:15px;color:var(--ink);font-weight:600}
 .ask .more{font-size:11px;color:var(--amber);margin:0}
 .intro .brand{margin-bottom:auto;align-self:center;display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:8px}
 .intro .brand img{width:clamp(90px,22vw,150px);height:auto;filter:drop-shadow(0 2px 4px rgba(0,0,0,.7))}
@@ -1157,6 +1160,38 @@ const WT_STEP = 0.05, WT_MAX = 0.3; // wealth tax
 const RENT_CAP = 0.3; // rent cap law
 const FLOOR_WOOD = 10, FLOOR_STONE = 8, MAX_FLOORS = 5, RENT_START = 0.4, RENT_MIN = 0.1, RENT_MAX = 3;
 const HUT_VAL = 40, UP_VAL = 40, FLOOR_VAL = 30;
+// what a family lacks for a build can be bought from the spare stock of other families: wood at 1 of food, stone and
+// iron at their market price. A family decides to build if it has the materials, or the food to buy what is missing
+// and still keep a month of food
+const MATS = { wood: ['fusta', () => 1], stone: ['pedra', () => S.stonePrice], iron: ['ferro', () => S.ironPrice] };
+const spareOf = (o, k) => k === 'wood' ? o.wood - 20 : k === 'stone' ? o.stone - stoneNeed(o) : o.iron - (o.forge && o.members.some(m => m.job === 'ferrer') ? 8 : 0);
+const sellersOf = (h, k) => S.homes.filter(o => o !== h && !o.gone && o.members.length && spareOf(o, k) >= 1).sort((a, b) => spareOf(b, k) - spareOf(a, k));
+function lacking(h, cost, keep = {}) { // the materials to buy and what they cost, or null if nobody has enough to sell
+  const out = { food: 0, items: [] };
+  for (const k in MATS) {
+    const miss = Math.ceil((cost[k] || 0) + (keep[k] || 0) - h[k]);
+    if (miss <= 0 || !cost[k]) continue;
+    const q = miss;
+    if (sellersOf(h, k).reduce((t, o) => t + Math.floor(spareOf(o, k)), 0) < q) return null;
+    out.items.push([k, q]); out.food += q * MATS[k][1]();
+  }
+  return out;
+}
+const canBuild = (h, cost, keep) => { const l = lacking(h, cost, keep); return l && (!l.food || h.food - l.food >= need(h) * 30) ? l : null; };
+const buyTxt = l => l && l.items.length ? ` Us falten ${l.items.map(([k, q]) => `${fmt(q)} de ${MATS[k][0]}`).join(' i ')}, que podeu comprar per ${fmt(l.food)} de menjar.` : '';
+function buyLacking(h, l) {
+  for (const [k, q0] of l.items) {
+    let q = q0;
+    for (const o of sellersOf(h, k)) {
+      const t = Math.min(q, Math.floor(spareOf(o, k))); if (t <= 0) continue;
+      const pay = t * MATS[k][1]();
+      o[k] -= t; h[k] += t; h.food -= pay; o.food += pay; q -= t;
+      if (k === 'stone') { o.stoneSold += t; S.st.stoneSold += t; } else if (k === 'iron') S.st.ironSold += t;
+      if (!q) break;
+    }
+    if (R() < 0.3) tagHome(h, `COMPRA ${q0 - q} ${MATS[k][0].toUpperCase()}`, 'amber');
+  }
+}
 const floorCost = hut => { const k = (hut.floors || 0) + 1; return { wood: FLOOR_WOOD * k, stone: FLOOR_STONE * k }; };
 const hutOwner = hut => S.homes.find(o => o.hut === hut && !o.gone && !o.tenant);
 // a block inherited by a family that already has a home is let out whole, ground floor included: rent goes to that landlord
@@ -1360,15 +1395,54 @@ function leave(p, why) {
 // The new house takes the man's surname. A woman who finds no single man leaves the village;
 // a man who finds no single woman marries one from outside
 // the single adult of the other sex, from another family, closest in age (widows still living with family are not free to go)
-function findPartner(kid) {
+function findPartners(kid, n = 1) { // the singles of another family who could marry kid, closest in age first
   const h = kid.h, want = kid.sex === 'f' ? 'm' : 'f';
-  const cands = S.people.filter(q => q.sex === want && q.age >= 360 && !q.married && !q.leaving && !q.h.gone && q.h !== h && q.h.surname !== h.surname
-    && !(q.widow != null && (S.day - q.widow < MOURN || (q.sex === 'f' && q.h.members.length > 1))));
-  return cands.length ? cands.reduce((b, q) => Math.abs(q.age - kid.age) < Math.abs(b.age - kid.age) ? q : b) : null;
+  return S.people.filter(q => q.sex === want && q.age >= 360 && !q.married && !q.leaving && !q.h.gone && q.h !== h && q.h.surname !== h.surname
+    && !(q.widow != null && (S.day - q.widow < MOURN || (q.sex === 'f' && q.h.members.length > 1))))
+    .sort((a, b) => Math.abs(a.age - kid.age) - Math.abs(b.age - kid.age) || a.id - b.id).slice(0, n);
 }
-function marryOut(kid) {
+function findPartner(kid) { return findPartners(kid)[0] || null; }
+// someone gets married: they leave home with their partner (out), or bring the partner home (in). A player's family
+// picks the partner among the three closest in age, or puts it off for two months: the choice waits among the family's
+// questions and the wedding happens the moment the answer arrives (resolveWedding)
+function wed(kid, home) {
+  const h = kid.h, cands = findPartners(kid, 3);
+  if (h.human != null && cands.length) {
+    if (S.day < (kid.wedWait || 0)) return;
+    h.asks ||= [];
+    const key = (home ? 'wedI' : 'wedO') + kid.id;
+    if (h.asks.some(q => q.key === key)) return;
+    const pc = v => Math.round(v * 100);
+    h.asks.push({ key, ttl: 0, text: `${fullName(kid)} (${ageTxt(kid)}) es vol casar${home ? ' i la parella vindrà a viure a casa vostra' : ' i fer casa pròpia'}. Amb qui?`,
+      opts: [...cands.map(q => [fullName(q), q.id]), ['Ara no', -1]],
+      ctx: `<span class="cands">${cands.map(q => `<span class="cand"><b>${esc(fullName(q))}</b>
+    <span>${ageTxt(q)} · dels ${esc(q.h.surname)}${q.job ? ` · ${q.job}` : ''}${q.widow != null ? (q.sex === 'f' ? ' · vídua' : ' · vidu') : ''}</span>
+    <span>força ${pc(q.str)} · intel·ligència ${pc(q.int)} · salut ${pc(q.health)}</span>
+    <span>cobdícia ${pc(q.greed)} · mandra ${pc(q.lazy)}</span>
+    <span>la seva família hi aporta ${fmt(q.h.food * 0.2)} de menjar</span></span>`).join('')}</span>` });
+    if (h === ME) showAsk();
+    return;
+  }
+  if (home) marryIn(h, kid, cands[0] || null); else marryOut(kid, cands[0] || null);
+}
+function resolveWedding(h, key, val) {
+  const kid = S.people.find(p => p.id === +key.slice(4));
+  if (!kid || kid.h !== h || kid.married || kid.leaving) return; // too late: nothing to do
+  if (val === -1) { kid.wedWait = S.day + 60; return; }
+  const q = findPartners(kid, 1e9).find(p => p.id === val);
+  if (!q) { log(`${fullName(kid)} ja no es pot casar amb qui havíeu triat.`, 'info'); return; }
+  if (key[3] === 'I') marryIn(h, kid, q); else marryOut(kid, q);
+}
+function marryIn(h, son, partner) { // the partner comes to live in son's house; with nobody in the village, a wife comes from outside
+  let wife = partner;
+  if (partner) { const g = partner.h.food * 0.2; partner.h.food -= g; h.food += g; moveTo(partner, h); }
+  else { wife = newPerson(h, ri(380, 900), null, 'f', freshSurname()); wife.x = son.x + 1; wife.y = son.y; wife.tx = wife.x; wife.ty = wife.y; wife.bx = wife.x; wife.by = wife.y; }
+  son.married = wife.married = true; son.widow = wife.widow = null; S.st.weddings++;
+  log(`${fullName(son)} es casa amb ${fullName(wife)}${partner ? '' : ', que ve de fora'}, i viuran a la casa dels ${h.surname}.`, 'good');
+  tag(son.x, son.y, 'CASAMENT', 'good');
+}
+function marryOut(kid, partner = findPartner(kid)) {
   const h = kid.h, wid = kid.widow != null;
-  const partner = findPartner(kid);
   if (!partner && kid.sex === 'f') {
     log(wid ? `${fullName(kid)} s'ha quedat sola a casa des que va enviudar. Al poble no hi ha cap home solter, així que se'n va a viure fora.`
       : `${fullName(kid)} ha de deixar casa dels ${h.surname}, però al poble no hi ha cap home solter. Se'n va a viure fora.`, 'info');
@@ -1458,8 +1532,8 @@ function daily() {
         const hc = hutCost();
         if (h.wood < hc.wood || h.stone >= hc.stone || (S.stoneStock > 0 && h.food > S.stonePrice * hc.stone)) doWood(h, p, eff, hx);
         else quarry(h, p, eff, false);
-        if (h.wood >= hc.wood && h.stone >= hc.stone && ask(h, 'hut', hc.wood < 14 ? `Hi ha una cabana en ruïnes que podeu refer amb ${hc.wood} de fusta i ${hc.stone} de pedra. La refeu?`
-          : `Ja teniu 14 de fusta i ${HUT_STONE} de pedra. Construïu una cabana?`)) buildHut(h);
+        const hl = canBuild(h, hc);
+        if (hl && ask(h, 'hut', (hc.wood < 14 ? `Hi ha una cabana en ruïnes que podeu refer amb ${hc.wood} de fusta i ${hc.stone} de pedra.` : `Podeu fer una cabana amb 14 de fusta i ${HUT_STONE} de pedra.`) + buyTxt(hl) + (hc.wood < 14 ? ' La refeu?' : ' La construïu?'))) { buyLacking(h, hl); buildHut(h); }
       } else if (season === 2 && ripe.length) {
         const f = ripe.pop();
         setTask(p, 'harvest', f.x + 1.5, f.y + 1, 1.5);
@@ -1848,9 +1922,10 @@ function daily() {
     for (const h of active) {
       if (!wantFloor(h)) continue;
       const c = floorCost(h.hut);
-      if (h.wood < c.wood + 10 || h.stone - (stoneNeed(h) - c.stone) < c.stone) continue;
-      if (!ask(h, 'floor', `Podeu aixecar un pis damunt de casa per ${c.wood} de fusta i ${c.stone} de pedra, i llogar-lo a ${S.rent.toFixed(2)} de menjar al dia. L'aixequeu?`, 'Sí', 'No', 90)) continue;
-      h.wood -= c.wood; h.stone -= c.stone; h.hut.floors++; h.hut.flats.push(null); S.st.floors++; S.vacant++; S.dirty = true;
+      const fl = canBuild(h, c, { wood: 10, stone: Math.max(0, stoneNeed(h) - c.stone) });
+      if (!fl) continue;
+      if (!ask(h, 'floor', `Podeu aixecar un pis damunt de casa per ${c.wood} de fusta i ${c.stone} de pedra, i llogar-lo a ${S.rent.toFixed(2)} de menjar al dia.${buyTxt(fl)} L'aixequeu?`, 'Sí', 'No', 90)) continue;
+      buyLacking(h, fl); h.wood -= c.wood; h.stone -= c.stone; h.hut.floors++; h.hut.flats.push(null); S.st.floors++; S.vacant++; S.dirty = true;
       tagHome(h, 'NOU PIS', 'good');
       log(`Els ${h.surname} aixequen ${h.hut.floors === 1 ? 'un pis' : `el pis número ${h.hut.floors}`} damunt de casa seva amb ${c.wood} de fusta i ${c.stone} de pedra, per llogar-lo.`, 'good');
     }
@@ -1900,9 +1975,11 @@ function daily() {
   }
   // improving a sheep pen
   for (const h of active) {
-    if (!wantPen(h) || h.wood < PEN_WOOD + 20 || h.iron < PEN_IRON) continue;
-    if (!ask(h, 'pen', `Podeu millorar el corral amb ${PEN_WOOD} de fusta i ${PEN_IRON} de ferro: hi cabran més ovelles, donaran més llet i se'n perdran menys. El milloreu?`, 'Sí', 'No', 90)) continue;
-    h.wood -= PEN_WOOD; h.iron -= PEN_IRON; h.pen.lvl = 1; S.st.penUps++; S.dirty = true;
+    if (!wantPen(h)) continue;
+    const pl = canBuild(h, { wood: PEN_WOOD, iron: PEN_IRON }, { wood: 20 });
+    if (!pl) continue;
+    if (!ask(h, 'pen', `Podeu millorar el corral amb ${PEN_WOOD} de fusta i ${PEN_IRON} de ferro: hi cabran més ovelles, donaran més llet i se'n perdran menys.${buyTxt(pl)} El milloreu?`, 'Sí', 'No', 90)) continue;
+    buyLacking(h, pl); h.wood -= PEN_WOOD; h.iron -= PEN_IRON; h.pen.lvl = 1; S.st.penUps++; S.dirty = true;
     tagHome(h, 'MILLOREN EL CORRAL', 'good');
     if (!S.flags.penUp) { S.flags.penUp = 1; log(`Els ${h.surname} milloren el corral amb ${PEN_WOOD} de fusta i ${PEN_IRON} de ferro: un cobert i una tanca forta. Hi cabran més ovelles i donaran més llet.`, 'good'); }
   }
@@ -1944,9 +2021,11 @@ function daily() {
   }
   // rebuilding a hut in stone
   for (const h of active) {
-    if (!wantUp(h) || h.iron < UP_IRON || h.stone - (stoneNeed(h) - UP_STONE) < UP_STONE) continue;
-    if (!ask(h, 'stone', `Podeu refer la cabana amb ${UP_STONE} de pedra i ${UP_IRON} de ferro. En una casa de pedra es fa malbé menys menjar i cal menys llenya. La refeu?`, 'Sí', 'No', 90)) continue;
-    h.stone -= UP_STONE; h.iron -= UP_IRON; h.hut.lvl = 1; S.dirty = true; S.st.upgrades++;
+    if (!wantUp(h)) continue;
+    const ul = canBuild(h, { stone: UP_STONE, iron: UP_IRON }, { stone: Math.max(0, stoneNeed(h) - UP_STONE) });
+    if (!ul) continue;
+    if (!ask(h, 'stone', `Podeu refer la cabana amb ${UP_STONE} de pedra i ${UP_IRON} de ferro. En una casa de pedra es fa malbé menys menjar i cal menys llenya.${buyTxt(ul)} La refeu?`, 'Sí', 'No', 90)) continue;
+    buyLacking(h, ul); h.stone -= UP_STONE; h.iron -= UP_IRON; h.hut.lvl = 1; S.dirty = true; S.st.upgrades++;
     tagHome(h, 'CASA DE PEDRA', 'good');
     if (!S.flags.upgrade) { S.flags.upgrade = 1; log(`Els ${h.surname} refan la cabana amb ${UP_STONE} de pedra i ${UP_IRON} de ferro. A les cases de pedra el menjar es conserva més i cal menys foc.`, 'good'); }
     else if (R() < 0.3) log(`Els ${h.surname} refan la cabana amb pedra.`, 'good');
@@ -2102,7 +2181,10 @@ function daily() {
       .map(o => ({ o, d: Math.hypot(o.hut.x - hx.x, o.hut.y - hx.y) }))
       .sort((u, v) => u.d - v.d).slice(0, 8).map(u => u.o);
     if (!others.length) continue;
-    if ((R() < p || want(h, 'steal')) && ask(h, 'steal', `Passeu gana. ${fullName(a)} pot anar a robar menjar als ${others.reduce((m, o) => o.food > m.food ? o : m, others[0]).surname}. Si l'atrapen, el primer cop queda avisat i el segon és desterrat.`, 'Que robi', 'No', 7)) {
+    const sk = a.caught ? 'steal2' : 'steal'; // a warned thief is asked apart: a remembered answer for the others doesn't send them
+    if ((R() < p || want(h, sk)) && ask(h, sk, `Passeu gana. ${fullName(a)} pot anar a robar menjar als ${others.reduce((m, o) => o.food > m.food ? o : m, others[0]).surname}. ${a.caught
+      ? `Compte: ${a.sex === 'f' ? 'ja la van atrapar' : 'ja el van atrapar'} robant el ${dateLong(a.caught)} i ${a.sex === 'f' ? 'està avisada' : 'està avisat'}. Si ara ${a.sex === 'f' ? "l'atrapen, serà desterrada" : "l'atrapen, serà desterrat"} del poble.`
+      : `No ${a.sex === 'f' ? "l'han atrapada" : "l'han atrapat"} mai: si ara ${a.sex === 'f' ? "l'atrapen, quedarà avisada" : "l'atrapen, quedarà avisat"}, i el segon cop serà ${a.sex === 'f' ? 'desterrada' : 'desterrat'}.`}`, 'Que robi', 'No', 7)) {
       const v = others.reduce((m, o) => o.food > m.food ? o : m, others[0]);
       const amt = Math.round(Math.min(v.food * 0.12, rr(3, 4 + h.members.length * 3)));
       if (amt < 1) continue;
@@ -2161,14 +2243,14 @@ function daily() {
   for (const h of active) {
     if (h.gone || !h.hut || h.members.length < famLimit(h)) continue;
     const kid = h.members.filter(p => p.age >= 360 && !p.married && !p.leaving && p.widow == null).sort((u, v) => u.age - v.age).pop();
-    if (kid) marryOut(kid);
+    if (kid) wed(kid, false);
   }
   // widows and widowers are single again once the mourning is over. A widower leaves home to find a new wife,
   // like a grown son; a widow only leaves if she has been left alone in the house
   for (const p of S.people.slice()) {
     if (p.leaving || p.married || p.widow == null || p.h.gone || S.day - p.widow < MOURN || R() > 0.03) continue;
     if (p.sex === 'f' && p.h.members.length > 1) continue;
-    marryOut(p);
+    wed(p, false);
   }
   // a house left with no couple (orphans, a widow's grown children) carries on: its eldest single son brings a wife home,
   // from another family or from outside. With no son, a daughter marries out only if there is a single man to marry
@@ -2176,15 +2258,8 @@ function daily() {
     if (h.gone || !h.hut || couple(h) || R() > 0.01) continue;
     const ad = h.members.filter(p => p.age >= 360 && !p.married && !p.leaving && p.widow == null).sort((u, v) => v.age - u.age);
     const son = ad.find(p => p.sex === 'm');
-    if (son) {
-      const partner = findPartner(son);
-      let wife = partner;
-      if (partner) { const g = partner.h.food * 0.2; partner.h.food -= g; h.food += g; moveTo(partner, h); }
-      else { wife = newPerson(h, ri(380, 900), null, 'f', freshSurname()); wife.x = son.x + 1; wife.y = son.y; wife.tx = wife.x; wife.ty = wife.y; wife.bx = wife.x; wife.by = wife.y; }
-      son.married = wife.married = true; wife.widow = null; S.st.weddings++;
-      log(`${fullName(son)} es casa amb ${fullName(wife)}${partner ? '' : ', que ve de fora'}, i viuran a la casa dels ${h.surname}.`, 'good');
-      tag(son.x, son.y, 'CASAMENT', 'good');
-    } else if (ad.length && findPartner(ad[0])) marryOut(ad[0]);
+    if (son) wed(son, true);
+    else if (ad.length && findPartner(ad[0])) wed(ad[0], false);
   }
 
   // newcomers
@@ -3465,28 +3540,30 @@ function showAsk() {
   put('askTitle', `DECISIÓ · ELS ${h.surname.toUpperCase()}`);
   put('askSub', dateLong(S.day) + (weekly() ? ' · decisions de la setmana' : ''));
   put('askText', q.text);
-  put('askCtx', `${h.members.length} persones · ${fmt(h.food)} de menjar (${Math.floor(daysOf(h))} dies) · riquesa ${fmt(wealth(h))}`);
+  if (q.ctx) $('askCtx').innerHTML = q.ctx;
+  else put('askCtx', `${h.members.length} persones · ${fmt(h.food)} de menjar (${Math.floor(daysOf(h))} dies) · riquesa ${fmt(wealth(h))}`);
   put('askMore', more ? `Hi ha ${more} decisió${more > 1 ? 'ns' : ''} més esperant.` : '');
-  $('askRememberL').hidden = false; $('askRemember').checked = false;
+  $('askRememberL').hidden = !!q.opts; $('askRemember').checked = false;
   const b = $('askBtns'); b.innerHTML = '';
-  for (const [label, yes] of [[q.yes, true], [q.no, false]]) {
+  for (const [label, yes, val] of q.opts ? q.opts.map(([l, v], i) => [l, i === 0, v]) : [[q.yes, true], [q.no, false]]) {
     const e = document.createElement('button'); e.className = 'btn' + (yes ? ' primary' : ''); e.textContent = label;
-    e.onclick = () => answer(yes); b.appendChild(e);
+    e.onclick = () => answer(yes, val); b.appendChild(e);
   }
   $('ask').hidden = false; b.firstChild.focus();
 }
-function answer(yes) {
-  const q = askQ, keep = $('askRemember').checked;
+function answer(yes, val) {
+  const q = askQ, keep = !q.opts && $('askRemember').checked;
   askOpen = null; askQ = null;
-  if (NET) { sentAns.add(q.key); netSend({ t: 'ans', key: q.key, yes, keep }); }
-  else applyAnswer(ME, q.key, yes, keep);
+  if (NET) { sentAns.add(q.key); netSend({ t: 'ans', key: q.key, yes, keep, val }); }
+  else applyAnswer(ME, q.key, yes, keep, val);
   if (ME && ME.asks.some(o => !sentAns.has(o.key))) { showAsk(); return; }
   closeAsk(true);
 }
-function applyAnswer(h, key, yes, keep) {
+function applyAnswer(h, key, yes, keep, val) {
   const i = h && h.asks ? h.asks.findIndex(q => q.key === key) : -1;
   if (i < 0) return;
   const q = h.asks.splice(i, 1)[0];
+  if (q.opts) { if (/^wed[IO]/.test(key)) resolveWedding(h, key, val); return; } // a choice is acted on at once
   // a one-off yes waits until the family next faces that choice (up to two months), and is used up then
   h.pol[q.key] = yes ? { yes, until: keep ? Infinity : S.day + (q.yesDays || 60), once: !keep && !q.yesDays }
                      : { yes, until: keep ? Infinity : S.day + q.ttl };
@@ -3771,7 +3848,7 @@ const sig = () => [S.frame, rs, S.people.length, laws.length];
 function applyInput(m) {
   const h = m.slot != null ? homeOf(m.slot) : null;
   switch (m.k) {
-    case 'ans': applyAnswer(h, m.key, m.yes, m.keep); if (h && h === ME) { sentAns.delete(m.key); updateFamily(); } break;
+    case 'ans': applyAnswer(h, m.key, m.yes, m.keep, m.val); if (h && h === ME) { sentAns.delete(m.key); updateFamily(); } break;
     case 'forget': forget(h); break;
     case 'assign': {
       const o = S.homes.find(x => x.id === m.home && !x.gone);
@@ -3884,7 +3961,7 @@ function broadcastPlayers() {
 // what a player asks for: the host checks it, and anything that changes the village goes into the queue of inputs
 function handle(p, m) {
   switch (m.t) {
-    case 'ans': if (NET.live) queueInput({ k: 'ans', slot: p.slot, key: String(m.key), yes: !!m.yes, keep: !!m.keep }); break;
+    case 'ans': if (NET.live) queueInput({ k: 'ans', slot: p.slot, key: String(m.key), yes: !!m.yes, keep: !!m.keep, val: m.val == null ? null : Number(m.val) }); break;
     case 'forget': if (NET.live) queueInput({ k: 'forget', slot: p.slot }); break;
     case 'propose': propose(p.slot, m.law, !!m.on); break;
     case 'vote': castVote(p.slot, m.id, !!m.yes); break;
