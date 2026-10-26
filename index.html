@@ -571,6 +571,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </form>
     <form class="body" id="accRec" hidden novalidate>
       <p class="note">Escriu el teu nom de jugador i el correu que vas donar en crear el compte. Si coincideixen, t'hi enviarem un codi per posar una contrasenya nova.</p>
+      <p class="note"><b>Atenció:</b> és possible que el correu vagi a parar a la carpeta de correu brossa (spam). Si no el trobes a la safata d'entrada, mira-ho allà.</p>
       <label for="accRecNom">Nom de jugador</label>
       <input id="accRecNom" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false">
       <label for="accRecCorreu">Correu electrònic</label>
@@ -4447,7 +4448,7 @@ $('accRecSend').onclick = async () => {
   $('accRecSend').disabled = true; put('accRecMsg', 'Enviant…');
   try {
     await api('/recupera', 'POST', { nom, correu });
-    put('accRecMsg', 'Si el nom i el correu coincideixen, d\'aquí un moment hi rebràs un codi (mira també el correu brossa). Val 30 minuts.');
+    put('accRecMsg', 'Si el nom i el correu coincideixen, d\'aquí un moment hi rebràs un codi, que val 30 minuts. Si no el veus a la safata d\'entrada, mira a la carpeta de correu brossa (spam).');
     $('accRecStep2').hidden = false; $('accRecCodi').focus();
   } catch (err) { put('accRecMsg', err.message); }
   $('accRecSend').disabled = false;
