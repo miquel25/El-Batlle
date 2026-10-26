@@ -242,6 +242,60 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   .members{grid-template-columns:minmax(0,1fr)}
 }
 .houses footer{padding:10px 16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+/* trophies: a schematic glass case, diamond on top and bronze at the bottom */
+.controls .brk{flex-basis:100%;height:0}
+.controls #troBtn.locked{opacity:.6}
+.controls #troBtn.locked::before{content:"";display:inline-block;width:9px;height:10px;margin-right:6px;vertical-align:-1px;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M1 4.5h7v5H1zM2.5 4.5V3a2 2 0 0 1 4 0v1.5' fill='none' stroke='%23000' stroke-width='1.4'/%3E%3Crect x='1' y='4.5' width='7' height='5'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 10'%3E%3Cpath d='M1 4.5h7v5H1zM2.5 4.5V3a2 2 0 0 1 4 0v1.5' fill='none' stroke='%23000' stroke-width='1.4'/%3E%3Crect x='1' y='4.5' width='7' height='5'/%3E%3C/svg%3E") center/contain no-repeat}
+.controls .tromsg{flex-basis:100%;margin:0;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--amber)}
+.controls .tromsg .btn{font-size:12px;padding:4px 10px}
+.tdefs{position:absolute;width:0;height:0;overflow:hidden}
+.tro .win{width:min(620px,100%);position:relative}
+.tro .scroller{padding:16px}
+.vitrina{position:relative;border:2px solid #4a5a68;border-radius:14px 14px 4px 4px;background:linear-gradient(180deg,rgba(140,190,220,.07),rgba(140,190,220,.02));padding:4px 12px 0;overflow:hidden}
+.vitrina::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.05) 34%,transparent 40%,transparent 62%,rgba(255,255,255,.035) 65%,transparent 69%)}
+.shelf{position:relative;padding:20px 0 0;border-bottom:5px solid #4a5a68;margin:0 -12px;}
+.shelf:last-child{border-bottom-width:10px}
+.shelf .sl{position:absolute;top:5px;left:12px;font-family:var(--f-display);font-size:10px;letter-spacing:.1em}
+.shelf.d .sl{color:#8fe3ff}.shelf.o .sl{color:#f2c14e}.shelf.p .sl{color:#c9d1d8}.shelf.b .sl{color:#d8945a}
+.shelf ul{list-style:none;margin:0;padding:0 8px;display:flex;justify-content:center;gap:4px;flex-wrap:wrap}
+.trophy{all:unset;box-sizing:border-box;cursor:pointer;width:104px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 2px 6px;border-radius:6px;text-align:center}
+.trophy:hover{background:rgba(255,255,255,.04)}
+.trophy:focus-visible{outline:2px solid var(--amber)}
+.trophy svg,.fig svg{width:72px;height:86px;display:block;overflow:visible}
+.shelf ul li{display:flex}
+@media (max-width:420px){.trophy{width:76px}.trophy svg{width:60px;height:72px}.shelf ul{gap:2px;padding:0 2px}}
+.trophy small{font-size:10.5px;line-height:1.25;color:var(--ink);min-height:2.5em}
+.trophy.locked small{color:var(--muted)}
+.tsvg .m{stroke-width:1.2;stroke-linejoin:round}
+.tsvg.b .m{fill:url(#tm-b);stroke:#5a2f10}.tsvg.p .m{fill:url(#tm-p);stroke:#58636c}.tsvg.o .m{fill:url(#tm-o);stroke:#7a4f05}.tsvg.d .m{fill:url(#tm-d);stroke:#2a7fb0}
+.tsvg.b .k{fill:#4e2a0e}.tsvg.p .k{fill:#4f5961}.tsvg.o .k{fill:#6e4604}.tsvg.d .k{fill:#1f6d9c}
+.tsvg .ks{fill:none;stroke-width:2.2;stroke-linecap:round}
+.tsvg.b .ks{stroke:#4e2a0e}.tsvg.p .ks{stroke:#4f5961}.tsvg.o .ks{stroke:#6e4604}.tsvg.d .ks{stroke:#1f6d9c}
+.tsvg .fx{fill:url(#tm-facets);pointer-events:none}.tsvg:not(.d) .fx{display:none}
+.tsvg .sh{fill:#fff;opacity:.35}
+.tsvg .sp{fill:#fff;display:none}.tsvg.d .sp{display:block}
+.tsvg.x .m{fill:#0c1116;stroke:none}
+.tsvg.x .k{fill:#0c1116}.tsvg.x .ks{stroke:none}
+.tsvg.x .sh,.tsvg.x .sp,.tsvg.x .fx{display:none}
+.tsvg.x .base{fill:#0c1116;stroke:none}
+.tsvg .base{fill:#2a333c;stroke:#465260;stroke-width:1}
+.tdet{position:absolute;inset:0;background:rgba(6,9,12,.7);display:flex;align-items:center;justify-content:center;padding:16px;border-radius:8px}
+.tdet .card,.tronew .body{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;width:min(340px,100%);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.tdet h3,.tronew h3{font-family:var(--f-serif);font-weight:600;font-size:22px;line-height:1.15;margin:0}
+.tdet p,.tronew p{margin:0;font-size:12.5px}
+.tdet .fig svg,.tronew .fig svg{width:96px;height:115px}
+.tier{font-family:var(--f-display);font-size:10px;letter-spacing:.12em}
+.tier.d{color:#8fe3ff}.tier.o{color:#f2c14e}.tier.p{color:#c9d1d8}.tier.b{color:#d8945a}
+.tdet .when{color:var(--muted)}
+.tdet .btn{margin-top:8px}
+.tronew{z-index:30}
+.tronew .win{width:min(360px,100%);background:none;border:0;box-shadow:none}
+.tronew .body{width:100%}
+.tronew .lbl{font-family:var(--f-display);font-size:13px;letter-spacing:.08em;color:var(--amber)}
+.tronew .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+@media (prefers-reduced-motion:no-preference){.tronew .fig{animation:troIn .6s cubic-bezier(.2,1.6,.4,1)}@keyframes troIn{0%{transform:scale(.3) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}}
 /* shared village */
 .mp .win{width:min(480px,100%)}
 .mp .body{padding:16px 18px;display:flex;flex-direction:column;gap:8px;overflow:auto}
@@ -329,6 +383,9 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       </div>
       <button class="btn" id="resetBtn">Poble nou</button>
       <button class="btn" id="saveBtn">Desa o carrega</button>
+      <button class="btn" id="troBtn">Trofeus</button>
+      <p class="tromsg" id="troMsg" hidden><span>Els trofeus es guarden al teu compte de jugador.</span><button class="btn primary" type="button" id="troLogin">Entra o crea un compte</button></p>
+      <span class="brk" aria-hidden="true"></span>
       <button class="btn" id="housesBtn">Cases del poble</button>
       <button class="btn" id="polBtn" aria-pressed="true">Política dinàmica: sí</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
@@ -617,6 +674,31 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </div>
   </div>
 </div>
+<div class="houses tro" id="tro" hidden role="dialog" aria-modal="true" aria-labelledby="troTitle">
+  <div class="win">
+    <header>
+      <div><h2 id="troTitle">TROFEUS</h2><p id="troSub"></p></div>
+      <button class="btn" id="troClose">Tanca</button>
+    </header>
+    <div class="scroller"><div class="vitrina" id="troCase"></div></div>
+    <div class="tdet" id="troDet" hidden role="dialog" aria-modal="true" aria-labelledby="troDetName">
+      <div class="card"><div class="fig" id="troDetFig"></div><p class="tier" id="troDetTier"></p><h3 id="troDetName"></h3><p id="troDetDesc"></p><p class="when" id="troDetWhen"></p><button class="btn" type="button" id="troDetClose">D'acord</button></div>
+    </div>
+  </div>
+</div>
+<div class="houses tronew" id="troNew" hidden role="dialog" aria-modal="true" aria-labelledby="troNewName">
+  <div class="win">
+    <div class="body"><p class="lbl">TROFEU ACONSEGUIT!</p><div class="fig" id="troNewFig"></div><p class="tier" id="troNewTier"></p><h3 id="troNewName"></h3><p id="troNewDesc"></p>
+      <div class="row"><button class="btn primary" type="button" id="troNewOk">Endavant</button><button class="btn" type="button" id="troNewSee">Mira la vitrina</button></div></div>
+  </div>
+</div>
+<svg class="tdefs" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="tm-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0b27a"/><stop offset=".35" stop-color="#b8743a"/><stop offset=".6" stop-color="#e09a5c"/><stop offset="1" stop-color="#6e3b16"/></linearGradient>
+  <linearGradient id="tm-p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#a9b3bc"/><stop offset=".6" stop-color="#e8edf1"/><stop offset="1" stop-color="#6c7780"/></linearGradient>
+  <linearGradient id="tm-o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2a8"/><stop offset=".35" stop-color="#d9a21b"/><stop offset=".6" stop-color="#ffd84a"/><stop offset="1" stop-color="#8a5a06"/></linearGradient>
+  <linearGradient id="tm-d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".18" stop-color="#9fe8ff"/><stop offset=".3" stop-color="#e9fbff"/><stop offset=".45" stop-color="#5cc3f0"/><stop offset=".6" stop-color="#d8f6ff"/><stop offset=".78" stop-color="#7fd3f7"/><stop offset="1" stop-color="#2f8fc4"/></linearGradient>
+  <pattern id="tm-facets" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(30)"><path d="M0 0L14 14M14 0L0 14M7 0V14" stroke="#fff" stroke-opacity=".35" stroke-width=".8" fill="none"/></pattern>
+</defs></svg>
 <div class="houses lawpick" id="lawPick" hidden role="dialog" aria-modal="true" aria-labelledby="lawPickTitle">
   <div class="win">
     <header>
@@ -778,7 +860,7 @@ function newWorld(sd) {
     day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
     st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
-    flags: {}, dirty: true, nextId: 1, used: new Set(), animals: [], forest: tree.slice(),
+    flags: {}, dirty: true, nextId: 1, watch: true, used: new Set(), animals: [], forest: tree.slice(),
   };
   // the quarry sits in the bottom-right corner
   // an irregular blob cut into the hillside; each tile knows how far it is from the rim (deeper tiles get dug out later)
@@ -1540,6 +1622,7 @@ function marryOut(kid, partner = findPartner(kid)) {
   // the new family takes the man's surname and his family's colours
   const n = newHome(0, man.surname, man.h.color); n.rgb = man.h.rgb;
   const olds = [h, partner && partner.h].filter(Boolean);
+  n.from = man.h.id; // the house it branches off (the one whose surname it carries), for the trophies
   n.skill = Math.max(0.6, Math.min(1.4, man.h.skill + rr(-0.1, 0.1)));
   n.food = h.food * 0.2; h.food -= n.food;
   if (partner) { const g = partner.h.food * 0.2; partner.h.food -= g; n.food += g; }
@@ -2479,7 +2562,7 @@ function seasonChange(doy) {
 // ---------- movement ----------
 function step() {
   S.frame++;
-  if (S.frame % DAYLEN === 0) daily();
+  if (S.frame % DAYLEN === 0) { daily(); troDay(); }
   const winter = season() === 3;
   for (const a of S.animals) {
     if (a.wait > 0) { a.wait--; continue; }
@@ -3132,7 +3215,7 @@ function renderLaws() {
     t.innerHTML = `<b>#${i + 1}</b>`; t.append(l.text);
     const x = document.createElement('button'); x.className = 'x'; x.textContent = 'Deroga'; x.type = 'button';
     x.setAttribute('aria-label', `Deroga la llei ${i + 1}`);
-    x.onclick = () => { if (NET) { netSend({ t: 'propose', law: l.fx[0], on: false }); x.disabled = true; x.textContent = 'En votació'; } else { repeal(i); updateHud(); } };
+    x.onclick = () => { if (NET) { netSend({ t: 'propose', law: l.fx[0], on: false }); x.disabled = true; x.textContent = 'En votació'; } else { S.watch = false; repeal(i); updateHud(); } };
     if (NET) { x.textContent = (NET.shown || []).some(v => v.law === l.fx[0]) ? 'En votació' : 'Proposa derogar-la'; x.disabled = !l.fx.length || x.textContent === 'En votació'; }
     if (lockedLaw(l)) { x.disabled = true; x.textContent = 'Protegida'; x.title = `La revolució la protegeix fins al ${lockEnd()}`; }
     const fx = document.createElement('div');
@@ -3185,6 +3268,7 @@ $('lawPickBody').addEventListener('click', e => {
     netSend({ t: 'propose', law: k, on: i < 0 }); b.disabled = true; b.textContent = 'En votació';
     $('lawMsg').textContent = 'Proposada: ara voten tots els jugadors.'; setTimeout(() => $('lawMsg').textContent = '', 4000); return;
   }
+  S.watch = false; // the mayor has passed or repealed a law by hand
   if (i >= 0) { repeal(i); updateHud(); } else proclaim(k);
   const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top;
   $('lawPickBody').querySelector(`button[data-k="${k}"]`)?.focus();
@@ -3674,7 +3758,7 @@ function popup(title, text, ctx, btns) { // an information window that also paus
 function pickPlayer() {
   const c = S.homes.filter(h => !h.gone && h.members.length);
   if (!c.length) return;
-  setPlayer(c[(Math.random() * c.length) | 0], 0);
+  setPlayer(c[(Math.random() * c.length) | 0], 0); S.watch = false;
   log(`Ets el cap de la família ${ME.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good');
   tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber');
 }
@@ -3770,7 +3854,7 @@ function forget(h) {
 let running = false, speed = 3;
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let MODE = 'batlle';
-$('startBtn').onclick = () => { MODE = 'batlle'; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
+$('startBtn').onclick = () => { MODE = 'batlle'; if (!POLITICS) S.watch = false; $('intro').hidden = true; running = true; syncPlay(); log('Cent persones arriben a la vora del riu. No hi ha cap llei.', 'info'); };
 $('familyBtn').onclick = () => { $('startBtn').click(); MODE = 'familia'; pickPlayer(); };
 $('playBtn').onclick = () => {
   if (NET) { if (NET.live) netSend({ t: 'run', on: !running }); return; }
@@ -3785,6 +3869,7 @@ $('logAll').onchange = e => { logAll = e.target.checked; };
 $('polBtn').onclick = () => {
   if (NET) { if (NET.role === 'host') { NET.opts.pol = !POLITICS; if (NET.live) queueInput({ k: 'pol', v: !POLITICS }); else { POLITICS = !POLITICS; syncPol(); } } return; }
   POLITICS = !POLITICS; syncPol(); updateHud(); renderLaws();
+  if (!POLITICS) S.watch = false;
   try { localStorage.setItem('batlle.politics', POLITICS ? '1' : '0'); } catch (e) {}
   log(POLITICS ? 'Política dinàmica activada: el malestar pot portar aldarulls i revolucions, i les lleis es poden aprovar soles.' : 'Política dinàmica desactivada: el malestar no tindrà cap efecte i només el batlle aprova lleis.', 'info');
 };
@@ -3806,6 +3891,7 @@ $('resetBtn').onclick = () => {
   if (NET) { if (NET.role === 'host' && NET.live) startShared(); return; } // a new village for the whole room, every player with a new family
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
+  if (laws.length) S.watch = false; // the laws the mayor brings along count as passed by hand
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
   closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
@@ -4318,9 +4404,10 @@ function netUI() {
 }
 function syncSpeed() { document.querySelectorAll('[data-speed]').forEach(o => o.setAttribute('aria-pressed', +o.dataset.speed === speed)); }
 
-$('mpBtn').onclick = () => { showMpStart(); try { $('mpName').value ||= localStorage.getItem('batlle.name') || ''; } catch (e) {} ($('mpName').value ? $('mpHost') : $('mpName')).focus(); };
+// with an account, the name in the room starts as the player's name; it can still be changed just for that room
+$('mpBtn').onclick = () => { showMpStart(); if (ACC) $('mpName').value = ACC.nom; else try { $('mpName').value ||= localStorage.getItem('batlle.name') || ''; } catch (e) {} ($('mpName').value ? $('mpHost') : $('mpName')).focus(); };
 $('mpClose').onclick = () => { if (NET && !NET.live) { leaveRoom(); return; } $('mp').hidden = true; $('mpBtn').focus(); };
-const mpName = () => { const n = cleanName($('mpName').value); try { localStorage.setItem('batlle.name', n); } catch (e) {} return n; };
+const mpName = () => { const n = cleanName($('mpName').value); if (!ACC) try { localStorage.setItem('batlle.name', n); } catch (e) {} return n; };
 $('mpHost').onclick = async () => {
   $('mpHost').disabled = $('mpJoin').disabled = true; $('mpMsg').textContent = 'Creant la sala…';
   try { await hostRoom(mpName()); renderRoom(); $('mpGo').focus(); } catch (e) { showMpStart(netErr(e)); }
@@ -4340,7 +4427,150 @@ $('mpGo').onclick = () => { if (NET && NET.role === 'host') startShared(); };
 for (const k of ['pol', 'dis', 'wait']) $('mpo_' + k).onchange = e => { if (NET && NET.role === 'host') { NET.opts[k] = e.target.checked; broadcastPlayers(); } };
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mp').hidden) $('mpClose').click(); });
 setInterval(() => { if (NET && NET.live) renderPlayers(); if (NET && NET.role === 'guest' && NET.shown && NET.shown.length) { for (const v of NET.shown) v.left = Math.max(0, v.left - 1); renderVotes(); } }, 1000);
-{ const sala = new URLSearchParams(location.search).get('sala'); if (sala) { $('mpBtn').click(); $('mpCode').value = sala.toUpperCase().slice(0, 5); ($('mpName').value ? $('mpJoin') : $('mpName')).focus(); } }
+
+// ---------- trophies ----------
+// a player with an account wins trophies for what happens in any village they play, alone or with friends. They're
+// kept in the account (worker/comptes). Once a player has one, it's no longer checked. The checks only look at the
+// village, never change it, so a shared village runs the same on every screen.
+const TIERS = { d: 'DIAMANT', o: 'OR', p: 'PLATA', b: 'BRONZE' };
+const person = (x, y, r, w, top, bot) => `<circle class="m" cx="${x}" cy="${y}" r="${r}"/><path class="m" d="M${x - w} ${bot}V${top + w}a${w} ${w} 0 0 1 ${2 * w} 0V${bot}z"/>`;
+const TROPHIES = [
+  { id: 'armageddon', tier: 'd', name: 'Armageddon', desc: 'No queda ningú viu al poble.',
+    art: '<rect class="m" x="43" y="78" width="14" height="18"/><path class="m" d="M50 12c-19 0-32 13-32 31 0 10 5 17 11 21v9c0 3 2 5 5 5h32c3 0 5-2 5-5v-9c6-4 11-11 11-21 0-18-13-31-32-31z"/><ellipse class="k" cx="38" cy="44" rx="7.5" ry="8.5"/><ellipse class="k" cx="62" cy="44" rx="7.5" ry="8.5"/><path class="k" d="M50 55l-5 9h10z"/><path class="ks" d="M41 70v8M50 70v8M59 70v8"/>' },
+  { id: 'mirava', tier: 'd', name: 'Només mirava, gràcies', desc: 'Arriba als 500 anys en una partida com a batlle amb la política dinàmica, sense aprovar ni derogar cap llei a mà.',
+    art: '<rect class="m" x="44" y="78" width="12" height="18"/><rect class="m" x="25" y="20" width="18" height="14" rx="3"/><rect class="m" x="57" y="20" width="18" height="14" rx="3"/><rect class="m" x="40" y="40" width="20" height="16" rx="3"/><rect class="m" x="18" y="30" width="28" height="50" rx="9"/><rect class="m" x="54" y="30" width="28" height="50" rx="9"/><ellipse class="k" cx="32" cy="72" rx="9" ry="4"/><ellipse class="k" cx="68" cy="72" rx="9" ry="4"/>' },
+  { id: 'miler', tier: 'o', name: '1000 són multitud', desc: 'Arriba a 1.000 habitants en qualsevol mode de joc.',
+    art: [20, 40, 60, 80].map(x => person(x, 30, 6.5, 9, 39, 70)).join('') + [30, 50, 70].map(x => person(x, 54, 8, 12, 64, 96)).join('') },
+  { id: 'nombrosa', tier: 'o', name: 'Família nombrosa', desc: 'Jugant com a cap de família, arriba a ser 14 a casa.',
+    art: person(20, 24, 8, 10, 35, 96) + person(80, 24, 8, 10, 35, 96) + [35, 50, 65].map(x => person(x, 56, 5.5, 6.5, 64, 96)).join('') },
+  { id: 'endogamia', tier: 'o', name: 'Endogàmia', desc: 'Jugant com a cap de família, aconsegueix que la meitat o més de les famílies del poble siguin la teva o una branca teva.',
+    art: '<path class="m" d="M45 96V70l-14-12 4-4 10 8V52h10v14l12-10 4 4-16 14v22z"/><circle class="m" cx="50" cy="32" r="21"/><circle class="m" cx="29" cy="46" r="13"/><circle class="m" cx="71" cy="46" r="13"/><path class="ks" d="M50 50C34 42 34 22 50 30C66 22 66 42 50 50M38 46c-6 6-10 4-12 0M62 46c6 6 10 4 12 0"/>' },
+  { id: 'gilito', tier: 'o', name: 'Tio Gilito', desc: 'Jugant com a cap de família, acapara el 80% de la riquesa del poble.',
+    art: '<path class="m" d="M38 40c-14 9-22 26-22 38 0 12 10 18 34 18s34-6 34-18c0-12-8-29-22-38z"/><path class="m" d="M36 30l6 4h16l6-4 3 6c-4 4-9 6-17 6s-13-2-17-6z"/><rect class="m" x="40" y="4" width="20" height="22" rx="2"/><rect class="m" x="32" y="25" width="36" height="5" rx="2.5"/><rect class="k" x="40" y="19" width="20" height="4"/><path class="ks" d="M58 62c-2-4-6-5-9-5-5 0-8 3-8 6 0 8 18 4 18 12 0 4-4 7-9 7-4 0-8-2-10-5M50 52v38"/>' },
+  { id: 'seixanta', tier: 'p', name: 'Això ja és Can Seixanta', desc: 'Arriba a 500 habitants en qualsevol mode de joc.',
+    art: '<path class="m" d="M41 96V34l9-20 9 20v62z"/><path class="m" d="M14 96V66l13-11 13 11v30z"/><path class="m" d="M60 96V62l13-11 13 11v34z"/><rect class="k" x="46" y="38" width="8" height="10" rx="4"/><rect class="k" x="23" y="80" width="8" height="16"/><rect class="k" x="69" y="78" width="8" height="18"/><rect class="k" x="47" y="80" width="6" height="16"/>' },
+  { id: 'camps', tier: 'b', name: 'Abans això eren camps', desc: 'Aconsegueix que es construeixi qualsevol edificació (camps inclosos) a la banda del riu on es pot construir, en qualsevol mode de joc.',
+    art: '<path class="m" d="M10 96l10-20h60l10 20z"/><path class="ks" d="M20 92l7-13M35 92l4-13M50 92v-13M65 92l-4-13M80 92l-7-13"/><path class="m" d="M32 80V54l18-16 18 16v26z"/><path class="m" d="M26 56l24-22 24 22-4 4-20-18-20 18z"/><rect class="k" x="45" y="64" width="10" height="16"/>' },
+  { id: 'illustrada', tier: 'b', name: 'Família il·lustrada', desc: 'Jugant com a cap de família, aconsegueix que la intel·ligència més alta de casa sigui de 100 punts.',
+    art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M12 86V50c13-5 28-3 38 5 10-8 25-10 38-5v36c-13-5-28-3-38 5-10-8-25-10-38-5z"/><path class="ks" d="M50 56v32M20 58c8-2 16-1 22 3M20 67c8-2 16-1 22 3M58 61c6-4 14-5 22-3M58 70c6-4 14-5 22-3"/><path class="m" d="M50 6l32 12-32 12-32-12z"/><path class="m" d="M32 24v10c11 7 25 7 36 0V24l-18 7z"/><path class="ks" d="M80 19v14"/>' },
+  { id: 'tovarishch', tier: 'b', name: 'Ampunt tovarishch!', desc: 'Aconsegueix que esclati la revolució en qualsevol mode de joc.',
+    art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
+];
+const TRO = Object.fromEntries(TROPHIES.map(t => [t.id, t]));
+function troSvg(t, got) {
+  const fx = t.tier === 'd' ? t.art.replace(/class="m"/g, 'class="fx"') : '';
+  return `<svg class="tsvg ${got ? t.tier : 'x'}" viewBox="0 0 100 120" aria-hidden="true"><rect class="base" x="35" y="96" width="30" height="8" rx="1.5"/><path class="base" d="M30 104h40l5 12H25z"/>${t.art}${fx}<path class="sp" d="M86 8l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>`;
+}
+let troGot = null, troFor = null, troS = null, troRev = 0;
+const troQueue = [], troPend = new Set();
+// the button is locked until the player enters their account; the trophies are loaded once per session
+function troSync() {
+  $('troBtn').classList.toggle('locked', !ACC); $('troBtn').setAttribute('aria-disabled', !ACC);
+  $('troBtn').title = ACC ? '' : 'Entra o crea un compte';
+  if (ACC) $('troMsg').hidden = true;
+  const t = ACC ? ACC.testimoni : null;
+  if (t === troFor) return;
+  troFor = t; troGot = null; troPend.clear();
+  if (t) troLoad();
+}
+async function troLoad() {
+  const t = troFor;
+  try {
+    const d = await api('/trofeus');
+    if (t !== troFor) return;
+    troGot = d.trofeus || {};
+    let wait = []; try { wait = JSON.parse(localStorage.getItem('batlle.trofeus.' + ACC.nom.toLocaleLowerCase('ca')) || '[]'); } catch (e) {}
+    for (const id of wait) if (TRO[id] && !troGot[id]) troSave(id); // won while the server couldn't be reached
+    if (!$('tro').hidden) troRender();
+  } catch (e) { if (t === troFor) setTimeout(() => { if (t === troFor && !troGot) troLoad(); }, 60000); }
+}
+function troWaiting(id, on) {
+  try {
+    const k = 'batlle.trofeus.' + ACC.nom.toLocaleLowerCase('ca'), w = new Set(JSON.parse(localStorage.getItem(k) || '[]'));
+    on ? w.add(id) : w.delete(id);
+    w.size ? localStorage.setItem(k, JSON.stringify([...w])) : localStorage.removeItem(k);
+  } catch (e) {}
+}
+async function troSave(id) {
+  if (troPend.has(id)) return;
+  troPend.add(id); troGot[id] ||= Date.now(); troWaiting(id, true);
+  try { const d = await api('/trofeus', 'POST', { id }); if (troGot) troGot[id] = d.quan; troWaiting(id, false); } catch (e) {}
+  troPend.delete(id);
+}
+// what each trophy asks for, about the village as it is today
+const troLive = () => S.homes.filter(h => !h.gone && h.members.length);
+const troMine = () => ME && !ME.gone && ME.members.length ? ME : null;
+function branches(root) { // root's house and every house founded by its children, or theirs… (a house is always newer than the ones it comes from)
+  const out = new Set([root.id]);
+  for (let i = root.id + 1; i < S.homes.length; i++) { const h = S.homes[i]; if (out.has(h.from)) out.add(i); }
+  return out;
+}
+const TESTS = {
+  armageddon: () => S.day > 0 && !S.people.some(p => !p.leaving),
+  mirava: () => !NET && !ME && MODE === 'batlle' && S.watch && POLITICS && S.day >= 500 * YEAR,
+  miler: () => S.people.filter(p => !p.leaving).length >= 1000,
+  seixanta: () => S.people.filter(p => !p.leaving).length >= 500,
+  nombrosa: () => !!troMine() && ME.members.length >= 14,
+  endogamia: () => { const me = troMine(); if (!me) return false; const hs = troLive(), mine = branches(me), n = hs.filter(h => mine.has(h.id)).length; return n > 1 && n * 2 >= hs.length; },
+  gilito: () => { const me = troMine(); if (!me) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); return hs.length > 1 && tot > 0 && ws[hs.indexOf(me)] >= 0.8 * tot; },
+  camps: () => S.homes.some(h => h.hut || h.fields.length),
+  illustrada: () => !!troMine() && Math.round(famInt(ME) * 100) >= 100,
+  tovarishch: () => (S.st.revolutions || 0) > troRev, // a revolution since this village began or was loaded
+};
+function troDay() {
+  if (troS !== S) { troS = S; troRev = S.st.revolutions || 0; }
+  if (!ACC || !troGot || !$('intro').hidden) return;
+  for (const t of TROPHIES) if (!troGot[t.id] && TESTS[t.id]()) { troSave(t.id); troQueue.push(t); }
+  if (troQueue.length && $('troNew').hidden) troShowNew();
+}
+// a trophy just won: a window that also pauses a village played alone
+let troWasRunning = false;
+function troShowNew() {
+  const t = troQueue.shift(); if (!t) return;
+  if (!NET && running) { troWasRunning = true; running = false; syncPlay(); }
+  $('troNewFig').innerHTML = troSvg(t, true); $('troNewTier').className = 'tier ' + t.tier; put('troNewTier', 'TROFEU DE ' + TIERS[t.tier]);
+  put('troNewName', t.name); put('troNewDesc', t.desc);
+  $('troNew').hidden = false; $('troNewOk').focus();
+  log(`Trofeu aconseguit: «${t.name}».`, 'good');
+}
+function troNewClose() {
+  $('troNew').hidden = true;
+  if (troQueue.length) { troShowNew(); return; }
+  if (troWasRunning && !NET) { if (askOpen === null) { running = true; syncPlay(); } else askWasRunning = true; } // a question still open resumes it when answered
+  troWasRunning = false;
+}
+$('troNewOk').onclick = troNewClose;
+$('troNewSee').onclick = () => { troNewClose(); troOpen(); };
+// the case: diamond on the top shelf, then gold, silver and bronze at the bottom
+function troRender() {
+  const got = troGot || {}, n = TROPHIES.filter(t => got[t.id]).length;
+  put('troSub', !troGot ? 'Carregant…' : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
+  $('troCase').innerHTML = ['d', 'o', 'p', 'b'].map(k => `<div class="shelf ${k}"><span class="sl">${TIERS[k]}</span><ul>${TROPHIES.filter(t => t.tier === k).map(t =>
+    `<li><button class="trophy${got[t.id] ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id])}<small>${esc(t.name)}</small></button></li>`).join('')}</ul></div>`).join('');
+}
+function troOpen() {
+  if (!ACC) { $('troMsg').hidden = false; $('troLogin').focus(); return; }
+  troRender(); $('troDet').hidden = true; $('tro').hidden = false; $('troClose').focus();
+}
+$('troBtn').onclick = troOpen;
+$('troLogin').onclick = () => { $('troMsg').hidden = true; openAcc(); };
+$('troClose').onclick = () => { $('tro').hidden = true; $('troBtn').focus(); };
+$('troCase').addEventListener('click', e => {
+  const b = e.target.closest('button[data-t]'); if (!b) return;
+  const t = TRO[b.dataset.t], when = troGot && troGot[t.id];
+  $('troDetFig').innerHTML = troSvg(t, when); $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
+  put('troDetName', t.name); put('troDetDesc', t.desc);
+  put('troDetWhen', when ? 'Aconseguit el ' + new Date(when).toLocaleString('ca', { dateStyle: 'long', timeStyle: 'short' }) + '.' : 'Encara no l\'has aconseguit.');
+  $('troDet').hidden = false; $('troDet').dataset.from = t.id; $('troDetClose').focus();
+});
+const troDetClose = () => { $('troDet').hidden = true; $('troCase').querySelector(`button[data-t="${$('troDet').dataset.from}"]`)?.focus(); };
+$('troDetClose').onclick = troDetClose;
+$('troDet').addEventListener('click', e => { if (e.target.id === 'troDet') troDetClose(); });
+$('tro').addEventListener('click', e => { if (e.target.id === 'tro') $('troClose').click(); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!$('troNew').hidden) troNewClose(); else if (!$('troDet').hidden) troDetClose(); else if (!$('tro').hidden) $('troClose').click();
+});
 
 // ---------- saved games ----------
 // A player can make an account (a name and a password; an e-mail only to recover the password) and keep up to five
@@ -4350,7 +4580,10 @@ const comptesUrl = () => new URLSearchParams(location.search).get('comptes') || 
 let ACC = null, accNew = false, accList = null;
 try { ACC = JSON.parse(localStorage.getItem('batlle.compte')); } catch (e) {}
 propSync();
+// a room link opens the room window straight away (after the account, which gives the default name)
+{ const sala = new URLSearchParams(location.search).get('sala'); if (sala) { $('mpBtn').click(); $('mpCode').value = sala.toUpperCase().slice(0, 5); ($('mpName').value ? $('mpJoin') : $('mpName')).focus(); } }
 function propSync() {
+  troSync();
   $('propForm').hidden = !ACC; $('propOut').hidden = !!ACC;
   if (ACC) $('propWho').textContent = `La proposaràs com a ${ACC.nom}.`;
 }

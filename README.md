@@ -15,13 +15,17 @@ Basat en la idea de [@an_ai_tries_youtube](https://www.youtube.com/@an_ai_tries_
 
 ## Jugar amb amics
 
-A la pantalla d'inici, **Juga amb amics** crea una sala amb un codi de 5 lletres (o un enllaç) per passar als amics. Cada jugador porta una família del mateix poble i les lleis s'aproven per votació entre tots; la política dinàmica funciona igual.
+A la pantalla d'inici, **Juga amb amics** crea una sala amb un codi de 5 lletres (o un enllaç) per passar als amics. Si has entrat al compte, el teu nom a la sala és el teu nom de jugador, però el pots canviar només per a aquella sala. Cada jugador porta una família del mateix poble i les lleis s'aproven per votació entre tots; la política dinàmica funciona igual.
 
 Els missatges entre jugadors passen per un petit repetidor a Cloudflare ([`worker/sales`](worker/sales/README.md)), que funciona des de qualsevol xarxa i es desplega sol amb GitHub Actions. Si el repetidor no respon, els navegadors es connecten directament amb WebRTC ([PeerJS](https://peerjs.com/)). L'amfitrió ha de tenir el joc obert mentre dura la partida. Per provar-ho amb un altre repetidor: `?relay=URL` (o `?relay=no` per anar directe); amb un altre servidor PeerJS: `?peer=host:port`.
 
 ## Partides desades
 
 **Partides desades** (a l'inici) o **Desa o carrega** (durant la partida) obre la finestra dels comptes. Amb un nom de jugador i una contrasenya pots desar fins a 5 pobles i continuar-los des de qualsevol navegador. El correu és opcional i només serveix per recuperar la contrasenya. Les partides es guarden a Cloudflare, amb el pla gratuït ([`worker/comptes`](worker/comptes/README.md)). Per provar-ho amb un altre servidor: `?comptes=URL`.
+
+## Trofeus
+
+Amb el compte iniciat, **Trofeus** obre la vitrina: a dalt els de diamant, després or, plata i, a baix, bronze. Els que encara no tens surten en silueta; toca'n un per veure què demana i, si ja el tens, quin dia el vas aconseguir. Es guarden al compte i compten en qualsevol mode, també jugant amb amics.
 
 ## Publicar amb GitHub Pages
 
