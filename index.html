@@ -1551,7 +1551,7 @@ function daily() {
         h.shep = 1 - p.int * 0.5; // a clever shepherd loses fewer animals
         setTask(p, 'herd', h.pen.x + 1.5 + rr(-3, 3), h.pen.y + 1.5 + rr(-3, 3), 2);
         h.food += 0.15 * sf * STR(p);
-      } else if (doy < 150 && h.fields.length < want && tillers < 2 && (h.pending || ask(h, 'field', `Teniu ${h.fields.length} ${h.fields.length === 1 ? 'camp' : 'camps'}. Llaureu un camp nou? Costa uns quants dies de feina, però a l'estiu dona collita.`, 'Sí', 'No', 60))) {
+      } else if (doy < 150 && h.fields.length < want && tillers < 2 && (h.pending || ((h.human == null || findSite(hx.x, hx.y, 3, 2, 4)) && ask(h, 'field', `Teniu ${h.fields.length} ${h.fields.length === 1 ? 'camp' : 'camps'}. Llaureu un camp nou? Costa uns quants dies de feina, però a l'estiu dona collita.`, 'Sí', 'No', 60)))) { // a player is only asked when there's room left for a field
         tillers++;
         if (!h.pending) { h.pending = findSite(hx.x, hx.y, 3, 2, 4); if (h.pending) mark(h.pending.x, h.pending.y, 3, 2, 3); }
         if (h.pending) {
@@ -3635,7 +3635,22 @@ function updateFamily() {
   const kept = Object.values(h.pol || {}).filter(q => q.until === Infinity).length;
   put('forgetBtn', kept ? `Oblida les respostes recordades (${kept})` : 'Cap resposta recordada');
   $('forgetBtn').disabled = !kept;
-  put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${h.hut ? (stoneHouse(h) ? 'Casa de pedra' : h.tenant ? 'Viuen de lloguer en un pis' : 'Cabana pròpia') : 'Encara sense casa'}.`);
+  put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${homeTxt(h)}`);
+}
+// where the family lives and what it owns, counted like the village houses table: blocks by their number of floors
+function homeTxt(h) {
+  const u = h.hut, own = ownedHuts(h);
+  const lives = !u ? 'Encara sense casa.' : h.tenant ? `Viuen de lloguer en un pis${rentTo(u) ? ` dels ${rentTo(u).surname}` : ''}.`
+    : u.floors ? `Viuen en un bloc de ${u.floors + 1} plantes.` : u.lvl ? 'Viuen en una casa de pedra.' : 'Viuen en una cabana pròpia.';
+  const n = (k, one, many) => `${k} ${k === 1 ? one : many}`, parts = [];
+  const blocks = {}; for (const b of own.filter(x => x.floors)) blocks[b.floors + 1] = (blocks[b.floors + 1] || 0) + 1;
+  for (const f of Object.keys(blocks).sort((a, b) => b - a)) parts.push(`${n(blocks[f], 'bloc', 'blocs')} de ${f} plantes`);
+  const stone = own.filter(x => !x.floors && x.lvl).length, huts = own.filter(x => !x.floors && !x.lvl).length;
+  if (stone) parts.push(n(stone, 'casa de pedra', 'cases de pedra'));
+  if (huts) parts.push(n(huts, 'cabana', 'cabanes'));
+  const flats = own.reduce((t, x) => t + (x.floors || 0) + (x === u ? 0 : 1), 0), rented = letFlats(h);
+  const has = own.length > 1 || (own.length === 1 && own[0] !== u) || (u && !h.tenant && u.floors) ? ` Tenen ${parts.join(', ').replace(/, ([^,]*)$/, ' i $1')}${flats ? `, amb ${n(rented, 'pis llogat', 'pisos llogats')} de ${flats}` : ''}.` : '';
+  return lives + has;
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ask').hidden) e.stopImmediatePropagation(); }, true);
 // law proposals become GitHub issues through a Cloudflare Worker (worker/worker.js) that holds the token, so visitors need no account
@@ -4246,9 +4261,9 @@ setInterval(() => { if (NET && NET.live) renderPlayers(); if (NET && NET.role ==
 
 // ---------- houses register ----------
 // the houses a family owns: the one it lives in (unless it rents) and the blocks it lets whole
-const ownedHuts = h => [...new Set([...(h.hut && !h.tenant ? [h.hut] : []), ...S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut)])].filter(u => u.ruin == null);
-const blocksOf = h => ownedHuts(h).filter(u => u.floors);
-const letFlats = h => ownedHuts(h).reduce((t, u) => t + (u.flats || []).filter(f => f && f !== h).length + (u.ground && u.ground !== h ? 1 : 0), 0);
+function ownedHuts(h) { return [...new Set([...(h.hut && !h.tenant ? [h.hut] : []), ...S.homes.filter(o => o.hut && o.hut.landlord === h).map(o => o.hut)])].filter(u => u.ruin == null); }
+function blocksOf(h) { return ownedHuts(h).filter(u => u.floors); }
+function letFlats(h) { return ownedHuts(h).reduce((t, u) => t + (u.flats || []).filter(f => f && f !== h).length + (u.ground && u.ground !== h ? 1 : 0), 0); }
 const toolsTxt = h => [['plow', hasPlow, 'arada', 'arades'], ['hoe', hasHoe, 'aixada', 'aixades'], ['pick', hasPick, 'pic', 'pics'], ['rod', hasRod, 'canya', 'canyes']]
   .map(([, f, a, b]) => { const n = h.members.filter(f).length; return n ? `${n} ${n > 1 ? b : a}` : ''; }).filter(Boolean).join(' · ') || '—';
 const dash = (v, txt = v) => v ? txt : '<span class="dim">—</span>';
