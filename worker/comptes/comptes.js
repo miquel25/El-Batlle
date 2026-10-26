@@ -7,6 +7,9 @@
 // altre hash amb sal pròpia. El correu tampoc es desa: només un hash, per comprovar-lo quan algú vol recuperar la
 // contrasenya; el codi s'envia a l'adreça que s'escriu en aquell moment.
 //
+// Propostes de lleis: un jugador amb la sessió iniciada envia una proposta i aquí es crea l'issue a GitHub, signada
+// amb el seu nom de jugador. Cal el secret GITHUB_TOKEN (token fine-grained amb Issues: write només a El-Batlle).
+//
 // Secrets opcionals (Settings → Variables and Secrets del Worker), només per recuperar la contrasenya per correu:
 //   BREVO_API_KEY   la clau de l'API de Brevo (pla gratuït, 300 correus al dia)
 //   CORREU_REMITENT l'adreça verificada a Brevo des de la qual s'envien els codis
@@ -14,6 +17,7 @@ import { DurableObject } from 'cloudflare:workers';
 
 const ORIGENS = ['https://miquel25.github.io'];
 const MAX_PARTIDES = 5, MAX_DADES = 1_900_000, MAX_SESSIONS = 10;
+const REPO = 'miquel25/El-Batlle', MAX_TITOL = 120, MAX_TEXT = 4000, PROPOSTES_HORA = 5;
 const NOM_AGAFAT = 'Aquest nom ja el fa servir un altre jugador (els noms no es poden repetir, encara que canviïn les majúscules). Tria\'n un altre.';
 const DIES_SESSIO = 180, MINUTS_CODI = 30, MAX_ERRORS = 10, MINUTS_BLOQUEIG = 15;
 
@@ -104,8 +108,29 @@ async function ruta(req, env) {
     if (!r.estat) await c.tanca(); // el nom vell queda lliure
     return r;
   }
+  if (m === 'POST' && camí === '/proposta') return proposta(env, c, tok, d, porta);
   if (m === 'POST' && camí === '/esborra-compte') return c.esborraCompte(tok, String(d.clau ?? ''));
   return err(404, 'No existeix.');
+}
+
+// la proposta queda signada amb el nom del compte que l'envia, que no es pot falsejar des del joc
+async function proposta(env, c, tok, d, porta) {
+  if (!env.GITHUB_TOKEN) return err(503, 'Ara mateix no es poden enviar propostes. Torna-ho a provar més tard.');
+  const qui = await c.qui(tok);
+  if (qui.estat) return qui;
+  const net = (v, max) => String(v ?? '').replace(/\r\n/g, '\n').trim().slice(0, max);
+  const titol = net(d.titol, MAX_TITOL), text = net(d.text, MAX_TEXT);
+  if (titol.length < 3 || text.length < 10) return err(400, 'Cal un títol i una descripció una mica més llargs.');
+  const perCompte = env.PORTERS.get(env.PORTERS.idFromName(`proposta:${clauNom(qui.nom)}`));
+  if (!(await perCompte.pas(PROPOSTES_HORA, 3600000)) || !(await porta('proposta', 10, 60))) return err(429, 'Massa propostes seguides. Torna-ho a provar d\'aquí una estona.');
+  const gh = await fetch(`https://api.github.com/repos/${REPO}/issues`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'el-batlle-comptes', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: `[Proposta] ${titol}`, body: `${text}\n\n---\nProposada per: **${qui.nom}**\n_Enviada des del joc per un jugador amb compte._`, labels: ['proposta'] }),
+  }).catch(e => ({ ok: false, status: 0, text: async () => String(e) }));
+  if (!gh.ok) { console.log('GitHub ha respost', gh.status, await gh.text()); return err(502, 'No s\'ha pogut desar la proposta. Torna-ho a provar més tard.'); }
+  const issue = await gh.json();
+  return { ok: true, numero: issue.number, url: issue.html_url };
 }
 
 // limita quantes vegades es pot fer una cosa des d'una mateixa connexió en un temps
@@ -148,6 +173,7 @@ export class Compte extends DurableObject {
     if (!this.c || !/^[0-9a-f]{48}$/.test(t)) return false;
     return this.sql.exec('SELECT 1 FROM sessions WHERE t = ? AND creat > ?', await sha(t), Date.now() - DIES_SESSIO * 864e5).toArray().length > 0;
   }
+  async qui(t) { return (await this.sessió(t)) ? { nom: this.c.nom } : err(401, 'La sessió ha caducat. Torna a entrar.'); }
   info() { const c = this.c; return { nom: c.nom, correu: !!c.correu, max: MAX_PARTIDES }; }
 
   // el nom és lliure si aquest objecte (un per nom, sense comptar majúscules) encara no té compte. Els càlculs es
