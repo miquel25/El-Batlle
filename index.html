@@ -1551,7 +1551,7 @@ function daily() {
         h.shep = 1 - p.int * 0.5; // a clever shepherd loses fewer animals
         setTask(p, 'herd', h.pen.x + 1.5 + rr(-3, 3), h.pen.y + 1.5 + rr(-3, 3), 2);
         h.food += 0.15 * sf * STR(p);
-      } else if (doy < 150 && h.fields.length < want && tillers < 2 && (h.pending || ask(h, 'field', `Teniu ${h.fields.length} ${h.fields.length === 1 ? 'camp' : 'camps'}. Llaureu un camp nou? Costa uns quants dies de feina, però a l'estiu dona collita.`, 'Sí', 'No', 60))) {
+      } else if (doy < 150 && h.fields.length < want && tillers < 2 && (h.pending || ((h.human == null || findSite(hx.x, hx.y, 3, 2, 4)) && ask(h, 'field', `Teniu ${h.fields.length} ${h.fields.length === 1 ? 'camp' : 'camps'}. Llaureu un camp nou? Costa uns quants dies de feina, però a l'estiu dona collita.`, 'Sí', 'No', 60)))) { // a player is only asked when there's room left for a field
         tillers++;
         if (!h.pending) { h.pending = findSite(hx.x, hx.y, 3, 2, 4); if (h.pending) mark(h.pending.x, h.pending.y, 3, 2, 3); }
         if (h.pending) {
