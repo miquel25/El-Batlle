@@ -4463,11 +4463,11 @@ const TROPHIES = [
   { id: 'illustrada', tier: 'b', name: 'Família il·lustrada', desc: 'Jugant com a cap de família, aconsegueix que la intel·ligència més alta de casa sigui de 100 punts.',
     art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M12 86V50c13-5 28-3 38 5 10-8 25-10 38-5v36c-13-5-28-3-38 5-10-8-25-10-38-5z"/><path class="ks" d="M50 56v32M20 58c8-2 16-1 22 3M20 67c8-2 16-1 22 3M58 61c6-4 14-5 22-3M58 70c6-4 14-5 22-3"/><path class="m" d="M50 6l32 12-32 12-32-12z"/><path class="m" d="M32 24v10c11 7 25 7 36 0V24l-18 7z"/><path class="ks" d="M80 19v14"/>' },
   { id: 'tovarishch', tier: 'b', name: 'Ampunt tovarishch!', desc: 'Aconsegueix que esclati la revolució en qualsevol mode de joc.',
-    art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
+    art: '<path class="m" d="M40 96l-2-34h26l-2 34z"/><path class="m" d="M34 64V34c0-4 3-7 7-7h22c5 0 9 4 9 9v20c0 5-4 8-8 8z"/><path class="ks" d="M44 28v15M53 28v15M62 28v15M35 43h36"/><path class="m" d="M34 46h22c4 0 7 3 7 6.5S60 59 56 59H34z"/><path class="ks" d="M40 76h22"/>' },
   { id: 'completista', tier: 'd', name: 'Completista', desc: 'Aconsegueix tots els altres trofeus.',
     art: '<path class="m" d="M28 18H14c0 18 8 26 18 26v-6c-6 0-11-6-12-14h8z"/><path class="m" d="M72 18h14c0 18-8 26-18 26v-6c6 0 11-6 12-14h-8z"/><path class="m" d="M28 12h44v20c0 18-10 28-22 30-12-2-22-12-22-30z"/><path class="m" d="M45 62h10v18H45z"/><path class="m" d="M34 80h32l4 16H30z"/><path class="k" d="M50 22l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L50 36.3l-5.9 3.7 1.7-6.7-5.3-4.4 6.9-.5z"/>' },
   { id: 'malvat', tier: 'o', name: 'El malvado plan', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que el Gini passi de més de 0,8 a menys de 0,25.',
-    art: '<rect class="m" x="44" y="72" width="12" height="24"/><circle class="m" cx="50" cy="52" r="22"/><path class="m" d="M32 33c0-16 8-25 18-25s18 9 18 25z"/><rect class="m" x="20" y="30" width="60" height="6" rx="3"/><path class="k" d="M37 45l10 4-10 1zM63 45l-10 4 10 1z"/><path class="k" d="M50 60c-6-6-14-7-19-1-3 4 0 9 4 8-3-2-2-6 1-6 4 0 8 4 14 4s10-4 14-4c3 0 4 4 1 6 4 1 7-4 4-8-5-6-13-5-19 1z"/>' },
+    art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
   { id: 'mansa', tier: 'o', name: 'Mansa Musa', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que una sola família tingui el 90% de la riquesa del poble.',
     art: '<path class="m" d="M24 96l8-20h36l8 20z"/><rect class="m" x="44" y="68" width="12" height="9"/><path class="m" d="M18 58l6-34 14 16 12-26 12 26 14-16 6 34z"/><rect class="m" x="18" y="57" width="64" height="11" rx="2"/><circle class="k" cx="34" cy="62.5" r="3"/><circle class="k" cx="50" cy="62.5" r="3"/><circle class="k" cx="66" cy="62.5" r="3"/><path class="ks" d="M36 86h28"/>' },
   { id: 'palantir', tier: 'p', name: 'Palantir', desc: 'En qualsevol mode, amb la política dinàmica sempre activada i sense aprovar ni derogar cap llei a mà, fes que hi hagi totes les lleis tecnofeudals alhora.',
@@ -4604,7 +4604,7 @@ function troRender() {
   put('troSub', troWho === 'wait' || (!all && !troGot) ? 'Carregant…' : all ? `${n} de ${TROPHIES.length} guanyats per algú. Toca'n un per veure qui.` : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
   const sub = t => all ? (got[t.id] ? `${got[t.id].length} jugador${got[t.id].length > 1 ? 's' : ''}` : 'ningú') : '';
   $('troCase').innerHTML = ['d', 'o', 'p', 'b'].map(k => `<div class="shelf ${k}"><span class="sl">${TIERS[k]}</span><ul>${TROPHIES.filter(t => t.tier === k).map(t =>
-    `<li><button class="trophy${got[t.id] ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id])}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
+    `<li><button class="trophy${got[t.id] || all ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id] || all)}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
 }
 function troOpen() {
   if (!ACC) { $('troMsg').hidden = false; $('troLogin').focus(); return; }
@@ -4622,7 +4622,7 @@ $('troClose').onclick = () => { $('tro').hidden = true; (troWho ? $('accTroAll')
 $('troCase').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if (!b) return;
   const t = TRO[b.dataset.t], all = troWho && troWho.guanyadors, who = all && all[t.id], when = !all && troGot && troGot[t.id];
-  $('troDetFig').innerHTML = troSvg(t, all ? who : when); $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
+  $('troDetFig').innerHTML = troSvg(t, all || when); // the admin's view draws every trophy, won or not $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
   put('troDetName', t.name); put('troDetDesc', t.desc);
   put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.');
   $('troDetWho').hidden = !who;
