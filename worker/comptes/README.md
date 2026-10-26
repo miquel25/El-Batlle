@@ -8,6 +8,10 @@ Permet crear un compte amb un nom de jugador i una contrasenya i desar-hi fins a
 - Els noms no es poden repetir, encara que canviïn les majúscules: cada nom (en minúscules) té el seu propi Durable Object, i només el primer que el reclama el pot fer servir.
 - Des de «El meu usuari» es pot canviar el nom (el compte i les partides passen al nom nou, que ha d'estar lliure, i el vell queda lliure), posar, canviar o treure el correu, i esborrar el compte amb totes les partides.
 
+## Trofeus
+
+Cada compte guarda els trofeus que ha aconseguit i quan (`GET /trofeus`, `POST /trofeus` amb `{ id }`). Només s'accepten els noms de la llista `TROFEUS` de `comptes.js`, i un trofeu que ja es té no canvia de data. Quan es canvia el nom del compte, els trofeus passen al nom nou.
+
 ## Desplegar
 
 Es desplega sol amb GitHub Actions (`.github/workflows/comptes.yml`) cada vegada que canvia aquesta carpeta a `main`, amb els mateixos secrets que el repetidor de sales (`CLOUDFLARE_API_TOKEN` i `CLOUDFLARE_ACCOUNT_ID`, vegeu [`worker/sales`](../sales/README.md)). També es pot llançar a mà: https://github.com/miquel25/El-Batlle/actions → **Desplega els comptes i les partides desades** → **Run workflow**.
