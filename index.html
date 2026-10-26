@@ -2366,11 +2366,11 @@ function daily() {
       // a rule of the village, law or no law: a thief caught once is warned, and caught a second time is banished. A clever thief is caught less often,
       // and with the theft law there is a watch that catches twice as many
       if (R() < (L.theft ? 0.55 : 0.25) * (1.3 - 0.6 * a.int)) {
-        S.st.caught++;
+        S.st.caught++; h.caughtN = (h.caughtN || 0) + 1;
         if (a.caught) { leave(a, 'DESTERRAT'); S.st.banished = (S.st.banished || 0) + 1; log(`${fullName(a)} ha estat atrapat robant per segon cop, als ${v.surname}, i és desterrat del poble.`, 'amber'); }
         else { a.caught = S.day; tagHome(v, 'ATRAPAT ROBANT', 'amber'); logOnce('caught', `${fullName(a)} ha estat atrapat robant als ${v.surname}. Queda avisat: si el tornen a atrapar, serà desterrat.`, 'amber'); }
       } else {
-        v.food -= amt; h.food += amt; S.st.thefts++; S.yr.thefts++; h.stole += amt; v.robbed += amt;
+        v.food -= amt; h.food += amt; S.st.thefts++; S.yr.thefts++; h.stoleN = (h.stoleN || 0) + 1; h.stole += amt; v.robbed += amt;
         tagHome(v, `VA AGAFAR ${amt} MENJAR`, 'bad');
         if (!S.flags.theft) { S.flags.theft = 1; log(`${fullName(a)} va agafar ${amt} de menjar de casa dels ${v.surname}.${L.theft ? '' : ' Ningú ho va impedir.'}`, 'bad'); }
       }
@@ -3470,7 +3470,7 @@ function riot(active) {
     const k = burnt.forge && !burnt.forgeBroken ? 'forge' : 'kiln'; burnt[k + 'Broken'] = true; burnt[k + 'BrokenDay'] = S.day; S.dirty = true;
     wreck = ` La ${PLANT[k].name} dels ${burnt.surname} queda destrossada.`;
   }
-  S.unrest -= 20; S.st.riots = (S.st.riots || 0) + 1;
+  S.unrest -= 20; S.st.riots = (S.st.riots || 0) + 1; S.riotDay = S.day;
   if (POLITICS && councilType(S.council || 0) === 'tecnofeudal') S.order = true; // the council answers with order, at its next sitting
   log(`Aldarulls! La gent que passa gana assalta els rebostos dels ${rich.map(h => h.surname).join(', ')} i s'emporta ${fmt(loot)} de menjar${poor.length ? `, que es reparteix entre ${poor.length} ${poor.length > 1 ? 'cases' : 'casa'}` : ''}. Una part es fa malbé.${wreck}`, 'bad');
 }
@@ -3779,6 +3779,7 @@ function passPlayer(old, next, married) {
   old.human = null; old.asks = [];
   if (!(next && !next.gone && next.members.length && next.human == null)) next = null;
   if (next) setPlayer(next, slot); else if (mine) ME = null;
+  if (mine && next && !married) troEvt.prodig = true; // for the trophies: the family died out and the player goes on with the heirs
   if (!mine) {
     if (NET) log(next ? `${playerName(slot)} ara porta els ${next.surname}: els ${old.surname} s'han quedat sense ningú.` : `Els ${old.surname} de ${playerName(slot)} s'han extingit sense hereus.`, next ? 'info' : 'bad');
     return;
@@ -4475,6 +4476,14 @@ const TROPHIES = [
     art: '<rect class="m" x="24" y="82" width="14" height="14"/><path class="m" d="M16 48c0-16 26-16 26 0h-6c0-9-14-9-14 0z"/><path class="m" d="M12 50h32l8 10v24H12z"/><path class="m" d="M50 54h36a9 9 0 0 1 0 18H50z"/><path class="ks" d="M54 54l3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4M54 72l3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4M20 66h20"/>' },
   { id: 'cabres', tier: 'p', name: 'Saben més que les cabres', desc: 'En qualsevol mode, fes que la intel·ligència mitjana del poble passi dels 90 punts.',
     art: '<path class="m" d="M42 42c-10-6-17-18-13-32 4 10 11 17 19 23z"/><path class="m" d="M58 42c10-6 17-18 13-32-4 10-11 17-19 23z"/><path class="m" d="M38 50l-20-5 4 9 16 3zM62 50l20-5-4 9-16 3z"/><path class="m" d="M50 36c-12 0-17 10-15 24l6 22c2 6 16 6 18 0l6-22c2-14-3-24-15-24z"/><path class="m" d="M45 84l5 12 5-12z"/><circle class="k" cx="43" cy="56" r="2.6"/><circle class="k" cx="57" cy="56" r="2.6"/><path class="ks" d="M46 76q4 3 8 0"/>' },
+  { id: 'pax', tier: 'o', name: 'Pax Romana', desc: 'Com a batlle i amb la política dinàmica sempre activada, passa 100 anys seguits sense cap aldarull ni revolució.',
+    art: Array.from({ length: 8 }, (_, i) => { const a = (112 + i * 18) * Math.PI / 180, x = 50 + 28 * Math.cos(a), y = 46 + 28 * Math.sin(a), d = (112 + i * 18 + 90 + 20); return `<ellipse class="m" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="4" ry="9" transform="rotate(${d} ${x.toFixed(1)} ${y.toFixed(1)})"/><ellipse class="m" cx="${(100 - x).toFixed(1)}" cy="${y.toFixed(1)}" rx="4" ry="9" transform="rotate(${-d} ${(100 - x).toFixed(1)} ${y.toFixed(1)})"/>`; }).join('') + '<path class="m" d="M38 72q12 12 24 0l2 4q-6 6-10 8v12h-8V84q-4-2-10-8z"/>' },
+  { id: 'robin', tier: 'p', name: 'Robin Hood', desc: 'Jugant com a cap de família, roba 10 vegades en una partida sense que us atrapin mai (pot ser cada cop una persona diferent).',
+    art: '<path class="m" d="M30 12q36 42 0 84l-5-3q30-39 0-78z"/><path class="ks" d="M29 14V94"/><rect class="m" x="18" y="52" width="66" height="4"/><path class="m" d="M82 46l14 8-14 8z"/><path class="m" d="M22 54l-8-9h7l9 9-9 9h-7z"/>' },
+  { id: 'prodig', tier: 'b', name: 'Fill pròdig', desc: 'Jugant com a cap de família, fes que la teva família s\'extingeixi i continua amb els hereus que es queden la casa.',
+    art: '<circle class="m" cx="42" cy="22" r="9"/><path class="m" d="M30 96l4-30-4-2V44c0-8 6-12 12-12s12 4 12 12v20l-4 2 4 30h-8l-4-26-4 26z"/><path class="m" d="M52 42l26-26 4 4-26 26z"/><circle class="m" cx="80" cy="18" r="10"/>' },
+  { id: 'buro', tier: 'b', name: 'Visca la burocràcia', desc: 'En qualsevol mode, fes que hi hagi 20 lleis vigents alhora.',
+    art: '<rect class="m" x="20" y="88" width="62" height="8" rx="1"/><rect class="m" x="16" y="80" width="62" height="8" rx="1"/><rect class="m" x="22" y="72" width="62" height="8" rx="1"/><rect class="m" x="32" y="58" width="36" height="12" rx="2"/><rect class="m" x="45" y="38" width="10" height="20"/><circle class="m" cx="50" cy="30" r="11"/><path class="ks" d="M26 92h50M22 84h50M28 76h50"/>' },
   { id: 'oligopoli', tier: 'b', name: 'Oligopoli', desc: 'En qualsevol mode, fes que el 10% de les famílies més riques tinguin el 80% de la riquesa del poble.',
     art: Array.from({ length: 12 }, (_, i) => `<rect class="m" x="50" y="${90 - i * 6}" width="30" height="6" rx="2.5"/>`).join('') + Array.from({ length: 3 }, (_, i) => `<rect class="m" x="22" y="${90 - i * 6}" width="22" height="6" rx="2.5"/>`).join('') + '<rect class="m" x="10" y="90" width="12" height="6" rx="2.5"/>' },
   { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, fes que s\'acabin alhora tots els arbres i tots els peixos.',
@@ -4487,7 +4496,7 @@ function troSvg(t, got) {
   const fx = t.tier === 'd' ? t.art.replace(/class="m"/g, 'class="fx"') : '';
   return `<svg class="tsvg ${got ? t.tier : 'x'}" viewBox="0 0 100 120" aria-hidden="true"><rect class="base" x="35" y="96" width="30" height="8" rx="1.5"/><path class="base" d="M30 104h40l5 12H25z"/>${t.art}${fx}<path class="sp" d="M86 8l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>`;
 }
-let troGot = null, troFor = null, troS = null, troRev = 0;
+let troGot = null, troFor = null, troS = null, troRev = 0, troEvt = {};
 const troQueue = [], troPend = new Set();
 // the button is locked until the player enters their account; the trophies are loaded once per session
 function troSync() {
@@ -4553,11 +4562,16 @@ const TESTS = {
   oligopoli: () => { const hs = troLive(); return hs.length >= 10 && topShare(hs) >= 0.8; },
   cromatic: () => countTrees() === 0 && (S.fishStock ?? FISH_CAP) < 1,
   bigone: () => (S.st.quakes || 0) >= 10,
+  pax: () => { if (!(!NET && !ME && !S.fam && MODE === 'batlle' && S.polOff === false && POLITICS)) return false;
+    const last = Math.max(S.riotDay ?? (S.st.riots ? Infinity : 0), ...(S.revs || [0])); return S.day - last >= 100 * YEAR; },
+  robin: () => !!troMine() && (ME.stoleN || 0) >= 10 && !ME.caughtN,
+  prodig: () => !!troEvt.prodig,
+  buro: () => laws.length >= 20,
   illustrada: () => !!troMine() && Math.round(famInt(ME) * 100) >= 100,
   tovarishch: () => (S.st.revolutions || 0) > troRev, // a revolution since this village began or was loaded
 };
 function troDay() {
-  if (troS !== S) { troS = S; troRev = S.st.revolutions || 0; }
+  if (troS !== S) { troS = S; troRev = S.st.revolutions || 0; troEvt = {}; }
   if (!ACC || !troGot || !$('intro').hidden) return;
   for (const t of TROPHIES) if (!troGot[t.id] && TESTS[t.id]()) { troSave(t.id); troQueue.push(t); }
   if (troQueue.length && $('troNew').hidden) troShowNew();
