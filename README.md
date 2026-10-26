@@ -19,6 +19,10 @@ A la pantalla d'inici, **Juga amb amics** crea una sala amb un codi de 5 lletres
 
 Els missatges entre jugadors passen per un petit repetidor a Cloudflare ([`worker/sales`](worker/sales/README.md)), que funciona des de qualsevol xarxa i es desplega sol amb GitHub Actions. Si el repetidor no respon, els navegadors es connecten directament amb WebRTC ([PeerJS](https://peerjs.com/)). L'amfitrió ha de tenir el joc obert mentre dura la partida. Per provar-ho amb un altre repetidor: `?relay=URL` (o `?relay=no` per anar directe); amb un altre servidor PeerJS: `?peer=host:port`.
 
+## Partides desades
+
+**Partides desades** (a l'inici) o **Desa o carrega** (durant la partida) obre la finestra dels comptes. Amb un nom de jugador i una contrasenya pots desar fins a 5 pobles i continuar-los des de qualsevol navegador. El correu és opcional i només serveix per recuperar la contrasenya. Les partides es guarden a Cloudflare, amb el pla gratuït ([`worker/comptes`](worker/comptes/README.md)). Per provar-ho amb un altre servidor: `?comptes=URL`.
+
 ## Publicar amb GitHub Pages
 
 1. Ves a **Settings → Pages** del repositori.

@@ -1,0 +1,16 @@
+name = "el-batlle-comptes"
+main = "comptes.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "COMPTES"
+class_name = "Compte"
+
+[[durable_objects.bindings]]
+name = "PORTERS"
+class_name = "Porter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Compte", "Porter"]

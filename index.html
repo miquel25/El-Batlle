@@ -255,6 +255,24 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .mp .msg{margin:4px 0 0;min-height:1.2em;color:var(--amber);font-size:12px}
 .mp .lbl{margin:10px 0 0;font-size:10px;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
 .mp .lbl:first-child{margin-top:0}
+.acc .tabs{display:flex;gap:6px;margin-bottom:6px}
+.acc input[type=password],.acc input[type=email]{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-size:15px;min-width:0}
+.acc input[type=password]:focus,.acc input[type=email]:focus{outline:none;border-color:var(--amber)}
+.acc .note{margin:0;color:var(--muted);font-size:11.5px;line-height:1.45}
+.acc .link{all:unset;cursor:pointer;color:var(--muted);font-size:12px;text-decoration:underline;align-self:flex-start}
+.acc .link:focus-visible{outline:2px solid var(--amber)}
+.acc .who{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0}
+.acc .slots{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.acc .slots li{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:4px;padding:8px 10px;flex-wrap:wrap}
+.acc .slots li.empty{border-style:dashed}
+.acc .slots .si{min-width:0;flex:1 1 180px}
+.acc .slots .si b{display:block;font-family:var(--f-serif);font-weight:400;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc .slots .si small{color:var(--muted);font-size:11.5px}
+.acc .slots .sb{display:flex;gap:6px;flex-wrap:wrap}
+.acc .slots .btn{font-size:12px;padding:5px 9px}
+.acc details{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.acc details summary{cursor:pointer;font-size:12px;color:var(--muted)}
+.acc details>div{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .mp .code{font-family:var(--f-display);font-size:32px;letter-spacing:.18em;color:var(--amber);line-height:1.1}
 .players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
 .players li{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:4px;padding:5px 8px;background:var(--panel);font-size:12.5px}
@@ -297,7 +315,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjEwIDkwIDk4MCA2MzAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icmciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTQ3MCIgeTE9IjAiIHgyPSI0NzAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAuMSIgc3RvcC1jb2xvcj0iI0QyMkIzQyIvPjxzdG9wIG9mZnNldD0iMC45IiBzdG9wLWNvbG9yPSIjMkE1QkQ3Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGRlZnM+PGNsaXBQYXRoIGlkPSJmcm9udGMiPjxyZWN0IHg9Ii02MDAiIHk9Ii0wLjUiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjQwMCIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJiYWNrYyI+PHJlY3QgeD0iLTYwMCIgeT0iLTQwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNDAzIi8+PC9jbGlwUGF0aD48bWFzayBpZD0ibU1jIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIj48cmVjdCB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzk2LDMzNCkiPjxwYXRoIGQ9Ik0xMiw1MiBDMTIsMjYgMzAsOCA1MCw4IEM3Miw4IDg4LDI0IDg4LDQ2IEM4OCw2NiA3Niw4MCA2MCw5NCBMMTAsMTYwIEg5MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbWl0ZXJsaW1pdD0iNCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MTIsMzM0KSI+PHBhdGggZD0iTTg2LDggSDI2IEwxOCw4MCBNMTgsODAgQzMwLDcwIDQ0LDY2IDU2LDY2IEM3OCw2NiA5Miw4NiA5MiwxMTIgQzkyLDE0MCA3MiwxNjIgNDgsMTYyIEMzMCwxNjIgMTYsMTU0IDgsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1taXRlcmxpbWl0PSI0Ii8+PGNpcmNsZSBjeD0iMTgiIGN5PSI4MCIgcj0iNyIgZmlsbD0iIzAwMCIvPjwvZz48cGF0aCBkPSJNMzcwLDM5MiBMNjMwLDQ1NyIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjkiIGZpbGw9Im5vbmUiLz48L21hc2s+PG1hc2sgaWQ9Im1CYyIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCI+PHJlY3QgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zNDQuMCw3MDAuMCBRMzMwLDcwMCAzMzAuMCw2ODYuMCBMMzMwLjAsMTE4LjAgUTMzMCwxMTAgMzM1LjEsMTE2LjIgTDQ5My43LDMxMC4zIFE1MDAsMzE4IDUwNi4zLDMxMC4zIEw2NjQuOSwxMTYuMiBRNjcwLDExMCA2NzAuMCwxMTguMCBMNjcwLjAsNjg2LjAgUTY3MCw3MDAgNjU2LjAsNzAwLjAgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9tYXNrPjwvZGVmcz48ZyBtYXNrPSJ1cmwoI21CYykiPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwMCw0ODYpIHJvdGF0ZSgxNCkiIGNsaXAtcGF0aD0idXJsKCNiYWNrYykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L2c+PGcgbWFzaz0idXJsKCNtTWMpIj48cGF0aCBkPSJNMzQ0LjAsNzAwLjAgUTMzMCw3MDAgMzMwLjAsNjg2LjAgTDMzMC4wLDExOC4wIFEzMzAsMTEwIDMzNS4xLDExNi4yIEw0OTMuNywzMTAuMyBRNTAwLDMxOCA1MDYuMywzMTAuMyBMNjY0LjksMTE2LjIgUTY3MCwxMTAgNjcwLjAsMTE4LjAgTDY3MC4wLDY4Ni4wIFE2NzAsNzAwIDY1Ni4wLDcwMC4wIFoiIGZpbGw9IiNGMkYwRUIiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=" alt="Marca de Miquel (M/25)"><div class="title">EL BATLLE</div></div>
         <h1>Un poble. Cent persones. <em>Cap llei.</em></h1>
         <p>Mira com s'organitzen sols: aixequen cabanes, llauren camps, cullen i passen l'hivern. Quan falti menjar, alguns l'agafaran d'altres cases. Quan vulguis, tria una llei i mira què canvia.</p>
-        <div class="modes"><button class="btn primary" id="startBtn">Comença com a batlle</button><button class="btn" id="familyBtn">Sigues cap d'una família</button><button class="btn" id="mpBtn">Juga amb amics</button></div>
+        <div class="modes"><button class="btn primary" id="startBtn">Comença com a batlle</button><button class="btn" id="familyBtn">Sigues cap d'una família</button><button class="btn" id="mpBtn">Juga amb amics</button><button class="btn" id="accBtn">Partides desades</button></div>
       </div>
     </div>
     <div class="controls">
@@ -309,6 +327,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <button class="btn" data-speed="24">24×</button>
       </div>
       <button class="btn" id="resetBtn">Poble nou</button>
+      <button class="btn" id="saveBtn">Desa o carrega</button>
       <button class="btn" id="housesBtn">Cases del poble</button>
       <button class="btn" id="polBtn" aria-pressed="true">Política dinàmica: sí</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
@@ -527,6 +546,64 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <label><input type="checkbox" id="mpo_wait"> Les decisions de les famílies s'acumulen i el poble s'atura un cop per setmana perquè tothom les respongui alhora</label>
       <div class="opt"><button class="btn primary" type="button" id="mpGo">Comença la partida</button><button class="btn" type="button" id="mpLeave">Surt</button></div>
       <p class="msg" id="mpWait" role="status"></p>
+    </div>
+  </div>
+</div>
+<div class="houses mp acc" id="acc" hidden role="dialog" aria-modal="true" aria-labelledby="accTitle">
+  <div class="win">
+    <header>
+      <div><h2 id="accTitle">PARTIDES DESADES</h2><p>Fins a 5 pobles, per continuar-los des de qualsevol navegador.</p></div>
+      <button class="btn" id="accClose">Tanca</button>
+    </header>
+    <form class="body" id="accLogin" novalidate>
+      <div class="tabs" role="group" aria-label="Compte"><button class="btn" type="button" id="accTabIn" aria-pressed="true">Entra</button><button class="btn" type="button" id="accTabNew" aria-pressed="false">Crea un compte</button></div>
+      <label for="accNom">Nom de jugador</label>
+      <input id="accNom" maxlength="20" placeholder="El teu nom al joc" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <label for="accClau">Contrasenya</label>
+      <input id="accClau" type="password" maxlength="100" autocomplete="current-password">
+      <div id="accNewOnly" hidden style="display:flex;flex-direction:column;gap:8px">
+        <label for="accCorreu">Correu electrònic (opcional)</label>
+        <input id="accCorreu" type="email" maxlength="120" placeholder="nom@exemple.cat" autocomplete="email">
+        <p class="note">Només serveix per recuperar la contrasenya si l'oblides, i no s'utilitzarà per a cap altre fi: no rebràs cap altre correu ni es passarà a ningú. Ni tan sols es desa tal qual, només una empremta xifrada que permet comprovar-lo quan l'escriguis per recuperar la contrasenya. Sense correu, si oblides la contrasenya no es podrà recuperar el compte.</p>
+      </div>
+      <div class="opt"><button class="btn primary" type="submit" id="accGo">Entra</button><button class="link" type="button" id="accForgot">He oblidat la contrasenya</button></div>
+      <p class="msg" id="accMsg" role="status"></p>
+    </form>
+    <form class="body" id="accRec" hidden novalidate>
+      <p class="note">Escriu el teu nom de jugador i el correu que vas donar en crear el compte. Si coincideixen, t'hi enviarem un codi per posar una contrasenya nova.</p>
+      <label for="accRecNom">Nom de jugador</label>
+      <input id="accRecNom" maxlength="20" autocomplete="username" autocapitalize="off" spellcheck="false">
+      <label for="accRecCorreu">Correu electrònic</label>
+      <input id="accRecCorreu" type="email" maxlength="120" autocomplete="email">
+      <div class="opt"><button class="btn primary" type="button" id="accRecSend">Envia'm un codi</button></div>
+      <div id="accRecStep2" hidden style="display:flex;flex-direction:column;gap:8px">
+        <label for="accRecCodi">Codi del correu</label>
+        <input id="accRecCodi" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+        <label for="accRecClau">Contrasenya nova</label>
+        <input id="accRecClau" type="password" maxlength="100" autocomplete="new-password">
+        <div class="opt"><button class="btn primary" type="submit" id="accRecGo">Canvia la contrasenya</button></div>
+      </div>
+      <button class="link" type="button" id="accRecBack">Torna</button>
+      <p class="msg" id="accRecMsg" role="status"></p>
+    </form>
+    <div class="body" id="accSlots" hidden>
+      <p class="who"><span>Has entrat com a <b id="accWho"></b></span><button class="btn" type="button" id="accOut">Surt</button></p>
+      <p class="note" id="accHint"></p>
+      <label for="accSaveName">Nom de la partida que desis</label>
+      <input id="accSaveName" maxlength="40" placeholder="">
+      <ul class="slots" id="accList"></ul>
+      <p class="msg" id="accSlotMsg" role="status"></p>
+      <details>
+        <summary>El teu compte</summary>
+        <div>
+          <label for="accMail">Correu per recuperar la contrasenya (opcional)</label>
+          <div class="opt"><input id="accMail" type="email" maxlength="120" placeholder="nom@exemple.cat" autocomplete="email"><button class="btn" type="button" id="accMailGo">Desa el correu</button></div>
+          <p class="note" id="accMailNote"></p>
+          <label for="accDelClau">Esborrar el compte i totes les partides (escriu la contrasenya)</label>
+          <div class="opt"><input id="accDelClau" type="password" maxlength="100" autocomplete="current-password"><button class="btn" type="button" id="accDel">Esborra el compte</button></div>
+          <p class="msg" id="accAccMsg" role="status"></p>
+        </div>
+      </details>
     </div>
   </div>
 </div>
@@ -4258,6 +4335,182 @@ for (const k of ['pol', 'dis', 'wait']) $('mpo_' + k).onchange = e => { if (NET 
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mp').hidden) $('mpClose').click(); });
 setInterval(() => { if (NET && NET.live) renderPlayers(); if (NET && NET.role === 'guest' && NET.shown && NET.shown.length) { for (const v of NET.shown) v.left = Math.max(0, v.left - 1); renderVotes(); } }, 1000);
 { const sala = new URLSearchParams(location.search).get('sala'); if (sala) { $('mpBtn').click(); $('mpCode').value = sala.toUpperCase().slice(0, 5); ($('mpName').value ? $('mpJoin') : $('mpName')).focus(); } }
+
+// ---------- saved games ----------
+// A player can make an account (a name and a password; an e-mail only to recover the password) and keep up to five
+// villages on Cloudflare (worker/comptes). The password never leaves the browser: it sends a key derived from it.
+const COMPTES = 'https://el-batlle-comptes.miquel-delaiglesia.workers.dev'; // ?comptes=URL uses another one
+const comptesUrl = () => new URLSearchParams(location.search).get('comptes') || COMPTES;
+let ACC = null, accNew = false, accList = null;
+try { ACC = JSON.parse(localStorage.getItem('batlle.compte')); } catch (e) {}
+const accKeep = () => { try { if (ACC) localStorage.setItem('batlle.compte', JSON.stringify({ testimoni: ACC.testimoni, nom: ACC.nom })); else localStorage.removeItem('batlle.compte'); } catch (e) {} };
+async function api(path, method = 'GET', body) {
+  let r;
+  try {
+    r = await fetch(comptesUrl() + path, { method, body: body && JSON.stringify(body),
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(ACC ? { Authorization: 'Bearer ' + ACC.testimoni } : {}) } });
+  } catch (e) { throw new Error('No es pot connectar amb el servidor de partides. Torna-ho a provar d\'aquí una estona.'); }
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401 && ACC && !['/entra', '/esborra-compte'].includes(path)) { ACC = null; accKeep(); accShow(); }
+  if (!r.ok) throw new Error(d.error || 'No s\'ha pogut fer.');
+  return d;
+}
+// the same name with other capitals is the same account, so the key is derived from the name in lower case
+async function passKey(nom, pass) {
+  if (!crypto.subtle) throw new Error('Aquest navegador no permet entrar al compte des d\'aquesta adreça.');
+  const salt = 'el-batlle:' + nom.normalize('NFC').replace(/\s+/g, ' ').trim().toLocaleLowerCase('ca');
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+  const b = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(salt), iterations: 100000 }, k, 256);
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+// a village is about 100-300 KB of JSON, a fifth of that compressed
+async function zip(t) {
+  if (!window.CompressionStream) return 'j:' + t;
+  const u = new Uint8Array(await new Response(new Blob([t]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let b = ''; for (let k = 0; k < u.length; k += 8192) b += String.fromCharCode.apply(null, u.subarray(k, k + 8192));
+  return 'g:' + btoa(b);
+}
+async function unzip(d) {
+  if (d.startsWith('j:')) return d.slice(2);
+  const u = Uint8Array.from(atob(d.slice(2)), c => c.charCodeAt(0));
+  return new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+const accName = () => ME ? `Els ${ME.surname}, ${dateLong(S.day)}` : `El poble, ${dateLong(S.day)}`;
+const canSave = () => !NET && $('intro').hidden;
+function accShow(view) {
+  const v = view || (ACC ? 'slots' : 'login');
+  $('accLogin').hidden = v !== 'login'; $('accRec').hidden = v !== 'rec'; $('accSlots').hidden = v !== 'slots';
+  if (v === 'login') {
+    $('accTabIn').setAttribute('aria-pressed', !accNew); $('accTabNew').setAttribute('aria-pressed', accNew);
+    $('accNewOnly').hidden = !accNew; $('accForgot').hidden = accNew;
+    put('accGo', accNew ? 'Crea el compte' : 'Entra');
+    $('accClau').autocomplete = accNew ? 'new-password' : 'current-password';
+  }
+  if (v === 'slots') { put('accWho', ACC.nom); $('accSaveName').placeholder = accName(); renderSlots(); }
+}
+function renderSlots() {
+  put('accHint', NET ? 'Les partides amb amics no es poden desar. Aquí només pots mirar les que tens.'
+    : !$('intro').hidden ? 'Tria una partida per continuar-la, o comença un poble nou per poder-lo desar.' : 'Desa el poble tal com està ara, o carrega una partida desada.');
+  if (!accList) { $('accList').innerHTML = '<li class="empty"><div class="si"><small>Carregant…</small></div></li>'; return; }
+  const by = new Map(accList.partides.map(p => [p.slot, p]));
+  $('accList').innerHTML = Array.from({ length: accList.max }, (_, i) => {
+    const p = by.get(i + 1), save = `<button class="btn" type="button" data-save="${i + 1}"${canSave() ? '' : ' disabled'}>Desa aquí</button>`;
+    if (!p) return `<li class="empty"><div class="si"><b class="dim">Lloc ${i + 1} buit</b></div><div class="sb">${save}</div></li>`;
+    const m = p.meta || {}, when = new Date(p.desat).toLocaleString('ca', { dateStyle: 'short', timeStyle: 'short' });
+    const what = [m.data, m.gent != null ? `${m.gent} persones` : '', m.lleis != null ? `${m.lleis} lleis` : ''].filter(Boolean).join(' · ');
+    return `<li><div class="si"><b>${esc(p.nom)}</b><small>${esc(what)}<br>desada el ${esc(when)}</small></div>
+      <div class="sb"><button class="btn primary" type="button" data-load="${i + 1}"${NET ? ' disabled' : ''}>Carrega</button>${save}<button class="btn" type="button" data-del="${i + 1}">Esborra</button></div></li>`;
+  }).join('');
+}
+async function accRefresh() {
+  accList = null; renderSlots();
+  try { accList = await api('/partides'); ACC.correu = accList.correu; renderSlots(); accMailNote(); } catch (e) { put('accSlotMsg', e.message); }
+}
+const accMailNote = () => put('accMailNote', (ACC && ACC.correu ? 'Ara tens un correu per recuperar la contrasenya. Deixa-ho buit i desa per treure\'l. ' : 'Ara no tens cap correu: si oblides la contrasenya no es podrà recuperar. ')
+  + 'Només serveix per recuperar la contrasenya i no s\'utilitzarà per a cap altre fi; no es desa tal qual, només una empremta xifrada.');
+// a button that does something that can't be undone asks once more
+function sure(b, txt, fn) {
+  if (b.dataset.sure) { fn(); return; }
+  const o = b.textContent; b.dataset.sure = 1; b.textContent = txt;
+  setTimeout(() => { b.textContent = o; delete b.dataset.sure; }, 3000);
+}
+function openAcc() {
+  $('acc').hidden = false; put('accMsg', ''); put('accSlotMsg', ''); put('accAccMsg', '');
+  accShow();
+  if (ACC) { accRefresh(); $('accClose').focus(); } else ($('accNom').value ? $('accClau') : $('accNom')).focus();
+}
+$('accBtn').onclick = $('saveBtn').onclick = openAcc;
+$('accClose').onclick = () => { $('acc').hidden = true; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('acc').hidden) $('accClose').click(); });
+$('accTabIn').onclick = () => { accNew = false; accShow('login'); put('accMsg', ''); };
+$('accTabNew').onclick = () => { accNew = true; accShow('login'); put('accMsg', ''); };
+$('accLogin').onsubmit = async e => {
+  e.preventDefault();
+  const nom = $('accNom').value.replace(/\s+/g, ' ').trim(), pass = $('accClau').value, mail = $('accCorreu').value.trim();
+  if (!/^[\p{L}\p{N}_. -]{3,20}$/u.test(nom)) { put('accMsg', 'El nom ha de tenir de 3 a 20 lletres, xifres, espais, punts o guions.'); $('accNom').focus(); return; }
+  if (pass.length < (accNew ? 6 : 1)) { put('accMsg', 'La contrasenya ha de tenir almenys 6 caràcters.'); $('accClau').focus(); return; }
+  if (accNew && mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) { put('accMsg', 'Aquest correu no sembla vàlid.'); $('accCorreu').focus(); return; }
+  $('accGo').disabled = true; put('accMsg', accNew ? 'Creant el compte…' : 'Entrant…');
+  try {
+    const clau = await passKey(nom, pass);
+    ACC = await api(accNew ? '/registre' : '/entra', 'POST', accNew ? { nom, clau, correu: mail } : { nom, clau });
+    accKeep(); $('accClau').value = ''; $('accCorreu').value = ''; put('accMsg', '');
+    accShow('slots'); accRefresh();
+  } catch (err) { ACC = null; put('accMsg', err.message); }
+  $('accGo').disabled = false;
+};
+$('accForgot').onclick = () => { $('accRecNom').value = $('accNom').value; $('accRecStep2').hidden = true; put('accRecMsg', ''); accShow('rec'); $('accRecNom').focus(); };
+$('accRecBack').onclick = () => { accShow('login'); };
+$('accRecSend').onclick = async () => {
+  const nom = $('accRecNom').value.trim(), correu = $('accRecCorreu').value.trim();
+  if (!nom || !correu) { put('accRecMsg', 'Escriu el nom i el correu.'); return; }
+  $('accRecSend').disabled = true; put('accRecMsg', 'Enviant…');
+  try {
+    await api('/recupera', 'POST', { nom, correu });
+    put('accRecMsg', 'Si el nom i el correu coincideixen, d\'aquí un moment hi rebràs un codi (mira també el correu brossa). Val 30 minuts.');
+    $('accRecStep2').hidden = false; $('accRecCodi').focus();
+  } catch (err) { put('accRecMsg', err.message); }
+  $('accRecSend').disabled = false;
+};
+$('accRec').onsubmit = async e => {
+  e.preventDefault();
+  const nom = $('accRecNom').value.trim(), codi = $('accRecCodi').value.trim(), pass = $('accRecClau').value;
+  if (!/^\d{6}$/.test(codi)) { put('accRecMsg', 'El codi té 6 xifres.'); $('accRecCodi').focus(); return; }
+  if (pass.length < 6) { put('accRecMsg', 'La contrasenya ha de tenir almenys 6 caràcters.'); $('accRecClau').focus(); return; }
+  $('accRecGo').disabled = true; put('accRecMsg', 'Canviant la contrasenya…');
+  try {
+    ACC = await api('/nova-clau', 'POST', { nom, codi, clau: await passKey(nom, pass) });
+    accKeep(); $('accRecClau').value = ''; $('accRecCodi').value = ''; put('accRecMsg', '');
+    accShow('slots'); accRefresh(); put('accSlotMsg', 'Contrasenya canviada.');
+  } catch (err) { put('accRecMsg', err.message); }
+  $('accRecGo').disabled = false;
+};
+$('accOut').onclick = () => { api('/surt', 'POST', {}).catch(() => {}); ACC = null; accList = null; accKeep(); accNew = false; accShow('login'); $('accNom').focus(); };
+$('accList').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return;
+  if (b.dataset.save) { const slot = +b.dataset.save; accList.partides.some(p => p.slot === slot) ? sure(b, 'Segur? Se sobreescriu', () => saveGame(slot)) : saveGame(slot); }
+  if (b.dataset.load) loadGame(+b.dataset.load);
+  if (b.dataset.del) sure(b, 'Segur? Esborra-la', async () => {
+    try { await api('/partides/' + b.dataset.del, 'DELETE'); put('accSlotMsg', 'Partida esborrada.'); accRefresh(); } catch (err) { put('accSlotMsg', err.message); }
+  });
+});
+async function saveGame(slot) {
+  if (!canSave()) return;
+  const nom = $('accSaveName').value.trim() || accName();
+  const meta = { data: dateLong(S.day), gent: S.people.length, lleis: laws.length, fam: ME ? ME.surname : null };
+  const data = JSON.stringify({ v: 1, snap: snapshot(), mode: MODE, sp: speed });
+  put('accSlotMsg', 'Desant…'); $('accList').querySelectorAll('button').forEach(b => { b.disabled = true; });
+  try { await api('/partides/' + slot, 'PUT', { nom, meta, dades: await zip(data) }); $('accSaveName').value = ''; put('accSlotMsg', `Desada: «${nom}».`); log(`Partida desada: «${nom}».`, 'info'); }
+  catch (err) { put('accSlotMsg', err.message); }
+  accRefresh();
+}
+async function loadGame(slot) {
+  if (NET) return;
+  put('accSlotMsg', 'Carregant…');
+  try {
+    const p = accList.partides.find(o => o.slot === slot), o = JSON.parse(await unzip((await api('/partides/' + slot)).dades));
+    closeAsk(false); running = false;
+    restore(o.snap);
+    logEl.innerHTML = ''; MODE = ME ? 'familia' : 'batlle';
+    speed = o.sp || 3; syncSpeed();
+    $('intro').hidden = true; syncPlay();
+    $('acc').hidden = true; put('accSlotMsg', '');
+    log(`Partida «${p ? p.nom : slot}» carregada: ${dateLong(S.day)}. Prem Continua quan vulguis.`, 'info');
+    if (ME) tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber');
+    if (ME && ME.asks && ME.asks.length) showAsk();
+  } catch (err) { put('accSlotMsg', err.message || 'No s\'ha pogut carregar la partida.'); }
+}
+$('accMailGo').onclick = async () => {
+  const correu = $('accMail').value.trim();
+  if (correu && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correu)) { put('accAccMsg', 'Aquest correu no sembla vàlid.'); return; }
+  try { const d = await api('/correu', 'POST', { correu }); ACC.correu = d.correu; $('accMail').value = ''; accMailNote(); put('accAccMsg', d.correu ? 'Correu desat.' : 'Correu tret.'); } catch (err) { put('accAccMsg', err.message); }
+};
+$('accDel').onclick = () => sure($('accDel'), 'Segur? No es pot desfer', async () => {
+  try {
+    await api('/esborra-compte', 'POST', { clau: await passKey(ACC.nom, $('accDelClau').value) });
+    ACC = null; accList = null; accKeep(); $('accDelClau').value = ''; accShow('login'); put('accMsg', 'Compte i partides esborrats.');
+  } catch (err) { put('accAccMsg', err.message); }
+});
 
 // ---------- houses register ----------
 // the houses a family owns: the one it lives in (unless it rents) and the blocks it lets whole
