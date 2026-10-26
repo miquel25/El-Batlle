@@ -4604,7 +4604,7 @@ function troRender() {
   put('troSub', troWho === 'wait' || (!all && !troGot) ? 'Carregant…' : all ? `${n} de ${TROPHIES.length} guanyats per algú. Toca'n un per veure qui.` : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
   const sub = t => all ? (got[t.id] ? `${got[t.id].length} jugador${got[t.id].length > 1 ? 's' : ''}` : 'ningú') : '';
   $('troCase').innerHTML = ['d', 'o', 'p', 'b'].map(k => `<div class="shelf ${k}"><span class="sl">${TIERS[k]}</span><ul>${TROPHIES.filter(t => t.tier === k).map(t =>
-    `<li><button class="trophy${got[t.id] ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id])}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
+    `<li><button class="trophy${got[t.id] || all ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id] || all)}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
 }
 function troOpen() {
   if (!ACC) { $('troMsg').hidden = false; $('troLogin').focus(); return; }
@@ -4622,7 +4622,7 @@ $('troClose').onclick = () => { $('tro').hidden = true; (troWho ? $('accTroAll')
 $('troCase').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if (!b) return;
   const t = TRO[b.dataset.t], all = troWho && troWho.guanyadors, who = all && all[t.id], when = !all && troGot && troGot[t.id];
-  $('troDetFig').innerHTML = troSvg(t, all ? who : when); $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
+  $('troDetFig').innerHTML = troSvg(t, all || when); // the admin's view draws every trophy, won or not $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
   put('troDetName', t.name); put('troDetDesc', t.desc);
   put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.');
   $('troDetWho').hidden = !who;
