@@ -491,6 +491,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Preu del jornal</span><b id="sWage">0</b></div>
         <div><span>Jornals</span><b id="sJobs">0</b></div>
         <div><span>Menjar en sous</span><b id="sWages">0</b></div>
+        <div><span>Preu de la fusta</span><b id="sWoodPrice">0</b></div>
         <div><span>Preu del carbó</span><b id="sCoalPrice">0</b></div>
         <div><span>Preu de la pedra</span><b id="sStonePrice">0</b></div>
         <div><span>Preu del ferro</span><b id="sIronPrice">0</b></div>
@@ -498,8 +499,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Preu pic</span><b id="sPickPrice">0</b></div>
         <div><span>Preu arada</span><b id="sPlowPrice">0</b></div>
         <div><span>Preu canya</span><b id="sRodPrice">0</b></div>
-        <div class="pad"></div>
-        <div class="pad"></div>
+        <div><span>Fusta venuda</span><b id="sWoodSold">0</b></div>
         <h4>OFICIS I MATERIALS</h4>
         <div><span>Carboners</span><b id="sBurners">0</b></div>
         <div><span>Carbó venut</span><b id="sCoalSold">0</b></div>
@@ -521,8 +521,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <div><span>Corrals</span><b id="sPens">0</b></div>
         <div class="good"><span>Corrals millorats</span><b id="sPenUps">0</b></div>
         <div class="bad"><span>Ovelles perdudes</span><b id="sLostHerd">0</b></div>
-        <div class="pad"></div>
-        <div class="pad"></div>
+        <div><span>Preu d'una ovella</span><b id="sSheepPrice">0</b></div>
+        <div><span>Ovelles venudes</span><b id="sSheepSold">0</b></div>
         <h4>HABITATGE</h4>
         <div><span>Preu d'una cabana</span><b id="sHousePrice">0</b></div>
         <div class="good"><span>Cases de pedra</span><b id="sStoneHouses">0</b></div>
@@ -816,7 +816,7 @@ const LAWDEFS = {
   basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax', 'collective'] },
   redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: el dia que s\'aprova, es reparteix tot. Els blocs de pisos no es divideixen: qui té més d\'una casa o bloc es queda la més gran i perd les altres, que passen a les famílies llogateres (i després a les que no tenen casa). Els camps es reparteixen a parts iguals. Ningú no pot tenir més d\'un d\'aquests edificis: corral, carbonera, farga o molí; qui en té més es queda el del seu ofici i els altres passen a famílies que no en tenen cap. El menjar, la fusta, el carbó, la pedra, el ferro i les eines es reparteixen a parts iguals entre totes les cases, i les ovelles entre tots els corrals. Mentre la llei és vigent, el mercat immobiliari està tancat.' },
   agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap. Mentre la llei és vigent, el mercat immobiliari està tancat.' },
-  prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
+  prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro, la fusta, les ovelles i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
   wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
   tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
   rentcap: { name: 'Topall als lloguers', txt: 'Topall als lloguers: el lloguer d\'un pis no pot passar de 0,3 de menjar al dia. Es construiran menys pisos nous.', excl: ['laissez', 'norent'] },
@@ -884,7 +884,7 @@ function newWorld(sd) {
   }
   S = {
     day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
-    st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
+    st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, woodSold: 0, sheepSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START, woodPrice: WOOD_START, sheepPrice: SHEEP_COST,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
     flags: {}, dirty: true, nextId: 1, watch: true, hands: false, handCats: {}, handLaws: {}, polOn: false, polOff: false, tro: { rev: 0 }, used: new Set(), animals: [], forest: tree.slice(),
   };
@@ -1331,6 +1331,7 @@ function redistribute() {
 }
 function coalValue(h, season) { const n = need(h); return n * (1 - 1 / 1.2) + (season === 3 ? n * 0.25 : 0); }
 const WAGE = 2.5, MIN_WAGE = 3.5, SHEEP_COST = 40, MILK = 0.7, FODDER = 0.3, MEAT = 30, HERD_MAX = 8;
+const SHEEP_MAX = 120; // a sheep never sells for less than its meat (MEAT) nor more than this
 function syncHerd(h) {
   const mine = S.animals.filter(a => a.h === h);
   while (mine.length > h.herd) { const a = mine.pop(); S.animals.splice(S.animals.indexOf(a), 1); }
@@ -1345,6 +1346,25 @@ const herdMax = h => HERD_MAX + (h && h.pen && h.pen.lvl ? 4 : 0);
 const wantPen = h => !h.gone && h.pen && !h.pen.lvl && h.herd >= 3 && daysOf(h) > 60 && h.food > 250;
 // a small household needs a smaller fire
 const hearth = h => Math.min(1.2, 0.4 + 0.15 * h.members.length) * (stoneHouse(h) ? UP_HEAT : 1);
+// the firewood a family wants to have stacked before winter, and what it keeps back: the pile until winter starts, then
+// what is left of the winter. Anything above that it is willing to sell
+const woodPile = h => ((L.forest ? 70 : 90) + 25 * famInt(h)) * hearth(h);
+const woodKeep = (h, doy) => seasonOf(doy) === 3 ? hearth(h) * (YEAR - doy) * (freezing() ? FREEZE_WOOD : 1) + 5 : woodPile(h);
+// the sheep a family will sell: the lambs that don't fit in its pen and, when it is going hungry, one more
+const sheepSpare = h => !h.pen || !h.herd ? 0 : Math.max(h.herd - herdMax(h), daysOf(h) < 4 ? 1 : 0);
+// a family buys sheep from the families that have some to sell, at the market price; what the village can't supply it
+// buys from outside at the same price, and that shortage pushes the price up. Returns what it paid
+function buySheep(h, n) {
+  let pay = 0, q = n;
+  for (const sl of S.homes.filter(o => o !== h && !o.gone && o.members.length && sheepSpare(o) > 0)) {
+    const t = Math.min(q, sheepSpare(sl)); if (t <= 0) continue;
+    sl.herd -= t; sl.food += t * S.sheepPrice; sl.milk += t * S.sheepPrice; syncHerd(sl); S.st.sheepSold += t; q -= t;
+    if (!q) break;
+  }
+  if (q) S.sheepShort = (S.sheepShort || 0) + q;
+  pay = n * S.sheepPrice; h.food -= pay; h.milk -= pay; h.herd += n; syncHerd(h);
+  return pay;
+}
 // a hut can be rebuilt in stone with a little iron: food keeps better and it needs less fire. The upgrade belongs to the
 // building, so whoever moves in keeps it; a stone house left empty for a year falls back to a plain hut
 const UP_STONE = 20, UP_IRON = 3, UP_HEAT = 0.7, UP_SPOIL = 0.6;
@@ -1356,10 +1376,11 @@ const WT_STEP = 0.05, WT_MAX = 0.3; // wealth tax
 const RENT_CAP = 0.3; // rent cap law
 const FLOOR_WOOD = 10, FLOOR_STONE = 8, MAX_FLOORS = 5, RENT_START = 0.4, RENT_MIN = 0.1, RENT_MAX = 3;
 const HUT_VAL = 40, UP_VAL = 40, FLOOR_VAL = 30;
-// what a family lacks for a build can be bought from the spare stock of other families: wood at 1 of food, stone and
-// iron at their market price. A family decides to build if it has the materials, or the food to buy what is missing
+// what a family lacks for a build can be bought from the spare stock of other families: wood, stone and iron at
+// their market price. A family decides to build if it has the materials, or the food to buy what is missing
 // and still keep a month of food
-const MATS = { wood: ['fusta', () => 1], stone: ['pedra', () => S.stonePrice], iron: ['ferro', () => S.ironPrice] };
+const WOOD_START = 1, WOOD_MIN = 0.6, WOOD_MAX = 4; // below 0.6 a day cutting wood pays less than a day foraging
+const MATS = { wood: ['fusta', () => S.woodPrice], stone: ['pedra', () => S.stonePrice], iron: ['ferro', () => S.ironPrice] };
 const spareOf = (o, k) => k === 'wood' ? o.wood - 20 : k === 'stone' ? o.stone - stoneNeed(o) : o.iron - (o.forge && o.members.some(m => m.job === 'ferrer') ? 8 : 0);
 const sellersOf = (h, k) => S.homes.filter(o => o !== h && !o.gone && o.members.length && spareOf(o, k) >= 1).sort((a, b) => spareOf(b, k) - spareOf(a, k));
 function lacking(h, cost, keep = {}) { // the materials to buy and what they cost, or null if nobody has enough to sell
@@ -1382,7 +1403,7 @@ function buyLacking(h, l) {
       const t = Math.min(q, Math.floor(spareOf(o, k))); if (t <= 0) continue;
       const pay = t * MATS[k][1]();
       o[k] -= t; h[k] += t; h.food -= pay; o.food += pay; q -= t;
-      if (k === 'stone') { o.stoneSold += t; S.st.stoneSold += t; } else if (k === 'iron') S.st.ironSold += t;
+      if (k === 'stone') { o.stoneSold += t; S.st.stoneSold += t; } else if (k === 'iron') S.st.ironSold += t; else { S.st.woodSold += t; S.woodDemand = (S.woodDemand || 0) + t; }
       if (!q) break;
     }
     if (R() < 0.3) tagHome(h, `COMPRA ${q0 - q} ${MATS[k][0].toUpperCase()}`, 'amber');
@@ -1400,7 +1421,7 @@ function wealthsOf(list) {
   const lets = new Map();
   for (const o of S.homes) { const u = o.hut, l = u && u.landlord; if (l) { const s = lets.get(l) || lets.set(l, new Set()).get(l); s.add(u); } }
   return list.map(h => {
-    let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
+    let w = Math.max(0, h.food) + h.wood * S.woodPrice + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * S.sheepPrice;
     if (h.hut && !h.tenant) w += housePrice(h.hut);
     for (const u of lets.get(h) || []) w += housePrice(u);
     w += landWorth(h);
@@ -1550,7 +1571,7 @@ function payLord(h, amt) {
 function resToll(h, res, k, amt) {
   if (!L.enclosure || !(amt > 0)) return amt;
   const o = lordOf(RES[res].key); if (!o || o === h) return amt;
-  const cut = amt * 0.25, v = cut * (k === 'coal' ? S.coalPrice : k === 'stone' ? S.stonePrice : k === 'iron' ? S.ironPrice : 1);
+  const cut = amt * 0.25, v = cut * (k === 'coal' ? S.coalPrice : k === 'stone' ? S.stonePrice : k === 'iron' ? S.ironPrice : S.woodPrice);
   o[k] += cut; S.st.toForest = (S.st.toForest || 0) + v;
   if (S.mkt) S.mkt.today[res] = (S.mkt.today[res] || 0) + v;
   return amt - cut;
@@ -1559,7 +1580,7 @@ const forestToll = (h, k, amt) => resToll(h, 'forest', k, amt);
 // a house that dies out with nobody to inherit: everything goes to the common granary. The materials and the
 // sheep are sold at market value, and the house, if it finds a buyer, is sold too
 function escheat(h) {
-  let v = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * MEAT;
+  let v = Math.max(0, h.food) + h.wood * S.woodPrice + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * S.sheepPrice;
   for (const k of ['wood', 'stone', 'iron', 'coal']) h[k] = 0;
   let sold = '';
   if (h.hut && !h.taken) {
@@ -1732,7 +1753,7 @@ function propValue(kind, o, h) {
   switch (kind) {
     case 'house': return housePrice(o);
     case 'field': return FIELD_VAL * mktIdx('field');
-    case 'pen': return (PEN_VAL + (o.lvl ? PEN_WOOD + PEN_IRON * S.ironPrice : 0)) * mktIdx('pen') + (h ? h.herd * SHEEP_COST : 0);
+    case 'pen': return (PEN_VAL + (o.lvl ? PEN_WOOD * S.woodPrice + PEN_IRON * S.ironPrice : 0)) * mktIdx('pen') + (h ? h.herd * S.sheepPrice : 0);
     case 'kiln': return (KILN_COST + KILN_STONE * S.stonePrice) * mktIdx('kiln');
     case 'forge': return (FORGE_WOOD + FORGE_STONE * S.stonePrice) * mktIdx('forge') + shelfWorth(h);
     case 'mill': return (MILL_WOOD + MILL_STONE * S.stonePrice + MILL_FOOD) * mktIdx('mill');
@@ -1866,7 +1887,7 @@ function buyerFor(l, active) {
       return best(ok.filter(b => b.hut && !b.pending && ((b.fields.length < fieldWant(b) && daysOf(b) > 20 && b.food > price + month(b))
         || (!L.nowage && b.fields.length < 2 * fieldWant(b) && daysOf(b) > 120 && b.food > price + 300))));
     case 'pen': // a family that wants sheep: an empty pen only if it can buy a pair at once
-      return best(ok.filter(b => b.hut && !b.pen && adultsOf(b).length >= 2 && daysOf(b) > 90 && b.food > price + 250 + (sl.herd ? 0 : SHEEP_COST * 2)));
+      return best(ok.filter(b => b.hut && !b.pen && adultsOf(b).length >= 2 && daysOf(b) > 90 && b.food > price + 250 + (sl.herd ? 0 : S.sheepPrice * 2)));
     case 'kiln': case 'forge': {
       if (k === 'kiln' && L.nocoal) return null;
       return best(ok.filter(b => b.hut && b.members.some(m => m.job === PROP[k].job && !m.leaving) && b.food > price + month(b)));
@@ -1917,7 +1938,7 @@ function realEstate(active) {
     const b = buyerFor(l, active);
     if (!b) continue;
     sellProp(l, b);
-    if (l.kind === 'pen' && !b.herd) { b.food -= SHEEP_COST * 2; b.milk -= SHEEP_COST * 2; b.herd = 2; syncHerd(b); log(`Els ${b.surname} canvien ${SHEEP_COST * 2} de menjar per dues ovelles per al corral que han comprat.`, 'amber'); }
+    if (l.kind === 'pen' && !b.herd) { const pay = buySheep(b, 2); log(`Els ${b.surname} paguen ${fmt(pay)} de menjar per dues ovelles per al corral que han comprat.`, 'amber'); }
   }
   // things that sit unsold at the market price push their kind's price down
   const stale = new Set(m.list.filter(l => l.f <= 1 && S.day - l.day > 30).map(l => l.kind));
@@ -2053,6 +2074,8 @@ function daily() {
         doWood(h, p, eff, hx); // timber for the sheep shed
       } else if (season <= 2 && wantFloor(h) && h.wood < floorCost(h.hut).wood + 30 && R() < 0.5) {
         doWood(h, p, eff, hx);
+      } else if (season <= 2 && S.woodPrice > 1.5 && h.hut && h.wood < woodPile(h) + 40 && R() < 0.3) {
+        doWood(h, p, eff, hx); // wood is dear: cut some more to sell in winter
       } else forage(h, p, eff, sf, season);
     }
     // children wander near home
@@ -2117,17 +2140,50 @@ function daily() {
   // under laissez there is no floor at all; the tiny value only keeps the multiplicative update alive
   S.wage = Math.max(L.wage ? MIN_WAGE : L.laissez ? 0.02 : Math.max(0.3, Math.min(1.2, S.wildPay ?? 1.2)), S.wage);
 
+  // sheep market: the families with lambs that don't fit in their pen sell them, and a family going hungry sells a sheep
+  // before it has to kill one. Families with room in their pen and food to spare buy them, as long as the price is not
+  // more than they think a sheep is worth (the richer, the more). The price rises when buyers find nothing to buy and
+  // falls when sheep go unsold; it never drops below what the meat is worth
+  {
+    let unmet = S.sheepShort || 0; S.sheepShort = 0;
+    const worth = b => SHEEP_COST * (1 + Math.min(1, daysOf(b) / 365));
+    const buyers = season === 3 ? [] : active.filter(b => b.pen && b.herd >= 1 && b.herd < herdMax(b) - 1 && b.members.some(m => m.age >= 360 && !m.leaving)
+      && daysOf(b) > 90 && S.sheepPrice <= worth(b) && b.food > S.sheepPrice * 2 + 200 + need(b) * 30 && (R() < 0.03 || want(b, 'sheepBuy')));
+    for (const b of buyers) {
+      const n = Math.min(2, herdMax(b) - b.herd - 1);
+      const sellers = active.filter(o => o !== b && sheepSpare(o) > 0);
+      const have = sellers.reduce((t, o) => t + sheepSpare(o), 0);
+      if (!have) { unmet += n; continue; }
+      const q = Math.min(n, have);
+      if (!ask(b, 'sheepBuy', `Al poble es venen ovelles a ${fmt(S.sheepPrice)} de menjar cada una i teniu lloc al corral. En compreu ${q > 1 ? q : 'una'}?`, 'Sí', 'No', 60)) continue;
+      let left = q;
+      for (const sl of sellers) {
+        const t = Math.min(left, sheepSpare(sl)); if (t <= 0) continue;
+        const pay = t * S.sheepPrice;
+        sl.herd -= t; b.herd += t; b.food -= pay; sl.food += pay; sl.milk += pay; b.milk -= pay; syncHerd(sl); S.st.sheepSold += t; left -= t;
+        if (R() < 0.3) tagHome(b, t > 1 ? `COMPREN ${t} OVELLES` : 'COMPREN UNA OVELLA', 'amber');
+        logOnce('sheepSale', `Els ${b.surname} compren ${t > 1 ? `${t} ovelles` : 'una ovella'} als ${sl.surname} a ${fmt(S.sheepPrice)} de menjar cada una.`, 'amber');
+        if (!left) break;
+      }
+      syncHerd(b);
+    }
+    const stock = active.reduce((t, o) => t + sheepSpare(o), 0);
+    if (unmet > 0) S.sheepPrice *= 1.02;
+    else if (stock > 0 && season !== 3) S.sheepPrice *= 0.99;
+    S.sheepPrice = Math.max(MEAT, Math.min(L.prices ? SHEEP_COST * FAIR : SHEEP_MAX, S.sheepPrice));
+  }
+
   // livestock
   for (const h of active) {
     if (!h.herd) {
       // a well-off family trades food for a pair of sheep and builds a pen
       if (h.hut && season !== 3 && h.members.filter(m => m.age >= 360).length >= 2 && daysOf(h) > 120 && h.food > 400 && (R() < 0.01 || want(h, 'sheep'))
-        && ask(h, 'sheep', `Teniu ${fmt(h.food)} de menjar guardat. Compreu dues ovelles per ${SHEEP_COST * 2} de menjar i feu un corral? Donen llet, però algú les ha de pasturar.`, 'Sí', 'No', 90)) {
+        && h.food > 300 + S.sheepPrice * 2 && ask(h, 'sheep', `Teniu ${fmt(h.food)} de menjar guardat. Compreu dues ovelles per ${fmt(S.sheepPrice * 2)} de menjar i feu un corral? Donen llet, però algú les ha de pasturar.`, 'Sí', 'No', 90)) {
         if (!h.pen) { const hx = homeXY(h); h.pen = findSite(hx.x, hx.y, 3, 3, 4); if (h.pen) mark(h.pen.x, h.pen.y, 3, 3, 4); h.penUsed = S.day; }
         if (h.pen) {
-          h.food -= SHEEP_COST * 2; h.milk -= SHEEP_COST * 2; h.herd = 2; syncHerd(h);
+          const pay = buySheep(h, 2);
           tagHome(h, 'COMPREN 2 OVELLES', 'amber');
-          log(`Els ${h.surname} canvien ${SHEEP_COST * 2} de menjar per dues ovelles i fan un corral.`, 'amber');
+          log(`Els ${h.surname} paguen ${fmt(pay)} de menjar per dues ovelles i fan un corral.`, 'amber');
         }
       }
       continue;
@@ -2196,18 +2252,20 @@ function daily() {
   }
   if (L.nocoal) for (const b of burners) if (R() < 0.05) { b.job = null; log(`${fullName(b)} apaga la carbonera per sempre: la llei prohibeix fer carbó.`, 'info'); }
   if (S.coalPrice < 0.8) for (const b of burners) if (R() < 0.01) { b.job = null; log(`${fullName(b)} deixa l'ofici de carboner: el carbó es paga massa barat.`, 'info'); }
-  // coal market with a price that follows supply and demand
+  // coal market with a price that follows supply and demand. Charcoal burners sell all but a little; any other family
+  // with more coal than it burns in a winter sells what it has over
   {
-    const sellers = active.filter(h => h.kiln && h.coal >= 5);
+    const coalSpare = h => h.coal - (h.kiln ? 4 : 10);
+    const sellers = active.filter(h => coalSpare(h) >= 1);
     let unmet = 0, sold = 0;
     const buyers = active.filter(h => h.hut && !h.kiln && h.coal < 6 && daysOf(h) > 8 && (season >= 2 || daysOf(h) < 15) && coalValue(h, season) >= S.coalPrice)
       .sort((a, b) => coalValue(b, season) - coalValue(a, season));
     for (const b of buyers) {
       let want = Math.min(6 - Math.floor(b.coal), Math.floor(b.food * 0.08 / S.coalPrice));
       while (want > 0) {
-        const sl = sellers.find(o => o.coal >= 5);
+        const sl = sellers.find(o => o !== b && coalSpare(o) >= 1);
         if (!sl) { unmet += want; break; }
-        const q = Math.min(want, Math.floor(sl.coal - 4));
+        const q = Math.min(want, Math.floor(coalSpare(sl)));
         const pay = q * S.coalPrice;
         sl.coal -= q; b.coal += q; b.food -= pay; sl.food += pay;
         sl.coalSold += q; b.coalBought += q; S.st.coalSold += q; sold += q; want -= q;
@@ -2215,10 +2273,38 @@ function daily() {
         if (!S.flags.coal) { S.flags.coal = 1; log(`Els ${b.surname} compren ${q} de carbó als ${sl.surname} a ${S.coalPrice.toFixed(1)} de menjar cada un.`, 'amber'); }
       }
     }
-    const stock = sellers.reduce((t, h) => t + h.coal, 0);
+    const stock = sellers.reduce((t, h) => t + Math.max(0, coalSpare(h)), 0);
     if (unmet > 0) S.coalPrice *= 1.03;
     else if (stock > 25 || (buyers.length === 0 && stock > 10)) S.coalPrice *= 0.98;
     S.coalPrice = Math.max(COAL_MIN, Math.min(L.prices ? COAL_START * FAIR : COAL_MAX, S.coalPrice));
+  }
+  // wood market: in winter a family running out of firewood buys it from the families with more than they need, and
+  // builders buy the timber they lack. The price rises when there is not enough wood for sale and falls when there is
+  // plenty left over; when wood is dear, families with hands to spare cut more to sell
+  {
+    const spare = o => o.wood - woodKeep(o, doy);
+    const sellers = active.filter(o => spare(o) >= 1).sort((a, b) => spare(b) - spare(a));
+    let unmet = 0;
+    if (season === 3) for (const b of active) {
+      if (!b.hut || b.coal >= 1 || b.wood >= hearth(b) * 10) continue;
+      let want = Math.min(Math.ceil(Math.min(hearth(b) * 30, woodKeep(b, doy)) - b.wood), Math.floor(b.food * 0.15 / S.woodPrice));
+      if (want <= 0) continue;
+      for (const sl of sellers) {
+        const q = Math.min(want, Math.floor(spare(sl)));
+        if (q <= 0) continue;
+        const pay = q * S.woodPrice;
+        sl.wood -= q; b.wood += q; b.food -= pay; sl.food += pay; S.st.woodSold += q; want -= q;
+        if (R() < 0.15) tagHome(b, `COMPRA ${q} LLENYA`, 'amber');
+        logOnce('wood', `Els ${b.surname} es queden sense llenya i en compren ${q} als ${sl.surname} a ${S.woodPrice.toFixed(2)} de menjar cada una.`, 'amber');
+        if (!want) break;
+      }
+      if (want > 0) unmet += want;
+    }
+    const stock = sellers.reduce((t, o) => t + Math.max(0, spare(o)), 0), built = S.woodDemand || 0; S.woodDemand = 0;
+    if (unmet > 0) S.woodPrice *= 1.03;
+    else if (built > 0 && stock < 5 * active.length) S.woodPrice *= 1.01;
+    else if (stock > 30 * active.length) S.woodPrice *= 0.99;
+    S.woodPrice = Math.max(WOOD_MIN, Math.min(L.prices ? WOOD_START * FAIR : WOOD_MAX, S.woodPrice));
   }
 
   // stonecutters: a hard job for strong people. They join when a day at the quarry pays well and leave when it doesn't
@@ -2230,9 +2316,10 @@ function daily() {
     if (c && ask(c.h, 'job' + c.id, `${fullName(c)} es pot fer picapedrer: treure pedra de la pedrera i vendre-la. És feina dura i menjarà més. Hi esteu d'acord?`, 'Sí', 'No', 90)) { c.job = 'picapedrer'; log(`${fullName(c)} es fa picapedrer. És una feina dura: menja més, però la pedra es paga bé.`, 'amber'); }
   }
   if (dayPay < 1.3) for (const c of cutters) if (R() < 0.02) { c.job = null; log(`${fullName(c)} deixa la pedrera: ja costa massa treure pedra pel que se'n paga.`, 'info'); }
-  // stone market, priced by supply and demand
+  // stone market, priced by supply and demand: stonecutters sell what they dig, and any family sells the stone it has
+  // over what it needs
   {
-    const sellers = active.filter(h => h.members.some(m => m.job === 'picapedrer') && h.stone - stoneNeed(h) >= 1);
+    const sellers = active.filter(h => h.stone - stoneNeed(h) >= 1);
     let unmet = 0;
     for (const b of active) {
       let want = Math.ceil(stoneNeed(b) - b.stone);
@@ -2293,23 +2380,25 @@ function daily() {
     o.millFee = L.laissez ? Math.max(0.05, Math.min(0.6, (o.millFee ?? MILL_FEE) + (load > 0.9 ? 0.05 : load < 0.5 ? -0.05 : 0))) : MILL_FEE;
     o.millLoad = 0;
   }
-  // iron market: smiths buy from miners
+  // iron market: smiths buy from miners, and from any family with iron it doesn't need
   {
     let unmet = 0;
-    const sellers = active.filter(h => h.members.some(m => m.job === 'miner') && h.iron >= 1);
     // smiths keep a stock of iron; families rebuilding their house in stone need a little
     const ironWant = h => (h.forge && h.members.some(m => m.job === 'ferrer') ? 8 : 0) + (wantUp(h) ? UP_IRON : 0) + (wantPen(h) ? PEN_IRON : 0);
+    const ironSpare = h => h.members.some(m => m.job === 'miner') ? h.iron : h.iron - ironWant(h);
+    const sellers = active.filter(h => ironSpare(h) >= 1);
     for (const b of active.filter(h => ironWant(h) > h.iron)) {
       let want = Math.min(Math.ceil(ironWant(b) - b.iron), Math.floor(b.food * 0.4 / S.ironPrice));
       for (const sl of sellers) {
         if (want <= 0) break;
-        const q = Math.min(want, Math.floor(sl.iron)); if (q <= 0) continue;
+        if (sl === b) continue;
+        const q = Math.min(want, Math.floor(ironSpare(sl))); if (q <= 0) continue;
         sl.iron -= q; b.iron += q; b.food -= q * S.ironPrice; sl.food += q * S.ironPrice; S.st.ironSold += q; want -= q;
         logOnce('iron', `Els ${b.surname} compren ${q} de ferro als ${sl.surname} a ${S.ironPrice.toFixed(1)} de menjar cada un.`, 'amber');
       }
       if (want > 0) unmet += want;
     }
-    const stock = sellers.reduce((t, h) => t + h.iron, 0);
+    const stock = sellers.reduce((t, h) => t + Math.max(0, ironSpare(h)), 0);
     if (unmet > 0) S.ironPrice *= 1.02; else if (stock > 15) S.ironPrice *= 0.98;
     const ironFloor = Math.max(IRON_MIN, 1.3 / (1.2 * mineEase()));
     S.ironPrice = Math.max(ironFloor, Math.min(L.prices ? ironFloor * FAIR : IRON_MAX, S.ironPrice));
@@ -3456,6 +3545,10 @@ function updateHud() {
   put('sPens', act.filter(h => h.pen).length);
   put('sWages', fmt(S.st.wages));
   put('sCoalPrice', S.coalPrice.toFixed(2));
+  put('sWoodPrice', S.woodPrice.toFixed(2));
+  put('sSheepPrice', S.sheepPrice.toFixed(1));
+  put('sSheepSold', S.st.sheepSold);
+  put('sWoodSold', fmt(S.st.woodSold));
   put('sBurners', S.people.filter(p => p.job === 'carboner' && !p.leaving).length);
   put('sStonePrice', S.stonePrice.toFixed(2));
   put('sCutters', S.people.filter(p => p.job === 'picapedrer' && !p.leaving).length);
@@ -3754,7 +3847,7 @@ function unrestBase() { const g = S.gini.length ? S.gini[S.gini.length - 1][1] :
 function seize(h, c) {
   let what, worth;
   if (h.pen) {
-    worth = h.herd * SHEEP_COST + 20 + (h.pen.lvl ? 40 : 0);
+    worth = h.herd * S.sheepPrice + 20 + (h.pen.lvl ? 40 : 0);
     if (!c.pen) { c.pen = h.pen; c.penUsed = S.day; } else mark(h.pen.x, h.pen.y, 3, 3, 0); // a second pen is pulled down
     c.herd += h.herd; h.herd = 0; h.pen = null; syncHerd(h); syncHerd(c);
     what = 'el corral i les ovelles';
@@ -3810,7 +3903,7 @@ function revolution(active) {
     tagHome(h, 'EXPROPIADA', 'bad');
   }
   S.granary += food;
-  const worth = food + mats.wood + mats.stone * S.stonePrice + mats.iron * S.ironPrice + mats.coal * S.coalPrice;
+  const worth = food + mats.wood * S.woodPrice + mats.stone * S.stonePrice + mats.iron * S.ironPrice + mats.coal * S.coalPrice;
   // the materials go to the poorest quarter, in equal shares
   const poor = order.slice(-Math.max(1, Math.ceil(order.length / 4)));
   for (const h of poor) for (const k in mats) h[k] += mats[k] / poor.length;
@@ -4345,6 +4438,7 @@ function restore(data) {
   const o = unpack(JSON.parse(data));
   S = o.S; laws = o.laws; seed = o.seed; rs = o.rs; POLITICS = o.POLITICS; DISASTERS = o.DISASTERS;
   S.riverX = riverFn(S.ph); S.dirty = true; recomputeLaws(); S.tro ||= { rev: S.st.revolutions || 0 };
+  S.woodPrice ??= WOOD_START; S.sheepPrice ??= SHEEP_COST; S.st.woodSold ??= 0; S.st.sheepSold ??= 0; // older villages had fixed prices
   for (const l of laws) if (l.text === 'Privatització del bosc') l.text = LAWDEFS.enclosure.name; // the law's old name, in older villages
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; openHouse.clear();
   ME = homeOf(mySlot()); sentAns.clear();
@@ -5336,11 +5430,13 @@ const HELP_TABS = [
     ['FUSTA I BOSC', [
       'Els arbres donen fusta per construir i llenya per escalfar-se a l\'hivern. Quan es talen massa, el bosc s\'aprima, i també hi ha menys fruits.',
       'Les famílies petites i les cases de pedra necessiten menys llenya.',
+      'La fusta es compra i es ven amb un preu que segueix l\'oferta i la demanda. A l\'hivern, qui es queda sense llenya en compra a qui en té més de la que li cal per acabar l\'hivern, i qui construeix compra la fusta que li falta. Si no n\'hi ha prou, el preu puja; si en sobra molta, baixa. Quan la fusta és cara, les famílies amb braços de sobres en tallen més per vendre-la.',
       'Passar fred també fa mal: cada dia d\'hivern sense foc (sense carbó ni llenya, o sense casa) tothom de la família perd una mica de salut per sempre. Els infants en perden més i qui viu en una casa de pedra, la meitat. Amb menys salut és més fàcil morir de vell.',
     ]],
     ['BESTIAR', [
       'Les famílies amb menjar de sobres compren ovelles i fan un corral. Les ovelles donen llet cada dia i tenen xais.',
-      'A l\'hivern les ovelles mengen farratge, i si una casa passa gana mata una ovella.',
+      'A l\'hivern les ovelles mengen farratge, i si una casa passa gana ven una ovella o, si ningú no la compra, la mata.',
+      'Les ovelles es compren i es venen amb un preu dinàmic: les cases amb més xais dels que hi caben al corral els venen a les que tenen lloc i menjar de sobres. Si qui en vol no en troba al poble, les compra de fora i el preu puja; si en sobren, baixa. Una ovella mai no val menys que la seva carn (30 de menjar).',
       'Un corral es pot millorar amb 40 de fusta i 8 de ferro: hi caben més ovelles, dona més llet, té més xais i es perden menys ovelles. Si queda buit un any, torna a ser un corral normal.',
     ]],
   ]],
@@ -5349,7 +5445,8 @@ const HELP_TABS = [
       'Carboner: fa carbó amb la llenya del bosc en una carbonera. El carbó escalfa més que la llenya.',
       'Picapedrer: treu pedra de la pedrera. Miner: treu ferro de la mina del nord. Ferrer: fa eines a la farga amb ferro i fusta, i com més llest és, més ràpid treballa, menys ferro gasta i més duren les eines.',
       'Carboneres i fargues són d\'una sola família. Si no es fan servir durant un any s\'esfondren, i qui les repara primer (per la meitat del cost) se les queda. Abans de construir-ne una de nova, les famílies busquen si n\'hi ha d\'esfondrades.',
-      'El carbó, la pedra, el ferro, les eines, els jornals, els lloguers i les cases tenen preus que pugen quan hi ha poca oferta i baixen quan n\'hi ha molta.',
+      'El carbó, la pedra, el ferro, la fusta, les ovelles, les eines, els jornals, els lloguers i les cases tenen preus que pugen quan hi ha poca oferta i baixen quan n\'hi ha molta.',
+      'Tots els recursos es compren i es venen entre les famílies: qualsevol casa ven a les altres la fusta, la pedra, el ferro, el carbó i les ovelles que li sobren, al preu de mercat, i paga amb menjar.',
     ]],
     ['EINES', [
       'Aixada: es treballa més ràpid el camp i la collita és una mica més gran.',
@@ -5386,7 +5483,7 @@ const HELP_TABS = [
       'Un corral es ven amb les ovelles, i una farga amb les eines que hi ha a les lleixes. Qui compra una carbonera, una farga o un molí sense tenir ningú de l\'ofici hi posa un adult de casa.',
       'Qui compra una casa on viuen els venedors i no té casa pròpia s\'hi trasllada, i els venedors van al pis que deixa o a un de buit. Si el comprador ja té casa, la lloga sencera i els venedors s\'hi queden de llogaters a la planta baixa.',
       'Cada mena de propietat té un preu que surt del que costa fer-la i que puja quan es ven de pressa i baixa quan s\'està molt de temps sense vendre. Els camps s\'encareixen quan ja no queda lloc per llaurar-ne de nous. El bosc, la pedrera i la mina valen el que els seus peatges donen en dos anys.',
-      'Amb la Redistribució de béns o La terra per a qui la treballa, el mercat està tancat: no es compra ni es ven cap propietat i el que hi havia en venda es retira.',
+      'Amb la Redistribució de béns o La terra per a qui la treballa, el mercat està tancat: no es compra ni es ven cap propietat i el que hi havia en venda es retira. La fusta, les ovelles, el carbó, la pedra, el ferro i les eines no són propietats: es continuen comprant i venent.',
       'Ningú no paga gaire més del preu de mercat: el que es posa en venda molt car no es ven. El que una família posa en venda per si sola es retira si en mig any ningú no ho compra.',
       'Si portes una família, a la finestra Mercat immobiliari pots comprar el que hi ha en venda i posar-hi les teves propietats, al preu de mercat, més barates o més cares.',
     ]],
