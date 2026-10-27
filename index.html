@@ -3640,7 +3640,10 @@ function renderLaws() {
   const con = $('console');
   con.innerHTML = '<div class="p">&gt; lleis del poble</div>';
   if (!laws.length) { const d = document.createElement('div'); d.innerHTML = '[] <span class="e"># buit</span>'; con.append(d); }
-  laws.forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${i + 1}] ${l.text}`; con.append(d); });
+  // the overlay sits on the map, so past a handful it shows only the newest laws; the full list is in the side panel
+  const MAX = 5, from = laws.length > MAX ? laws.length - (MAX - 1) : 0;
+  if (from) { const d = document.createElement('div'); d.innerHTML = `<span class="e"># +${from} lleis més</span>`; con.append(d); }
+  laws.slice(from).forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${from + i + 1}] ${l.text}`; con.append(d); });
   $('hLaws').textContent = laws.length;
 }
 function repeal(i, quiet) {
