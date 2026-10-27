@@ -4,6 +4,8 @@
 
 Joc de navegador en català on fas de batlle d'un poble. Tot el joc és un sol fitxer, `index.html`, sense dependències ni passos de compilació.
 
+Segueix el joc a Instagram: [@el_batlle](https://www.instagram.com/el_batlle/).
+
 ## Crèdits
 
 Basat en la idea de [@an_ai_tries_youtube](https://www.youtube.com/@an_ai_tries_youtube).
@@ -26,6 +28,31 @@ Els missatges entre jugadors passen per un petit repetidor a Cloudflare ([`worke
 ## Trofeus
 
 Amb el compte iniciat, **Trofeus** obre la vitrina: a dalt els de diamant, després or, plata i, a baix, bronze. Els que encara no tens surten en silueta; toca'n un per veure què demana i, si ja el tens, quin dia el vas aconseguir. Es guarden al compte i compten en qualsevol mode, també jugant amb amics. Des de **El meu usuari**, el compte de l'administrador (Miquel) pot veure quants jugadors han guanyat cada trofeu i qui són.
+
+## Com es lliga tot
+
+Al poble cap sistema va sol: el menjar fa néixer gent, la gent tala el bosc, la gana fa vendre camps barats, la desigualtat empeny el consell i el consell canvia les lleis que reparteixen el menjar. Per això el joc és tan poc lineal. Aquests esquemes mostren qui toca qui: en verd el que fa pujar (+), en vermell el que fa baixar (−) i en groc el que depèn de les lleis o de l'estació (±). Les etiquetes **R** marquen els bucles que s'alimenten sols i les **B** els que es frenen sols.
+
+### Esquema simplificat
+
+<p align="center"><img src="img/esquemes/esquema-simplificat.png" alt="Esquema simplificat dels acoblaments del joc"></p>
+
+- **R1 Creixement:** més menjar fa néixer i arribar gent, i més braços fan més collita.
+- **B1 Esgotament:** més gent talant i pescant deixa menys arbres i peixos.
+- **B2 Boques:** més gent menja més, i el rebost baixa.
+- **R2 Pobresa:** qui passa gana ven barat o s'endeuta, perd camps i casa i encara passa més gana.
+- **B3 Revolta:** la gana i la desigualtat porten malestar, aldarulls i revolucions que reparteixen la riquesa.
+- **R3 Captura del consell:** qui té la riquesa empeny el consell cap al seu costat, i les lleis que aprova li donen encara més. Funciona cap a la dreta i cap a l'esquerra, i per això el poble tendeix a quedar-se en un dels dos extrems.
+- **B4 Mercat:** quan una cosa escasseja el preu puja i se'n fa més. La fusta cara, però, fa talar més bosc.
+- **B5 Protecció:** quan el bosc o el riu baixen del 40%, el consell els protegeix.
+
+### Esquema complet
+
+<p align="center"><img src="img/esquemes/esquema-complet.png" alt="Esquema complet dels acoblaments del joc"></p>
+
+### Què toca cada llei
+
+<p align="center"><img src="img/esquemes/lleis-i-sistemes.png" alt="Quins sistemes toca cada llei i quan l'aprova el consell"></p>
 
 ## Publicar amb GitHub Pages
 
