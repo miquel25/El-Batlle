@@ -806,15 +806,15 @@ const LAWDEFS = {
   stay: { name: 'Ningú no marxa del poble', txt: 'Ningú pot marxar del poble, ni passant gana.' },
   closed: { name: 'Fronteres tancades', txt: 'Fronteres tancades: no arriba cap família nova al poble.' },
   share: { name: 'A cadascú segons les seves necessitats', txt: 'A cadascú segons les seves necessitats: les cases amb molt de menjar han de donar el que sobra a les que passen gana. Cadascuna es guarda prou menjar per arribar a la collita següent.' },
-  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Cada família continua treballant els seus, però tota la collita, i també la llet i la carn de les ovelles, va al magatzem col·lectiu. El magatzem la reparteix a parts iguals entre totes les persones del poble, en racions setmanals que han de durar fins a la collita següent, i paga el farratge dels ramats a l\'hivern. Els molins molen de franc.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
+  collective: { name: 'Col·lectivització de la terra', txt: 'Col·lectivització de la terra: els camps passen a ser de tot el poble. Tothom treballa tots els camps i pastura tots els ramats, siguin de qui siguin, i tota la collita, i també la llet i la carn de les ovelles, va al magatzem col·lectiu. El magatzem la reparteix a parts iguals entre totes les persones del poble, en racions setmanals que han de durar fins a la collita següent, i paga el farratge dels ramats a l\'hivern. Els molins molen de franc.', excl: ['tribute', 'enclosure', 'granary', 'basic'] },
   nowage: { name: 'Abolició del treball assalariat', txt: 'Abolició del treball assalariat: ningú pot treballar per a una altra casa a canvi d\'un jornal. Cada família treballa només el que és seu.', excl: ['laissez', 'platform'] },
   norent: { name: 'Abolició de la renda', txt: 'Abolició de la renda: ningú paga lloguer per viure en un pis, i ningú no pot ser desnonat. Els propietaris ja no en treuen res, així que no se\'n fan de nous.', excl: ['laissez', 'rentcap', 'housing'] },
   granary: { name: 'Graner comú', txt: 'Una cinquena part de cada collita va al graner comú, que alimenta qui no té res.', excl: ['notax', 'collective'] },
   wealthtax: { name: 'Impost a les grans fortunes', txt: 'Impost a les grans fortunes: cada mes, les cases més riques que la mediana paguen al graner comú una part del que tenen per sobre de la mediana. Com més lluny en són, més alt és el percentatge: un 5% si tenen el doble de la mediana, un 10% si en tenen el triple, i fins a un 30%.', excl: ['notax'] },
   inhtax: { name: 'Impost sobre les herències', txt: 'Impost sobre les herències: quan una casa s\'extingeix, un terç del seu menjar va al graner comú en lloc dels hereus.', excl: ['notax'] },
   basic: { name: 'Renda bàsica', txt: 'Renda bàsica: un 10% de cada collita va al graner comú, que el reparteix cada dia a parts iguals entre totes les cases.', excl: ['notax', 'collective'] },
-  redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: el dia que s\'aprova, es reparteix tot. Els blocs de pisos no es divideixen: qui té més d\'una casa o bloc es queda la més gran i perd les altres, que passen a les famílies llogateres (i després a les que no tenen casa). Els camps es reparteixen a parts iguals. Ningú no pot tenir més d\'un d\'aquests edificis: corral, carbonera, farga o molí; qui en té més es queda el del seu ofici i els altres passen a famílies que no en tenen cap. El menjar, la fusta, el carbó, la pedra, el ferro i les eines es reparteixen a parts iguals entre totes les cases, i les ovelles entre tots els corrals.' },
-  agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap.' },
+  redist: { name: 'Redistribució de béns', txt: 'Redistribució de béns: el dia que s\'aprova, es reparteix tot. Els blocs de pisos no es divideixen: qui té més d\'una casa o bloc es queda la més gran i perd les altres, que passen a les famílies llogateres (i després a les que no tenen casa). Els camps es reparteixen a parts iguals. Ningú no pot tenir més d\'un d\'aquests edificis: corral, carbonera, farga o molí; qui en té més es queda el del seu ofici i els altres passen a famílies que no en tenen cap. El menjar, la fusta, el carbó, la pedra, el ferro i les eines es reparteixen a parts iguals entre totes les cases, i les ovelles entre tots els corrals. Mentre la llei és vigent, el mercat immobiliari està tancat.' },
+  agrarian: { name: 'La terra per a qui la treballa', txt: 'La terra per a qui la treballa: cada hivern, les cases amb més de tres camps en cedeixen un a una casa que en tingui un o cap. Mentre la llei és vigent, el mercat immobiliari està tancat.' },
   prices: { name: 'Preus justos', txt: 'Preus justos: el carbó, la pedra, el ferro i les eines no poden costar més d\'un 30% per sobre del que costa fer-los. Es paga menys, però menys gent s\'hi vol dedicar.', excl: ['laissez'] },
   wage: { name: 'Salari mínim', txt: `Salari mínim: cap jornal es paga a menys de 3,5 de menjar. Els jornalers cobren més, però les cases riques en contracten menys.`, excl: ['laissez'] },
   tools: { name: 'Eines per a tothom', txt: 'Eines per a tothom: qui compra una aixada o un pic en paga la meitat, i l\'altra meitat la paga la casa més rica del poble.', excl: ['laissez'] },
@@ -1772,9 +1772,11 @@ const propAt = (o, kind) => RES[kind] ? { x: 0, y: 0 } : { x: o.x, y: o.y };
 function findProp(h, kind, x, y) { const p = propsOf(h).find(([k, o]) => k === kind && (RES[k] || (o.x === x && o.y === y))); return p ? p[1] : null; }
 const priceOf = l => Math.round(propValue(l.kind, l.o, l.by) * l.f);
 const listingOf = o => S.mkt ? S.mkt.list.find(l => l.o === o) : null;
+// the redistribution of goods and the land-to-the-tiller laws close the market: nothing is bought or sold while they last
+const mktShut = () => andList([L.redist && LAWDEFS.redist.name, L.agrarian && LAWDEFS.agrarian.name].filter(Boolean).map(n => `«${n}»`));
 function addListing(h, kind, o, f = 1, why) {
   const m = mktState();
-  if (!owns(h, kind, o) || m.list.some(l => l.o === o)) return null;
+  if (mktShut() || !owns(h, kind, o) || m.list.some(l => l.o === o)) return null;
   const l = { id: ++m.n, kind, o, by: h, f, day: S.day, auto: h.human == null };
   m.list.push(l);
   if (why) logOnce('mktList', `Els ${h.surname} posen en venda ${propName(kind, o)}: ${why}. Al mercat immobiliari s'hi venen camps, corrals, carboneres, fargues, molins, cases i blocs sencers.`, 'amber');
@@ -1784,6 +1786,7 @@ function addListing(h, kind, o, f = 1, why) {
 // most, and a family with no home of its own only buys a house it can move into
 function cantBuy(b, l) {
   if (!b || b.gone || !b.members.length) return 'No hi ha ningú a casa';
+  if (mktShut()) return 'El mercat està tancat';
   if (b === l.by) return 'És vostre';
   if (b.food < priceOf(l)) return 'No teniu prou menjar';
   if (l.kind === 'pen' && b.pen) return 'Ja teniu un corral';
@@ -1903,6 +1906,7 @@ function realEstate(active) {
   // what each resource has brought its owner in tolls, smoothed over about half a year
   for (const k of RES_KINDS) { m.rate[k] = 0.995 * (m.rate[k] || 0) + 0.005 * (m.today[k] || 0); }
   m.today = {};
+  if (mktShut()) { m.list = []; return; }
   // a listing goes when its owner no longer has the thing, or after half a year unsold if the family put it up by itself
   m.list = m.list.filter(l => owns(l.by, l.kind, l.o) && !(l.auto && l.by.human == null && S.day - l.day > 180));
   for (const h of active) if (h.human == null && h.members.length && R() < 0.1) autoList(h);
@@ -1926,6 +1930,7 @@ function realEstate(active) {
 function applyMkt(h, m) {
   if (!h || h.gone || !PROP_KINDS.includes(m.kind || 'house')) return;
   const M = mktState();
+  if (mktShut()) { if (h === ME) log(`El mercat immobiliari està tancat mentre hi hagi ${mktShut()}.`, 'info'); return; }
   if (m.a === 'buy') {
     const l = M.list.find(x => x.id === m.id);
     if (!l || !owns(l.by, l.kind, l.o)) { if (h === ME) log('Aquesta propietat ja no està en venda.', 'info'); return; }
@@ -1978,11 +1983,18 @@ function daily() {
   if (doy === 95 || doy === 175 || doy === 236 || doy === 0) S.dirty = true;
 
   // work
+  // with collectivised land, everyone works every field and every pen in the village, whoever they belong to
+  for (const h of active) h.shep = 0;
+  const allRipe = L.collective ? active.flatMap(o => o.fields.filter(f => f.stage === 2)) : null;
+  const allFields = L.collective ? active.flatMap(o => o.fields) : null;
   for (const h of active) {
     const adults = h.members.filter(p => p.age >= 360 && !p.leaving);
     const want = fieldWant(h);
-    let tillers = 0, farmers = 0; h.shep = 0;
-    const ripe = h.fields.filter(f => f.stage === 2);
+    let tillers = 0, farmers = 0;
+    const ripe = allRipe || h.fields.filter(f => f.stage === 2);
+    // the flock that still needs a shepherd today, and the field that has had the least care and nobody on it today
+    const flock = () => L.collective ? active.find(o => o.herd > 0 && o.pen && !o.shep) : h.herd > 0 && h.pen && !h.shep ? h : null;
+    const toTend = () => allFields.filter(f => f.stage <= 1 && f.tended !== S.day).sort((a, b) => a.care - b.care)[0];
     const hx = homeXY(h);
     for (const p of adults) {
       const eff = 1 - p.lazy * (L.work ? 0.15 : 0.55);
@@ -2010,10 +2022,11 @@ function daily() {
           h.food += got; f.stage = 3; S.dirty = true;
           if (!S.flags.harvest) { S.flags.harvest = 1; log('Primera collita. Les cases s\'omplen de gra.', 'good'); }
         } else ripe.push(f);
-      } else if (h.herd > 0 && h.pen && season !== 3 && !h.shep) {
+      } else if (season !== 3 && flock()) {
         // one adult has to look after the sheep, or they wander off
-        h.shep = 1 - p.int * 0.5; // a clever shepherd loses fewer animals
-        setTask(p, 'herd', h.pen.x + 1.5 + rr(-3, 3), h.pen.y + 1.5 + rr(-3, 3), 2);
+        const o = flock();
+        o.shep = 1 - p.int * 0.5; // a clever shepherd loses fewer animals
+        setTask(p, 'herd', o.pen.x + 1.5 + rr(-3, 3), o.pen.y + 1.5 + rr(-3, 3), 2);
         h.food += 0.15 * sf * STR(p);
       } else if (doy < 150 && h.fields.length < want && tillers < 2 && (h.pending || ((h.human == null || findSite(hx.x, hx.y, 3, 2, 4)) && ask(h, 'field', `Teniu ${h.fields.length} ${h.fields.length === 1 ? 'camp' : 'camps'}. Llaureu un camp nou? Costa uns quants dies de feina, però a l'estiu dona collita.`, 'Sí', 'No', 60)))) { // a player is only asked when there's room left for a field
         tillers++;
@@ -2023,8 +2036,8 @@ function daily() {
           h.till += eff * STR(p) * HOE(p); h.food += 0.35 * sf * STR(p);
           if (h.till >= 5) { h.fields.push({ x: h.pending.x, y: h.pending.y, stage: doy < 95 ? 0 : 0, care: 0, yield: 0, used: S.day }); mark(h.pending.x, h.pending.y, 3, 2, 2); h.pending = null; h.till = 0; }
         } else forage(h, p, eff, sf, season);
-      } else if (season <= 1 && farmers < h.fields.filter(f => f.stage <= 1).length && (doy >= 95 || farmers < 1)) {
-        const f = h.fields[farmers]; farmers++;
+      } else if (season <= 1 && (L.collective ? toTend() : farmers < h.fields.filter(f => f.stage <= 1).length) && (doy >= 95 || farmers < 1)) {
+        const f = L.collective ? toTend() : h.fields[farmers]; farmers++;
         setTask(p, 'farm', f.x + 1.5, f.y + 1, 1.5);
         f.care += eff * INT(h) * HOE(p); h.food += 0.4 * sf * STR(p); f.tended = f.used = S.day;
       } else if ((season === 3 || (season === 2 && doy > 230 - 55 * famInt(h))) && h.wood < ((L.forest ? 70 : 90) + 25 * famInt(h)) * hearth(h)) {
@@ -2398,7 +2411,7 @@ function daily() {
     // handing its hut to the seller and paying the difference
     let unmetSell = 0, unmetBuy = 0;
     // sellers: owners short of food, and small families (one or two people) living in a stone house or a block
-    for (const sl of active.filter(o => o.hut && !o.tenant && ((daysOf(o) < 8 && o.food < 40) || (o.members.length <= 2 && (o.hut.lvl || o.hut.floors))))) {
+    for (const sl of mktShut() ? [] : active.filter(o => o.hut && !o.tenant && ((daysOf(o) < 8 && o.food < 40) || (o.members.length <= 2 && (o.hut.lvl || o.hut.floors))))) {
       const needy = daysOf(sl) < 8 && sl.food < 40;
       if (R() > (needy ? 0.05 : 0.005) && !want(sl, 'sell')) continue;
       const hut = sl.hut, price = housePrice(hut);
@@ -5358,6 +5371,7 @@ const HELP_TABS = [
       'Un corral es ven amb les ovelles, i una farga amb les eines que hi ha a les lleixes. Qui compra una carbonera, una farga o un molí sense tenir ningú de l\'ofici hi posa un adult de casa.',
       'Qui compra una casa on viuen els venedors i no té casa pròpia s\'hi trasllada, i els venedors van al pis que deixa o a un de buit. Si el comprador ja té casa, la lloga sencera i els venedors s\'hi queden de llogaters a la planta baixa.',
       'Cada mena de propietat té un preu que surt del que costa fer-la i que puja quan es ven de pressa i baixa quan s\'està molt de temps sense vendre. Els camps s\'encareixen quan ja no queda lloc per llaurar-ne de nous. El bosc, la pedrera i la mina valen el que els seus peatges donen en dos anys.',
+      'Amb la Redistribució de béns o La terra per a qui la treballa, el mercat està tancat: no es compra ni es ven cap propietat i el que hi havia en venda es retira.',
       'Ningú no paga gaire més del preu de mercat: el que es posa en venda molt car no es ven. El que una família posa en venda per si sola es retira si en mig any ningú no ho compra.',
       'Si portes una família, a la finestra Mercat immobiliari pots comprar el que hi ha en venda i posar-hi les teves propietats, al preu de mercat, més barates o més cares.',
     ]],
@@ -5551,6 +5565,12 @@ function renderMarket() {
     own = sec(`LES PROPIETATS DELS ${esc(ME.surname.toUpperCase())}`, items.length ? ul(items) : '<p class="empty">Encara no teniu cap propietat: ni casa, ni camps, ni corral.</p>');
   }
   const sold = m.sold.slice(0, 12).map(x => { const c = cal(x.day); return `<li><span>${c.d} ${MSHORT[c.m]} A${c.y}</span>Els ${esc(x.from)} venen ${esc(x.what)} als ${esc(x.to)} per ${fmt(x.price)} de menjar.</li>`; });
+  const shut = mktShut();
+  if (shut) { // closed by law: only the record of what was sold before
+    $('mktBody').innerHTML = sec('MERCAT TANCAT', `<p class="empty">No es compra ni es ven cap propietat mentre hi hagi ${esc(shut)}.</p>`)
+      + sec('ÚLTIMES VENDES', sold.length ? `<ul class="sold">${sold.join('')}</ul>` : '<p class="empty">Encara no s\'ha venut res.</p>');
+    put('mktSub', `${dateLong(S.day)} · tancat per llei`); return;
+  }
   $('mktBody').innerHTML = sec('PREUS D\'AVUI', ul(prices), 'prices')
     + sec(`EN VENDA (${list.length})`, list.length ? ul(sale) : '<p class="empty">Ara mateix no es ven res.</p>')
     + own
