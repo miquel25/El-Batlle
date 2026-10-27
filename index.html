@@ -885,7 +885,7 @@ function newWorld(sd) {
     day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
     st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
-    flags: {}, dirty: true, nextId: 1, watch: true, hands: false, polOn: false, polOff: false, used: new Set(), animals: [], forest: tree.slice(),
+    flags: {}, dirty: true, nextId: 1, watch: true, hands: false, handCats: {}, handLaws: {}, polOn: false, polOff: false, tro: { rev: 0 }, used: new Set(), animals: [], forest: tree.slice(),
   };
   // the quarry sits in the bottom-right corner
   // an irregular blob cut into the hillside; each tile knows how far it is from the rim (deeper tiles get dug out later)
@@ -3585,6 +3585,7 @@ $('lawPickBody').addEventListener('click', e => {
     $('lawMsg').textContent = 'Proposada: ara voten tots els jugadors.'; setTimeout(() => $('lawMsg').textContent = '', 4000); return;
   }
   S.watch = false; S.hands = true; // the mayor has passed or repealed a law by hand
+  if (i < 0) byHand(k);
   if (i >= 0) { repeal(i); updateHud(); } else proclaim(k);
   const top = $('lawPickBody').scrollTop; renderLawPick(); $('lawPickBody').scrollTop = top;
   $('lawPickBody').querySelector(`button[data-k="${k}"]`)?.focus();
@@ -3915,6 +3916,8 @@ const FLOOD_P = 0.0015, FLOOD_YIELD = 0.3, FLOOD_REACH = 3;        // spring flo
 const FREEZE_P = 0.12, FREEZE_WOOD = 1.8, FREEZE_HUNGER = 1.4;     // a bitter winter: more firewood, colder houses
 const QUAKE_P = 0.015 / YEAR, PLAGUE_P = 0.04 / YEAR, WOLF_P = 0.002, FIRE_P = 0.0008, FIRE_DRY = 0.004;
 const dry = () => !!(S.dis && S.dis.drought >= S.day);
+// for the trophies: the laws, and their camps, passed by hand in this village
+function byHand(k) { const c = LAW_CATS.find(c => c[1].includes(k)); if (c) (S.handCats ||= {})[c[0]] = true; (S.handLaws ||= {})[k] = true; }
 const freezing = () => !!(S.dis && S.dis.cold >= S.day);
 function disaster(text, tagText, x, y) { S.st.disasters = (S.st.disasters || 0) + 1; log(text, 'bad'); if (tagText) tag(x ?? W / 2, y ?? H / 2, tagText, 'bad'); }
 function disasters(doy, season) {
@@ -3926,7 +3929,7 @@ function disasters(doy, season) {
   }
   if (doy > 20 && doy < 85 && R() < FLOOD_P) flood();
   if (doy === 270 && R() < FREEZE_P) {
-    D.cold = S.day + 95;
+    D.cold = S.day + 95; S.st.freezes = (S.st.freezes || 0) + 1;
     disaster('Arriba un hivern molt fred: les cases cremaran gairebé el doble de llenya, i qui no en tingui passarà més gana.', 'FRED EXTREM');
   }
   if (R() < QUAKE_P) quake();
@@ -4091,7 +4094,7 @@ function passPlayer(old, next, married) {
   old.human = null; old.asks = [];
   if (!(next && !next.gone && next.members.length && next.human == null)) next = null;
   if (next) setPlayer(next, slot); else if (mine) ME = null;
-  if (mine && next && !married) troEvt.prodig = true; // for the trophies: the family died out and the player goes on with the heirs
+  if (mine && next && !married) S.tro.prodig = true; // for the trophies: the family died out and the player goes on with the heirs
   if (!mine) {
     if (NET) log(next ? `${playerName(slot)} ara porta els ${next.surname}: els ${old.surname} s'han quedat sense ningú.` : `Els ${old.surname} de ${playerName(slot)} s'han extingit sense hereus.`, next ? 'info' : 'bad');
     return;
@@ -4212,7 +4215,7 @@ $('resetBtn').onclick = () => {
   if (NET) { if (NET.role === 'host' && NET.live) startShared(); return; } // a new village for the whole room, every player with a new family
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
   newWorld((Math.random() * 1e9) | 0); updateHud();
-  if (laws.length) S.watch = false, S.hands = true; // the laws the mayor brings along count as passed by hand
+  if (laws.length) { S.watch = false; S.hands = true; for (const l of laws) l.fx.forEach(byHand); } // the laws the mayor brings along count as passed by hand
   log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
   closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
@@ -4339,7 +4342,7 @@ const snapshot = () => JSON.stringify(pack({ S, laws, seed, rs, POLITICS, DISAST
 function restore(data) {
   const o = unpack(JSON.parse(data));
   S = o.S; laws = o.laws; seed = o.seed; rs = o.rs; POLITICS = o.POLITICS; DISASTERS = o.DISASTERS;
-  S.riverX = riverFn(S.ph); S.dirty = true; recomputeLaws();
+  S.riverX = riverFn(S.ph); S.dirty = true; recomputeLaws(); S.tro ||= { rev: S.st.revolutions || 0 };
   for (const l of laws) if (l.text === 'Privatització del bosc') l.text = LAWDEFS.enclosure.name; // the law's old name, in older villages
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; openHouse.clear();
   ME = homeOf(mySlot()); sentAns.clear();
@@ -4369,7 +4372,7 @@ function applyInput(m) {
     }
     case 'free': if (h) { h.human = null; h.asks = []; } break;
     case 'law': {
-      log(m.txt, 'amber'); S.hands = true; // voted by the players: passed by hand
+      log(m.txt, 'amber'); S.hands = true; if (m.on) byHand(m.law); // voted by the players: passed by hand
       const i = laws.findIndex(l => l.fx.includes(m.law));
       if (m.on && i < 0) proclaim(m.law); else if (!m.on && i >= 0) repeal(i);
       updateHud(); if (!$('lawPick').hidden) renderLawPick();
@@ -4787,9 +4790,9 @@ const TROPHIES = [
     art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
   { id: 'mansa', tier: 'o', name: 'Mansa Musa', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que una sola família tingui el 90% de la riquesa del poble.',
     art: '<path class="m" d="M24 96l8-20h36l8 20z"/><rect class="m" x="44" y="68" width="12" height="9"/><path class="m" d="M18 58l6-34 14 16 12-26 12 26 14-16 6 34z"/><rect class="m" x="18" y="57" width="64" height="11" rx="2"/><circle class="k" cx="34" cy="62.5" r="3"/><circle class="k" cx="50" cy="62.5" r="3"/><circle class="k" cx="66" cy="62.5" r="3"/><path class="ks" d="M36 86h28"/>' },
-  { id: 'palantir', tier: 'p', name: 'Palantir', desc: 'En qualsevol mode, amb la política dinàmica sempre activada i sense aprovar ni derogar cap llei a mà, fes que hi hagi totes les lleis tecnofeudals alhora.',
+  { id: 'palantir', tier: 'p', name: 'Palantir', desc: 'En qualsevol mode, amb la política dinàmica sempre activada, fes que hi hagi totes les lleis tecnofeudals alhora sense aprovar-ne cap a mà.',
     art: '<path class="m" d="M28 96l8-22h28l8 22z"/><circle class="m" cx="50" cy="44" r="28"/><path class="k" d="M28 44q22-18 44 0q-22 18-44 0z"/><circle class="m" cx="50" cy="44" r="7"/>' },
-  { id: 'milei', tier: 'p', name: '¡Viva la Libertad Carajo!', desc: 'En qualsevol mode, amb la política dinàmica sempre activada i sense aprovar ni derogar cap llei a mà, fes que hi hagi totes les lleis turbocapitalistes alhora.',
+  { id: 'milei', tier: 'p', name: '¡Viva la Libertad Carajo!', desc: 'En qualsevol mode, amb la política dinàmica sempre activada, fes que hi hagi totes les lleis turbocapitalistes alhora sense aprovar-ne cap a mà.',
     art: '<rect class="m" x="24" y="82" width="14" height="14"/><path class="m" d="M16 48c0-16 26-16 26 0h-6c0-9-14-9-14 0z"/><path class="m" d="M12 50h32l8 10v24H12z"/><path class="m" d="M50 54h36a9 9 0 0 1 0 18H50z"/><path class="ks" d="M54 54l3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4M54 72l3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4M20 66h20"/>' },
   { id: 'cabres', tier: 'p', name: 'Saben més que les cabres', desc: 'En qualsevol mode, fes que la intel·ligència mitjana del poble passi dels 90 punts.',
     art: '<path class="m" d="M42 42c-10-6-17-18-13-32 4 10 11 17 19 23z"/><path class="m" d="M58 42c10-6 17-18 13-32-4 10-11 17-19 23z"/><path class="m" d="M38 50l-20-5 4 9 16 3zM62 50l20-5-4 9-16 3z"/><path class="m" d="M50 36c-12 0-17 10-15 24l6 22c2 6 16 6 18 0l6-22c2-14-3-24-15-24z"/><path class="m" d="M45 84l5 12 5-12z"/><circle class="k" cx="43" cy="56" r="2.6"/><circle class="k" cx="57" cy="56" r="2.6"/><path class="ks" d="M46 76q4 3 8 0"/>' },
@@ -4801,14 +4804,17 @@ const TROPHIES = [
     art: '<path class="m" d="M26 80c-16 4-20-14-8-22l2 3c-9 6-6 17 6 15z"/><ellipse class="m" cx="46" cy="74" rx="24" ry="16"/><rect class="m" x="32" y="84" width="7" height="12" rx="3"/><rect class="m" x="52" y="84" width="7" height="12" rx="3"/><path class="m" d="M58 60c12-6 24 0 32 12-8 6-20 10-32 8z"/><circle class="m" cx="64" cy="56" r="9"/><circle class="k" cx="64" cy="56" r="4.5"/><circle class="k" cx="76" cy="66" r="2.2"/><circle class="k" cx="90" cy="72" r="2"/><path class="ks" d="M84 74l10-4M84 76l11 2"/>' },
   { id: 'cacic', tier: 'p', name: 'Cacic', desc: 'Jugant com a cap de família, sigues la família més rica d\'un poble d\'almenys 10 famílies.',
     art: '<path class="m" d="M24 96c0-18 11-27 26-27s26 9 26 27z"/><path class="k" d="M44 72l6 6 6-6-6 22z"/><ellipse class="m" cx="50" cy="50" rx="16" ry="19"/><path class="m" d="M33 31c0-14 6-21 17-21s17 7 17 21z"/><ellipse class="m" cx="50" cy="31" rx="26" ry="4.5"/><rect class="k" x="33.5" y="24" width="33" height="4"/><circle class="k" cx="44" cy="46" r="2.2"/><circle class="k" cx="56" cy="46" r="2.2"/><path class="k" d="M50 55c-5-4-13-4-19 3 6-1 12 1 19 0 7 1 13-1 19 0-6-7-14-7-19-3z"/><path class="m" d="M57 62l24-6 1 5-24 6z"/><path class="k" d="M79 56.5l3-.8 1 5-3 .8z"/><path class="ks" d="M84 54c3-4-1-7 2-11M88 52c3-4-1-7 2-11"/>' },
+  { id: 'nieve', tier: 'p', name: 'Poquito de Nieve', desc: 'En qualsevol mode i amb els desastres activats, fes que el poble passi 10 hiverns molt freds en una mateixa partida.',
+    art: '<rect class="m" x="47" y="80" width="6" height="16"/>' + Array.from({ length: 6 }, (_, i) => `<g transform="rotate(${i * 60} 50 48)"><rect class="m" x="47" y="14" width="6" height="34" rx="2"/><path class="m" d="M50 30l-11-9 3-4 8 7 8-7 3 4z"/><path class="m" d="M50 41l-7-6 3-3.5 4 3.5 4-3.5 3 3.5z"/></g>`).join('') + '<path class="m" d="M50 39l8 4.5v9L50 57l-8-4.5v-9z"/><path class="k" d="M50 44l3.5 2v4L50 52l-3.5-2v-4z"/>' },
   { id: 'prodig', tier: 'b', name: 'Fill pròdig', desc: 'Jugant com a cap de família, fes que la teva família s\'extingeixi i continua amb els hereus que es queden la casa.',
     art: '<circle class="m" cx="42" cy="22" r="9"/><path class="m" d="M30 96l4-30-4-2V44c0-8 6-12 12-12s12 4 12 12v20l-4 2 4 30h-8l-4-26-4 26z"/><path class="m" d="M52 42l26-26 4 4-26 26z"/><circle class="m" cx="80" cy="18" r="10"/>' },
   { id: 'buro', tier: 'b', name: 'Visca la burocràcia', desc: 'En qualsevol mode, fes que hi hagi 20 lleis vigents alhora.',
     art: '<rect class="m" x="20" y="88" width="62" height="8" rx="1"/><rect class="m" x="16" y="80" width="62" height="8" rx="1"/><rect class="m" x="22" y="72" width="62" height="8" rx="1"/><rect class="m" x="32" y="58" width="36" height="12" rx="2"/><rect class="m" x="45" y="38" width="10" height="20"/><circle class="m" cx="50" cy="30" r="11"/><path class="ks" d="M26 92h50M22 84h50M28 76h50"/>' },
   { id: 'oligopoli', tier: 'b', name: 'Oligopoli', desc: 'En qualsevol mode, fes que el 10% de les famílies més riques tinguin el 80% de la riquesa del poble.',
     art: Array.from({ length: 12 }, (_, i) => `<rect class="m" x="50" y="${90 - i * 6}" width="30" height="6" rx="2.5"/>`).join('') + Array.from({ length: 3 }, (_, i) => `<rect class="m" x="22" y="${90 - i * 6}" width="22" height="6" rx="2.5"/>`).join('') + '<rect class="m" x="10" y="90" width="12" height="6" rx="2.5"/>' },
-  { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, fes que s\'acabin alhora tots els arbres i tots els peixos.',
-    art: '<path class="m" d="M30 96l5-7V62h30v27l5 7z"/><ellipse class="m" cx="50" cy="62" rx="15" ry="6"/><ellipse class="ks" cx="50" cy="62" rx="8" ry="3"/><rect class="m" x="32" y="28" width="38" height="3.5"/><path class="m" d="M69 21c10 0 15 8 15 9s-5 9-15 9z"/><path class="m" d="M34 30l-12-9v18z"/><rect class="m" x="39" y="21" width="2.5" height="18"/><rect class="m" x="47" y="19" width="2.5" height="22"/><rect class="m" x="55" y="19" width="2.5" height="22"/><rect class="m" x="63" y="21" width="2.5" height="18"/><circle class="k" cx="76" cy="28" r="1.8"/>' },
+  { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, amb la política dinàmica sempre activada, fes que la protecció del bosc i la pesca regulada estiguin vigents alhora sense aprovar-ne cap a mà.',
+    art: '<rect class="m" x="45" y="80" width="10" height="16"/>' + Array.from({ length: 17 }, (_, i) => { const a = (i - 0.5) * 2 * Math.PI / 17 + 0.05, b = (i + 0.5) * 2 * Math.PI / 17 - 0.05, R = 37, r = 20, p = (rr, t) => `${(50 + rr * Math.sin(t)).toFixed(1)} ${(46 - rr * Math.cos(t)).toFixed(1)}`;
+      return `<path class="m" d="M${p(r, a)}L${p(R, a)}A${R} ${R} 0 0 1 ${p(R, b)}L${p(r, b)}A${r} ${r} 0 0 0 ${p(r, a)}z"/>`; }).join('') },
   { id: 'bigone', tier: 'b', name: 'The Big One', desc: 'En qualsevol mode, fes que hi hagi 10 terratrèmols en una mateixa partida.',
     art: '<path class="m" d="M10 96V62l12-4 10 6 6-6 6 10-6 10 6 8-4 10z"/><path class="m" d="M90 96V58l-12-6-10 6-6-4-2 10 8 8-6 10 6 14z"/><path class="m" d="M38 30l7-5 7 4-2 8h-9z"/><path class="m" d="M60 16l6-2 4 5-3 6-7-2z"/><path class="m" d="M22 36l5-1 2 5-4 3-4-3z"/><path class="ks" d="M44 44l-2 6M66 32l2 6M26 48l1 5"/>' },
 ];
@@ -4817,7 +4823,7 @@ function troSvg(t, got) {
   const fx = t.tier === 'd' ? t.art.replace(/class="m"/g, 'class="fx"') : '';
   return `<svg class="tsvg ${got ? t.tier : 'x'}" viewBox="0 0 100 120" aria-hidden="true"><rect class="base" x="35" y="96" width="30" height="8" rx="1.5"/><path class="base" d="M30 104h40l5 12H25z"/>${t.art}${fx}<path class="sp" d="M86 8l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>`;
 }
-let troGot = null, troFor = null, troS = null, troRev = 0, troEvt = {};
+let troGot = null, troFor = null;
 const troQueue = [], troPend = new Set();
 // the button is locked until the player enters their account; the trophies are loaded once per session
 function troSync() {
@@ -4864,7 +4870,7 @@ function branches(root) { // root's house and every house founded by its childre
 // a mayor's village with the dynamic politics off from the first day to today
 const troAlone = () => !NET && !ME && !S.fam && MODE === 'batlle' && S.polOn === false && !POLITICS;
 // every law of a camp in force at once, brought by the council alone: politics always on and no law by hand
-const troAllLaws = cat => S.polOff === false && S.hands === false && POLITICS && LAW_CATS.find(c => c[0] === cat)[1].every(k => L[k]);
+const troAllLaws = cat => S.polOff === false && POLITICS && (S.handCats ? !S.handCats[cat] : S.hands === false) && LAW_CATS.find(c => c[0] === cat)[1].every(k => L[k]);
 const TESTS = {
   armageddon: () => S.day > 0 && !S.people.some(p => !p.leaving),
   mirava: () => !NET && !ME && MODE === 'batlle' && S.watch && POLITICS && S.day >= 500 * YEAR,
@@ -4881,20 +4887,21 @@ const TESTS = {
   milei: () => troAllLaws('TURBOCAPITALISTES'),
   cabres: () => { const a = S.people.filter(p => !p.leaving); return a.length > 0 && avg(a.map(p => p.int)) * 100 > 90; },
   oligopoli: () => { const hs = troLive(); return hs.length >= 10 && topShare(hs) >= 0.8; },
-  cromatic: () => countTrees() === 0 && (S.fishStock ?? FISH_CAP) < 1,
+  cromatic: () => S.polOff === false && POLITICS && L.forest && L.fishing && (S.handLaws ? !S.handLaws.forest && !S.handLaws.fishing : S.hands === false),
   bigone: () => (S.st.quakes || 0) >= 10,
   pax: () => { if (!(!NET && !ME && !S.fam && MODE === 'batlle' && S.polOff === false && POLITICS)) return false;
     const last = Math.max(S.riotDay ?? (S.st.riots ? Infinity : 0), ...(S.revs || [0])); return S.day - last >= 100 * YEAR; },
   rates: () => { const me = troMine(); if (!me) return false; const hs = troLive(), ws = wealthsOf(hs), w = ws[hs.indexOf(me)]; return hs.length >= 10 && ws.every((x, i) => hs[i] === me || x > w); },
   cacic: () => { const me = troMine(); if (!me) return false; const hs = troLive(), ws = wealthsOf(hs), w = ws[hs.indexOf(me)]; return hs.length >= 10 && ws.every((x, i) => hs[i] === me || x < w); },
   robin: () => !!troMine() && (ME.stoleN || 0) >= 10 && !ME.caughtN,
-  prodig: () => !!troEvt.prodig,
+  prodig: () => !!S.tro.prodig,
   buro: () => laws.length >= 20,
   illustrada: () => !!troMine() && Math.round(famInt(ME) * 100) >= 100,
-  tovarishch: () => (S.st.revolutions || 0) > troRev, // a revolution since this village began or was loaded
+  tovarishch: () => (S.st.revolutions || 0) > S.tro.rev, // a revolution since this village began (or, in a village saved before this was kept, since it was loaded)
+  nieve: () => (S.st.freezes || 0) >= 10 && !freezing() && S.people.some(p => !p.leaving),
 };
 function troDay() {
-  if (troS !== S) { troS = S; troRev = S.st.revolutions || 0; troEvt = {}; }
+  S.tro ||= { rev: S.st.revolutions || 0 }; // what the trophies remember goes in the village, so a saved game keeps it
   if (!ACC || !troGot || !$('intro').hidden) return;
   for (const t of TROPHIES) if (!troGot[t.id] && TESTS[t.id]()) { troSave(t.id); troQueue.push(t); }
   if (troQueue.length && $('troNew').hidden) troShowNew();

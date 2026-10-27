@@ -24,7 +24,7 @@ const MAX_PARTIDES = 5, MAX_DADES = 1_900_000, MAX_SESSIONS = 10;
 const REPO = 'miquel25/El-Batlle', MAX_TITOL = 120, MAX_TEXT = 4000, PROPOSTES_HORA = 5;
 const NOM_AGAFAT = 'Aquest nom ja el fa servir un altre jugador (els noms no es poden repetir, encara que canviïn les majúscules). Tria\'n un altre.';
 const TROFEUS = ['armageddon', 'mirava', 'completista', 'miler', 'nombrosa', 'endogamia', 'gilito', 'malvat', 'mansa', 'seixanta', 'palantir', 'milei', 'cabres',
-  'camps', 'illustrada', 'tovarishch', 'oligopoli', 'cromatic', 'bigone', 'pax', 'robin', 'prodig', 'buro', 'rates', 'cacic'];
+  'camps', 'illustrada', 'tovarishch', 'oligopoli', 'cromatic', 'bigone', 'pax', 'robin', 'prodig', 'buro', 'rates', 'cacic', 'nieve'];
 const ADMIN = 'miquel'; // l'únic compte que pot veure qui ha guanyat cada trofeu
 const DIES_SESSIO = 180, MINUTS_CODI = 30, MAX_ERRORS = 10, MINUTS_BLOQUEIG = 15;
 
