@@ -699,7 +699,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     </header>
     <div class="scroller"><div class="vitrina" id="troCase"></div></div>
     <div class="tdet" id="troDet" hidden role="dialog" aria-modal="true" aria-labelledby="troDetName">
-      <div class="card"><div class="fig" id="troDetFig"></div><p class="tier" id="troDetTier"></p><h3 id="troDetName"></h3><p id="troDetDesc"></p><p class="when" id="troDetWhen"></p><ul class="who" id="troDetWho" hidden></ul><button class="btn" type="button" id="troDetClose">D'acord</button></div>
+      <div class="card"><div class="fig" id="troDetFig"></div><p class="tier" id="troDetTier"></p><h3 id="troDetName"></h3><p id="troDetDesc"></p><p class="when" id="troDetWhen"></p><ul class="who" id="troDetWho" hidden></ul><button class="btn forget" type="button" id="troDetDrop" hidden>Treu-me'l per tornar-lo a guanyar</button><button class="btn" type="button" id="troDetClose">D'acord</button></div>
     </div>
   </div>
 </div>
@@ -4884,7 +4884,7 @@ const TROPHIES = [
     art: '<path class="m" d="M28 18H14c0 18 8 26 18 26v-6c-6 0-11-6-12-14h8z"/><path class="m" d="M72 18h14c0 18-8 26-18 26v-6c6 0 11-6 12-14h-8z"/><path class="m" d="M28 12h44v20c0 18-10 28-22 30-12-2-22-12-22-30z"/><path class="m" d="M45 62h10v18H45z"/><path class="m" d="M34 80h32l4 16H30z"/><path class="k" d="M50 22l2.6 6.4 6.9.5-5.3 4.4 1.7 6.7L50 36.3l-5.9 3.7 1.7-6.7-5.3-4.4 6.9-.5z"/>' },
   { id: 'malvat', tier: 'o', name: 'El malvado plan', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que el Gini passi de més de 0,8 a menys de 0,25.',
     art: '<rect class="m" x="44" y="84" width="12" height="12"/><path class="m" d="M65 22A30 30 0 1 0 44.8 77.5L46 70A29.8 29.8 0 0 1 65 22z"/><path class="m" d="M42 72l6 6-16 16-6-6z"/><path class="m" d="M34.3 80.6l32-38-4.5-4-32 38z"/><path class="m" d="M80 40l-7 7.5-19-17.5 7-7.5z"/>' },
-  { id: 'mansa', tier: 'o', name: 'Mansa Musa', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que una sola família tingui el 65% de la riquesa d\'un poble d\'almenys 10 famílies.',
+  { id: 'mansa', tier: 'o', name: 'Mansa Musa', desc: 'Com a batlle i amb la política dinàmica sempre desactivada, fes que una sola família tingui almenys 100.000 de riquesa i la meitat de tota la riquesa del poble.',
     art: '<path class="m" d="M24 96l8-20h36l8 20z"/><rect class="m" x="44" y="68" width="12" height="9"/><path class="m" d="M18 58l6-34 14 16 12-26 12 26 14-16 6 34z"/><rect class="m" x="18" y="57" width="64" height="11" rx="2"/><circle class="k" cx="34" cy="62.5" r="3"/><circle class="k" cx="50" cy="62.5" r="3"/><circle class="k" cx="66" cy="62.5" r="3"/><path class="ks" d="M36 86h28"/>' },
   { id: 'palantir', tier: 'p', name: 'Palantir', desc: 'En qualsevol mode, amb la política dinàmica sempre activada, fes que hi hagi totes les lleis tecnofeudals alhora sense aprovar-ne cap a mà.',
     art: '<path class="m" d="M28 96l8-22h28l8 22z"/><circle class="m" cx="50" cy="44" r="28"/><path class="k" d="M28 44q22-18 44 0q-22 18-44 0z"/><circle class="m" cx="50" cy="44" r="7"/>' },
@@ -4978,7 +4978,7 @@ const TESTS = {
   camps: () => !!S.siteFail && S.siteFail['2x2'] === (S.occVer || 0), // the last search for a hut site found none, and nothing has been built or cleared since
   completista: () => TROPHIES.every(t => t.id === 'completista' || troGot[t.id]),
   malvat: () => { if (!troAlone()) return false; const g = S.gini, i = g.findIndex(x => x[1] > 0.8); return i >= 0 && g.length - 1 > i && g[g.length - 1][1] < 0.25; },
-  mansa: () => { if (!troAlone()) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); return hs.length >= 10 && tot > 0 && Math.max(...ws) >= 0.65 * tot; },
+  mansa: () => { if (!troAlone()) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); const top = Math.max(...ws); return hs.length > 1 && top >= 100000 && top >= 0.5 * tot; },
   palantir: () => troAllLaws('TECNOFEUDALS'),
   milei: () => troAllLaws('TURBOCAPITALISTES'),
   cabres: () => { const a = S.people.filter(p => !p.leaving); return a.length > 0 && avg(a.map(p => p.int)) * 100 > 75; },
@@ -5048,12 +5048,19 @@ $('troClose').onclick = () => { $('tro').hidden = true; (troWho ? $('accTroAll')
 $('troCase').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if (!b) return;
   const t = TRO[b.dataset.t], all = troWho && troWho.guanyadors, who = all && all[t.id], when = !all && troGot && troGot[t.id];
-  $('troDetFig').innerHTML = troSvg(t, all || when); // the admin's view draws every trophy, won or not $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
+  $('troDetFig').innerHTML = troSvg(t, all || when); // the admin's view draws every trophy, won or not
+  $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
   put('troDetName', t.name); put('troDetDesc', t.desc);
   put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.');
   $('troDetWho').hidden = !who;
   $('troDetWho').innerHTML = who ? who.map(w => `<li><b>${esc(w.nom)}</b><span>${esc(troDate(w.quan))}</span></li>`).join('') : '';
+  $('troDetDrop').hidden = !(when && troAdmin()); // the admin can take a trophy back off their own account, to win it again
   $('troDet').hidden = false; $('troDet').dataset.from = t.id; $('troDetClose').focus();
+});
+$('troDetDrop').onclick = () => sure($('troDetDrop'), 'Segur? Es treu del compte', async () => {
+  const id = $('troDet').dataset.from;
+  try { await api('/trofeus/' + id, 'DELETE'); delete troGot[id]; troWaiting(id, false); troRender(); troDetClose(); }
+  catch (err) { put('troDetWhen', err.message); }
 });
 const troDetClose = () => { $('troDet').hidden = true; $('troCase').querySelector(`button[data-t="${$('troDet').dataset.from}"]`)?.focus(); };
 $('troDetClose').onclick = troDetClose;

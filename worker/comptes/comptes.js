@@ -123,6 +123,13 @@ async function ruta(req, env) {
     const r = await c.trofeu(tok, d.id); if (!r.estat) await registre.posa(r.nom, [{ id: r.id, quan: r.quan }]);
     return r.estat ? r : { id: r.id, quan: r.quan };
   }
+  const tr = camí.match(/^\/trofeus\/([a-z]+)$/);
+  if (tr && m === 'DELETE') { // l'administrador es pot treure un trofeu del seu compte per tornar-lo a guanyar
+    const qui = await c.qui(tok); if (qui.estat) return qui;
+    if (clauNom(qui.nom) !== ADMIN) return err(403, 'Només ho pot fer l\'administrador.');
+    const r = await c.treuTrofeu(tok, tr[1]); if (!r.estat) await registre.treu(clauNom(qui.nom), tr[1]);
+    return r;
+  }
   if (m === 'GET' && camí === '/guanyadors') {
     const qui = await c.qui(tok); if (qui.estat) return qui;
     return clauNom(qui.nom) === ADMIN ? registre.llista() : err(403, 'Només ho pot veure l\'administrador.');
@@ -184,6 +191,7 @@ export class Registre extends DurableObject {
     return { ok: true };
   }
   esborra(clau) { this.sql.exec('DELETE FROM g WHERE clau = ?', clau); return { ok: true }; }
+  treu(clau, id) { this.sql.exec('DELETE FROM g WHERE clau = ? AND id = ?', clau, id); return { ok: true }; }
   llista() {
     const guanyadors = {};
     for (const r of this.sql.exec('SELECT nom, id, quan FROM g ORDER BY quan').toArray()) (guanyadors[r.id] ||= []).push({ nom: r.nom, quan: r.quan });
@@ -331,6 +339,11 @@ export class Compte extends DurableObject {
     if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
     this.sql.exec('INSERT OR IGNORE INTO trofeus VALUES (?, ?)', id, Date.now());
     return { nom: this.c.nom, id, quan: this.sql.exec('SELECT quan FROM trofeus WHERE id = ?', id).toArray()[0].quan };
+  }
+  async treuTrofeu(t, id) {
+    if (!(await this.sessió(t))) return err(401, 'La sessió ha caducat. Torna a entrar.');
+    this.sql.exec('DELETE FROM trofeus WHERE id = ?', id);
+    return { ok: true };
   }
   async surt(t) {
     if (/^[0-9a-f]{48}$/.test(t)) this.sql.exec('DELETE FROM sessions WHERE t = ?', await sha(t));
