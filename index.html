@@ -88,6 +88,17 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .lawpick li .warn{color:var(--amber);font-size:11px}
 .lawpick li .btn{align-self:flex-start;font-size:12px}
 .lawpick li.on .btn{color:var(--bad);border-color:var(--bad)}
+.mkt .prices ul{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.mkt .prices li{gap:2px;padding:8px 10px}
+.mkt .prices li b{font-size:15px}
+.mkt li .pr{font-family:var(--f-mono);font-size:13px;color:var(--ink)}
+.mkt li .pr small{color:var(--muted);font-size:11px}
+.mkt li .act{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mkt li .act select{font:inherit;font-size:12px;background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;max-width:100%}
+.mkt .empty{color:var(--muted);font-size:12px;margin:0}
+.mkt .cat ul.sold{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.mkt .sold li{border:0;padding:0;background:none;display:block}
+.mkt .sold li span{font-family:var(--f-mono);color:var(--ink);margin-right:6px}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .chip{border:1px solid rgba(59,45,24,.35);background:rgba(255,255,255,.3);border-radius:999px;padding:2px 9px;font-size:11.5px;cursor:pointer;color:var(--parch-ink)}
 .chip:hover{background:rgba(255,255,255,.6)}
@@ -391,6 +402,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <p class="tromsg" id="troMsg" hidden><span>Els trofeus es guarden al teu compte de jugador.</span><button class="btn primary" type="button" id="troLogin">Entra o crea un compte</button></p>
       <span class="brk" aria-hidden="true"></span>
       <button class="btn" id="housesBtn">Cases del poble</button>
+      <button class="btn" id="mktBtn">Mercat immobiliari</button>
       <button class="btn" id="polBtn" aria-pressed="true">Política dinàmica: sí</button>
       <button class="btn" id="disBtn" aria-pressed="true">Desastres: sí</button>
       <button class="btn" id="quakeBtn">Terratrèmol!</button>
@@ -722,6 +734,15 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
     <div class="scroller"><div class="rules" id="helpBody" role="tabpanel"></div></div>
   </div>
 </div>
+<div class="houses lawpick mkt" id="mkt" hidden role="dialog" aria-modal="true" aria-labelledby="mktTitle">
+  <div class="win">
+    <header>
+      <div><h2 id="mktTitle">MERCAT IMMOBILIARI</h2><p id="mktSub"></p></div>
+      <button class="btn" id="mktClose">Tanca</button>
+    </header>
+    <div class="scroller" id="mktBody"></div>
+  </div>
+</div>
 <div class="houses" id="houses" hidden role="dialog" aria-modal="true" aria-labelledby="housesTitle">
   <div class="win">
     <header>
@@ -803,7 +824,7 @@ const LAWDEFS = {
   laissez: { name: 'Mercat lliure total', txt: 'Mercat lliure total: s\'acaben els preus justos, el salari mínim, el topall i el dret a l\'habitatge. El jornal no té mínim, el lloguer pot pujar fins a 6, i qui deu cinc dies de lloguer és desnonat. El que cobra cada moliner puja si el seu molí no dona l\'abast i baixa si li falta feina.', excl: ['housing', 'prices', 'rentcap', 'tools', 'wage', 'collective', 'nowage', 'norent'] },
   notax: { name: 'Abolició dels impostos', txt: 'Abolició dels impostos: es tanca el graner comú i es deroguen tots els impostos. El que hi havia al graner es reparteix entre les cases segons la riquesa que ja tenen, i els béns de qui mor sense hereus se\'ls queda la casa més rica.', excl: ['basic', 'granary', 'inhtax', 'wealthtax'] },
   usury: { name: 'Préstecs amb interès', txt: 'Préstecs amb interès: les cases que passen gana demanen menjar en préstec a la casa més rica, i n\'han de tornar un 40% més. Només en poden demanar les cases que tenen alguna cosa per empenyorar: casa pròpia, camps o corral. Si al cap d\'un any no han pagat, el creditor els embarga, una cosa cada mes fins a cobrar: primer el corral amb les ovelles, després els camps, un per un, i al final la casa, que llogarà.' },
-  enclosure: { name: 'Privatització del bosc', excl: ['collective'], txt: 'Privatització del bosc: el bosc passa a ser de la casa més rica. Qui hi cull fruits, hi talla llenya o hi fa carbó n\'ha de donar una quarta part a l\'amo.' },
+  enclosure: { name: 'Privatització dels recursos', excl: ['collective'], txt: 'Privatització dels recursos: el bosc, la pedrera i la mina passen a ser de la casa més rica, que els pot vendre al mercat immobiliari. Qui hi cull fruits, hi talla llenya, hi fa carbó, hi treu pedra o hi treu ferro n\'ha de donar una quarta part a l\'amo.' },
   platform: { name: 'La plataforma', txt: 'La plataforma: la casa més rica esdevé senyora de la plataforma, i tots els jornals, lloguers i eines es contracten a través seu. Se n\'emporta un 15% de cada pagament, també del que es paga als molins.', excl: ['nowage'] },
   cloud: { name: 'Eines al núvol', txt: 'Eines al núvol: les eines ja no es gasten, però cada eina paga una quota diària al senyor de la plataforma. Qui no pot pagar la quota es queda sense l\'eina.' },
   tribute: { name: 'Delme digital', txt: 'Delme digital: un 10% de cada collita va al senyor de la plataforma.', excl: ['collective'] },
@@ -886,6 +907,7 @@ function newWorld(sd) {
   const mx = Math.round(CX + rr(-6, 6)), my = 3;
   for (let y = my - 2; y < my + 4; y++) for (let x = mx - 3; x < mx + 6; x++) if (inMap(x, y)) { const k = idx(x, y); tree[k] = 0; water[k] = 0; if (y < my + 3 && x >= mx - 1 && x < mx + 4) occ[k] = 7; }
   S.mine = { x: mx, y: my, dug: 0 };
+  mktState();
   S.forest = S.forest.map((v, k) => occ[k] === 6 || occ[k] === 7 ? 0 : v);
   // 100 people in 25 families
   const sizes = []; let total = 0;
@@ -1080,7 +1102,7 @@ const REAP_FOR = (w, e) => Math.max(REAP(w), ...e.members.map(REAP));
 function mineIron(h, p, eff) {
   setTask(p, 'mina', S.mine.x + 1.5 + rr(-1, 1), S.mine.y + 3, 0.8);
   const got = 1.2 * eff * (0.3 + 1.4 * p.str) * (hasPick(p) ? 1.5 : 1) * mineEase();
-  h.iron += got; S.mine.dug += got; p.hard = S.day;
+  h.iron += resToll(h, 'mine', 'iron', got); S.mine.dug += got; p.hard = S.day;
 }
 // tools are worth roughly what they add over their life; their price can't fall below materials plus two days' work
 const hoeFloor = () => HOE_IRON * S.ironPrice + HOE_WOOD + 3, pickFloor = () => PICK_IRON * S.ironPrice + PICK_WOOD + 3;
@@ -1114,7 +1136,7 @@ function quarry(h, p, eff, pro) {
   const k = q.tiles[ri(0, q.tiles.length - 1)];
   setTask(p, 'pedra', k % W + 0.5, Math.floor(k / W) + 0.5, 0.8);
   const got = (pro ? 2.4 : 1.5) * eff * (0.3 + 1.4 * p.str) * (hasPick(p) ? 1.5 : 1) * quarryEase();
-  h.stone += got; q.dug += got; p.hard = S.day; // hard work: eats more that day
+  h.stone += resToll(h, 'quarry', 'stone', got); q.dug += got; p.hard = S.day; // hard work: eats more that day
   if (Math.floor(q.dug / 250) !== Math.floor((q.dug - got) / 250)) S.dirty = true;
 }
 function stoneNeed(h) {
@@ -1370,7 +1392,7 @@ const hutOwner = hut => S.homes.find(o => o.hut === hut && !o.gone && !o.tenant)
 // a block inherited by a family that already has a home is let out whole, ground floor included: rent goes to that landlord
 const landlord = hut => hut.landlord && !hut.landlord.gone ? hut.landlord : null;
 const rentTo = hut => hutOwner(hut) || landlord(hut);
-// what a household owns, in food: stores, materials at market prices, sheep, and the houses it owns
+// what a household owns, in food: stores, materials at market prices, sheep, and the houses, land and buildings it owns
 function wealth(h) { return wealthsOf([h])[0]; }
 // the wealth of many houses at once: the blocks each one lets out are looked up in a single pass
 function wealthsOf(list) {
@@ -1380,6 +1402,7 @@ function wealthsOf(list) {
     let w = Math.max(0, h.food) + h.wood + h.stone * S.stonePrice + h.iron * S.ironPrice + h.coal * S.coalPrice + h.herd * SHEEP_COST;
     if (h.hut && !h.tenant) w += housePrice(h.hut);
     for (const u of lets.get(h) || []) w += housePrice(u);
+    w += landWorth(h);
     return w;
   });
 }
@@ -1482,16 +1505,37 @@ function bequeath(h) {
   for (const o of homes) tagHome(o, 'HERÈNCIA', 'good');
   return true;
 }
-// the lords: the house that owns the platform (tecnofeudal laws) or the forest (privatised forest). It is the richest
-// house when the law comes in, and if it dies out the richest house left takes its place
+// the lords: the house that owns the platform (tecnofeudal laws), and the houses that own the forest, the quarry and
+// the mine (privatised resources). It is the richest house when the law comes in, and if it dies out the richest house
+// left takes its place. The resources can also change hands on the property market
+const RES = {
+  forest: { key: 'forestLord', name: 'el bosc', of: 'del bosc', tag: 'AMOS DEL BOSC' },
+  quarry: { key: 'quarryLord', name: 'la pedrera', of: 'de la pedrera', tag: 'AMOS DE LA PEDRERA' },
+  mine: { key: 'mineLord', name: 'la mina', of: 'de la mina', tag: 'AMOS DE LA MINA' },
+};
+const RES_KINDS = Object.keys(RES);
+const andList = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' i ' + a[a.length - 1] : a[0] || '';
+const lordOk = o => !!(o && !o.gone && o.members.length);
+function richestHome() {
+  const act = S.homes.filter(h => !h.gone && h.members.length && h.hut), ws = wealthsOf(act);
+  return act.map((h, i) => [h, ws[i]]).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
 function lordOf(key) {
   let o = S[key];
-  if (!o || o.gone || !o.members.length) {
-    const act = S.homes.filter(h => !h.gone && h.members.length && h.hut), ws = wealthsOf(act);
-    o = S[key] = act.map((h, i) => [h, ws[i]]).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-    if (o) { log(key === 'lord' ? `Els ${o.surname} esdevenen els senyors de la plataforma.` : `Els ${o.surname} es queden el bosc: ara és seu.`, 'amber'); tagHome(o, key === 'lord' ? 'SENYORS DE LA PLATAFORMA' : 'AMOS DEL BOSC', 'amber'); renderLaws(); }
+  if (!lordOk(o)) {
+    o = S[key] = richestHome();
+    const r = RES_KINDS.map(k => RES[k]).find(x => x.key === key);
+    if (o) { log(key === 'lord' ? `Els ${o.surname} esdevenen els senyors de la plataforma.` : `Els ${o.surname} es queden ${r.name}: ara és seu.`, 'amber'); tagHome(o, key === 'lord' ? 'SENYORS DE LA PLATAFORMA' : r.tag, 'amber'); renderLaws(); }
   }
   return o;
+}
+// the day resources are privatised, whatever has no owner yet goes to the richest house, all at once
+function privatise() {
+  const miss = RES_KINDS.filter(k => !lordOk(S[RES[k].key]));
+  const o = miss.length && richestHome(); if (!o) return;
+  for (const k of miss) S[RES[k].key] = o;
+  log(`Els ${o.surname} es queden ${andList(miss.map(k => RES[k].name))}: ara ${miss.length > 1 ? 'són seus' : 'és seu'}.`, 'amber');
+  tagHome(o, miss.length > 1 ? 'AMOS DELS RECURSOS' : RES[miss[0]].tag, 'amber');
 }
 // pays the platform's lord: returns what was paid, nothing if the payer is the lord
 function payLord(h, amt) {
@@ -1500,13 +1544,17 @@ function payLord(h, amt) {
   o.food += amt; o.lordIn = (o.lordIn || 0) + amt; S.st.toLord = (S.st.toLord || 0) + amt;
   return amt;
 }
-// with the forest privatised, a quarter of what anyone else takes from it goes to its owner, in kind
-function forestToll(h, k, amt) {
+// with the resources privatised, a quarter of what anyone else takes from the forest, the quarry or the mine goes to
+// its owner, in kind. What each one brings in is what it sells for on the property market
+function resToll(h, res, k, amt) {
   if (!L.enclosure || !(amt > 0)) return amt;
-  const o = lordOf('forestLord'); if (!o || o === h) return amt;
-  o[k] += amt * 0.25; S.st.toForest = (S.st.toForest || 0) + amt * 0.25 * (k === 'food' ? 1 : k === 'coal' ? S.coalPrice : 1);
-  return amt * 0.75;
+  const o = lordOf(RES[res].key); if (!o || o === h) return amt;
+  const cut = amt * 0.25, v = cut * (k === 'coal' ? S.coalPrice : k === 'stone' ? S.stonePrice : k === 'iron' ? S.ironPrice : 1);
+  o[k] += cut; S.st.toForest = (S.st.toForest || 0) + v;
+  if (S.mkt) S.mkt.today[res] = (S.mkt.today[res] || 0) + v;
+  return amt - cut;
 }
+const forestToll = (h, k, amt) => resToll(h, 'forest', k, amt);
 // a house that dies out with nobody to inherit: everything goes to the common granary. The materials and the
 // sheep are sold at market value, and the house, if it finds a buyer, is sold too
 function escheat(h) {
@@ -1653,6 +1701,248 @@ function marryOut(kid, partner = findPartner(kid)) {
 }
 
 // ---------- daily simulation ----------
+// ---------- property market ----------
+// fields, sheep pens, charcoal kilns, forges, mills, houses and whole blocks are put up for sale and bought. A family
+// puts up for sale what it no longer uses (a kiln or a forge with nobody of the trade, an empty pen, a field nobody
+// works) and, when it goes hungry, something it can do without. It buys what it lacks: land to work, a pen for its
+// sheep, the kiln, forge or mill of its trade, a house to live in or a block to let. With the resources privatised, the
+// forest, the quarry and the mine are sold too. Each kind of property has a price index that rises when things sell
+// quickly and falls when they sit unsold; a resource is worth two years of what its tolls bring in
+const FIELD_VAL = 30, FIELD_MIN = 0.7, PEN_VAL = 10, RES_MIN = 150, MKT_MIN = 0.4, MKT_MAX = 3, MKT_SOLD = 30;
+const PROP_KINDS = ['house', 'field', 'pen', 'kiln', 'forge', 'mill', ...RES_KINDS];
+const PROP = {
+  field: { name: 'el camp', a: 'un camp', tag: 'UN CAMP', title: 'Camp' },
+  pen: { name: 'el corral', a: 'un corral', tag: 'UN CORRAL', title: 'Corral' },
+  kiln: { name: 'la carbonera', a: 'una carbonera', tag: 'UNA CARBONERA', title: 'Carbonera', job: 'carboner' },
+  forge: { name: 'la farga', a: 'una farga', tag: 'UNA FARGA', title: 'Farga', job: 'ferrer' },
+  mill: { name: 'el molí', a: 'un molí', tag: 'UN MOLÍ', title: 'Molí', job: 'moliner' },
+  forest: { name: 'el bosc', tag: 'EL BOSC', title: 'Bosc' },
+  quarry: { name: 'la pedrera', tag: 'LA PEDRERA', title: 'Pedrera' },
+  mine: { name: 'la mina', tag: 'LA MINA', title: 'Mina' },
+};
+const PRICE_FACTORS = [[0.8, '20% per sota'], [0.9, '10% per sota'], [1, 'preu de mercat'], [1.15, '15% per sobre'], [1.3, '30% per sobre'], [1.5, '50% per sobre']];
+const fieldWant = h => Math.min(4, 1 + Math.round((1 - h.lazy) * 2) + (L.work ? 1 : 0));
+function mktState() { return S.mkt ||= { list: [], sold: [], idx: { field: 1, pen: 1, kiln: 1, forge: 1, mill: 1 }, rate: { forest: 0, quarry: 0, mine: 0 }, today: {}, n: 0 }; }
+const mktIdx = k => S.mkt ? S.mkt.idx[k] ?? 1 : 1;
+const resWorth = k => Math.max(RES_MIN, (S.mkt ? S.mkt.rate[k] || 0 : 0) * 730);
+const shelfWorth = h => h ? h.hoes * S.hoePrice + h.picks * S.pickPrice + h.plows * S.plowPrice + h.rods * S.rodPrice : 0;
+// what a property is worth, in food. A pen is sold with its sheep and a forge with the tools on its shelves
+function propValue(kind, o, h) {
+  switch (kind) {
+    case 'house': return housePrice(o);
+    case 'field': return FIELD_VAL * mktIdx('field');
+    case 'pen': return (PEN_VAL + (o.lvl ? PEN_WOOD + PEN_IRON * S.ironPrice : 0)) * mktIdx('pen') + (h ? h.herd * SHEEP_COST : 0);
+    case 'kiln': return (KILN_COST + KILN_STONE * S.stonePrice) * mktIdx('kiln');
+    case 'forge': return (FORGE_WOOD + FORGE_STONE * S.stonePrice) * mktIdx('forge') + shelfWorth(h);
+    case 'mill': return (MILL_WOOD + MILL_STONE * S.stonePrice + MILL_FOOD) * mktIdx('mill');
+    default: return resWorth(kind);
+  }
+}
+// the land and buildings a house owns, besides its houses, at market value (sheep and tools are counted apart)
+function landWorth(h) {
+  let w = h.fields.length * FIELD_VAL * mktIdx('field');
+  if (h.pen) w += propValue('pen', h.pen);
+  for (const k of ['kiln', 'forge', 'mill']) if (h[k] && !h[k + 'Broken']) w += propValue(k, h[k]);
+  if (L.enclosure) for (const k of RES_KINDS) if (S[RES[k].key] === h) w += resWorth(k);
+  return w;
+}
+const propName = (kind, o) => kind === 'house' ? houseName(o) : PROP[kind].name;
+const cap = t => t[0].toUpperCase() + t.slice(1);
+// does the house still own it? A kiln, forge or mill in ruins is nobody's to sell
+function owns(h, kind, o) {
+  if (!h || h.gone || !h.members.length || !o) return false;
+  switch (kind) {
+    case 'house': return o.ruin == null && ownedHuts(h).includes(o);
+    case 'field': return h.fields.includes(o);
+    case 'pen': return h.pen === o;
+    case 'kiln': case 'forge': case 'mill': return h[kind] === o && !h[kind + 'Broken'];
+    default: return !!(L.enclosure && RES[kind] && S[RES[kind].key] === h);
+  }
+}
+// everything a house could put up for sale, as [kind, object]
+function propsOf(h) {
+  const out = ownedHuts(h).map(u => ['house', u]);
+  for (const f of h.fields) out.push(['field', f]);
+  for (const k of ['pen', 'kiln', 'forge', 'mill']) if (owns(h, k, h[k])) out.push([k, h[k]]);
+  for (const k of RES_KINDS) if (owns(h, k, k)) out.push([k, k]);
+  return out;
+}
+// a property is found again by its place on the map (a resource by its name), the same on every screen
+const propAt = (o, kind) => RES[kind] ? { x: 0, y: 0 } : { x: o.x, y: o.y };
+function findProp(h, kind, x, y) { const p = propsOf(h).find(([k, o]) => k === kind && (RES[k] || (o.x === x && o.y === y))); return p ? p[1] : null; }
+const priceOf = l => Math.round(propValue(l.kind, l.o, l.by) * l.f);
+const listingOf = o => S.mkt ? S.mkt.list.find(l => l.o === o) : null;
+function addListing(h, kind, o, f = 1, why) {
+  const m = mktState();
+  if (!owns(h, kind, o) || m.list.some(l => l.o === o)) return null;
+  const l = { id: ++m.n, kind, o, by: h, f, day: S.day, auto: h.human == null };
+  m.list.push(l);
+  if (why) logOnce('mktList', `Els ${h.surname} posen en venda ${propName(kind, o)}: ${why}. Al mercat immobiliari s'hi venen camps, corrals, carboneres, fargues, molins, cases i blocs sencers.`, 'amber');
+  return l;
+}
+// a house can buy what is on sale if it has the food and room for it: one pen, one kiln, one forge and one mill at
+// most, and a family with no home of its own only buys a house it can move into
+function cantBuy(b, l) {
+  if (!b || b.gone || !b.members.length) return 'No hi ha ningú a casa';
+  if (b === l.by) return 'És vostre';
+  if (b.food < priceOf(l)) return 'No teniu prou menjar';
+  if (l.kind === 'pen' && b.pen) return 'Ja teniu un corral';
+  if (PROP[l.kind] && PROP[l.kind].job && b[l.kind]) return `Ja teniu ${PROP[l.kind].a}`;
+  if (l.kind === 'house') {
+    const lives = l.by.hut === l.o && !l.by.tenant;
+    if ((!b.hut || b.tenant) && !lives && l.o.ground && l.o.ground !== b) return 'La planta baixa està llogada: només la pot comprar qui ja té casa';
+  }
+  return '';
+}
+// a house changes hands. A family with no home of its own moves in, and the sellers, if they lived there, take the
+// flat the buyers leave or an empty one in the block, or else go looking for one. A family that already has a home
+// lets it out whole, and the sellers, if they lived there, stay on the ground floor as tenants
+function moveHouse(hut, sl, b) {
+  hut.flats ||= [];
+  const lives = sl.hut === hut && !sl.tenant;
+  if (lives) { sl.hut = null; sl.tenant = false; sl.flatIdx = -1; }
+  if (!b.hut || b.tenant) {
+    const fh = b.tenant && b.hut !== hut ? b.hut : null, fi = b.flatIdx;
+    leaveFlat(b); b.hut = hut; b.tenant = false; b.flatIdx = -1; hut.landlord = null;
+    if (lives) {
+      const i = hut.flats.indexOf(null);
+      if (fh) moveIn(sl, fh, fi); else if (i >= 0) moveIn(sl, hut, i);
+    }
+  } else {
+    hut.landlord = b;
+    if (lives) moveIn(sl, hut, 'g');
+  }
+  S.dirty = true;
+}
+function transferProp(kind, o, sl, b) {
+  switch (kind) {
+    case 'house': moveHouse(o, sl, b); break;
+    case 'field': sl.fields.splice(sl.fields.indexOf(o), 1); b.fields.push(o); o.used = S.day; break;
+    case 'pen':
+      b.pen = o; b.herd += sl.herd; b.penUsed = S.day; sl.pen = null; sl.herd = 0;
+      syncHerd(sl); syncHerd(b); break;
+    case 'kiln': case 'forge': case 'mill': {
+      b[kind] = o; sl[kind] = null; sl[kind + 'Broken'] = false;
+      for (const x of ['BrokenDay', 'Fee', 'Load']) { if (sl[kind + x] !== undefined) b[kind + x] = sl[kind + x]; delete sl[kind + x]; }
+      b[kind + 'Broken'] = false; b[kind + 'Used'] = S.day;
+      if (kind === 'forge') { for (const t of ['hoes', 'picks', 'plows', 'rods']) { b[t] += sl[t]; sl[t] = 0; } for (const t of ['hoeQ', 'pickQ', 'plowQ', 'rodQ']) b[t].push(...sl[t].splice(0)); }
+      const job = PROP[kind].job;
+      for (const m of sl.members) if (m.job === job) m.job = null;
+      if (!b.members.some(m => m.job === job && !m.leaving)) { const w = b.members.find(m => m.age >= 360 && !m.job && !m.leaving); if (w) w.job = job; }
+      break;
+    }
+    default: S[RES[kind].key] = b;
+  }
+  S.dirty = true;
+}
+function sellProp(l, b) {
+  const m = mktState(), sl = l.by, price = priceOf(l), name = propName(l.kind, l.o), what = l.kind === 'pen' && sl.herd ? `${name} amb ${sl.herd > 1 ? `${sl.herd} ovelles` : 'una ovella'}` : name;
+  m.list.splice(m.list.indexOf(l), 1);
+  transferProp(l.kind, l.o, sl, b);
+  b.food -= price; sl.food += price; S.st.propSales = (S.st.propSales || 0) + 1; if (l.kind === 'house') S.st.sales++;
+  b.propBought = (b.propBought || 0) + price; sl.propSold = (sl.propSold || 0) + price;
+  m.sold.unshift({ day: S.day, kind: l.kind, what, from: sl.surname, to: b.surname, price });
+  m.sold.length = Math.min(m.sold.length, MKT_SOLD);
+  // things that sell soon after going up push their kind's price up
+  if (m.idx[l.kind] && S.day - l.day < 15) m.idx[l.kind] = Math.min(MKT_MAX, m.idx[l.kind] * 1.01);
+  const lets = l.kind === 'house' && l.o.landlord === b, stays = l.kind === 'house' && l.o.ground === sl;
+  log(`Els ${sl.surname} venen ${what} als ${b.surname} per ${fmt(price)} de menjar.${lets ? ` Els ${b.surname} ${l.o.floors ? 'el llogaran sencer' : 'la llogaran'}${stays ? `, i els ${sl.surname} s'hi queden de llogaters` : ''}.` : ''}`, sl === ME || b === ME ? 'good' : 'amber');
+  tagHome(b, 'COMPREN ' + (l.kind === 'house' ? 'CASA' : PROP[l.kind].tag), 'amber');
+  if (sl === ME || b === ME) updateFamily();
+}
+// who, among the families the village runs by itself, wants to buy this, at this price
+function buyerFor(l, active) {
+  const price = priceOf(l), sl = l.by, k = l.kind;
+  if (price > propValue(k, l.o, sl) * (1.05 + 0.3 * R())) return null; // too dear: nobody pays much over the market
+  const ok = active.filter(b => b.human == null && b !== sl && b.members.length && !cantBuy(b, l));
+  const best = list => list.sort((a, b) => b.food - a.food)[0] || null;
+  const month = b => need(b) * 30;
+  switch (k) {
+    case 'field': // a family that wants more land than it has, or a rich one that will have it worked by day labourers
+      return best(ok.filter(b => b.hut && !b.pending && ((b.fields.length < fieldWant(b) && daysOf(b) > 20 && b.food > price + month(b))
+        || (!L.nowage && b.fields.length < 2 * fieldWant(b) && daysOf(b) > 120 && b.food > price + 300))));
+    case 'pen': // a family that wants sheep: an empty pen only if it can buy a pair at once
+      return best(ok.filter(b => b.hut && !b.pen && adultsOf(b).length >= 2 && daysOf(b) > 90 && b.food > price + 250 + (sl.herd ? 0 : SHEEP_COST * 2)));
+    case 'kiln': case 'forge': {
+      if (k === 'kiln' && L.nocoal) return null;
+      return best(ok.filter(b => b.hut && b.members.some(m => m.job === PROP[k].job && !m.leaving) && b.food > price + month(b)));
+    }
+    case 'mill': // a miller without a mill, or a rich family that puts someone to grind
+      return best(ok.filter(b => b.hut && b.food > price + month(b) && (b.members.some(m => m.job === 'moliner' && !m.leaving) || (b.food > price + 400 && daysOf(b) > 120 && b.members.some(m => m.age >= 360 && !m.job && !m.leaving)))));
+    case 'house': {
+      const u = l.o, units = (u.floors || 0) + 1;
+      // a family of one or two only moves into a plain hut (it would put a bigger house straight back on sale)
+      const home = best(ok.filter(b => (!b.hut || (b.tenant && daysOf(b) > 30)) && b.food > price + 60 && (b.members.length > 2 || (!u.lvl && !u.floors))));
+      if (home) return home;
+      // a well-off family that already has a home buys it to let, if flats are in demand and the rent pays it back
+      if (S.vacant > 1 || S.rent * 365 * units < price || L.norent) return null;
+      return best(ok.filter(b => b.hut && !b.tenant && daysOf(b) > 90 && b.food > price + 300));
+    }
+    default: return best(ok.filter(b => b.hut && daysOf(b) > 60 && b.food > price + 300));
+  }
+}
+// the families the village runs by itself put up for sale what they don't use, or something to eat when they go hungry
+function autoList(h) {
+  const m = mktState(), mine = m.list.filter(l => l.by === h);
+  for (const k of ['kiln', 'forge', 'mill']) if (owns(h, k, h[k]) && !listingOf(h[k]) && !h.members.some(p => p.job === PROP[k].job && !p.leaving) && S.day - (h[k + 'Used'] ?? 0) > 120)
+    addListing(h, k, h[k], 1, `ja no ${k === 'mill' ? 'el' : 'la'} fan servir`);
+  if (h.pen && !h.herd && !listingOf(h.pen) && S.day - (h.penUsed ?? 0) > 90) addListing(h, 'pen', h.pen, 1, 'fa temps que no tenen ovelles');
+  const idle = h.fields.find(f => S.day - (f.used ?? 0) > 200 && !listingOf(f));
+  if (idle) addListing(h, 'field', idle, 1, 'ningú no el treballa');
+  else if (h.fields.length > Math.max(2 * fieldWant(h), adultsOf(h).length * 2) &&!listingOf(h.fields[h.fields.length - 1])) addListing(h, 'field', h.fields[h.fields.length - 1], 1, 'en tenen més dels que poden treballar');
+  // hungry: one thing at a time, at a little under the market, the least needed first. The house is sold apart
+  if (daysOf(h) < 8 && h.food < 40 && !mine.some(l => l.f < 1)) {
+    const opts = [...['kiln', 'forge', 'mill'].filter(k => owns(h, k, h[k])).map(k => [k, h[k]]), ...(h.fields.length > 1 ? [['field', h.fields[h.fields.length - 1]]] : []),
+      ...RES_KINDS.filter(k => owns(h, k, k)).map(k => [k, k]), ...(h.fields.length === 1 ? [['field', h.fields[0]]] : [])];
+    const o = opts.find(([, x]) => !listingOf(x));
+    if (o) { const l = listingOf(o[1]); if (l) l.f = 0.9; else addListing(h, o[0], o[1], 0.9, 'passen gana'); }
+  }
+}
+function realEstate(active) {
+  const m = mktState();
+  // what each resource has brought its owner in tolls, smoothed over about half a year
+  for (const k of RES_KINDS) { m.rate[k] = 0.995 * (m.rate[k] || 0) + 0.005 * (m.today[k] || 0); }
+  m.today = {};
+  // a listing goes when its owner no longer has the thing, or after half a year unsold if the family put it up by itself
+  m.list = m.list.filter(l => owns(l.by, l.kind, l.o) && !(l.auto && l.by.human == null && S.day - l.day > 180));
+  for (const h of active) if (h.human == null && h.members.length && R() < 0.1) autoList(h);
+  // buyers come along now and then
+  for (const l of m.list.slice()) {
+    if (S.day === l.day || R() > 0.25) continue;
+    const b = buyerFor(l, active);
+    if (!b) continue;
+    sellProp(l, b);
+    if (l.kind === 'pen' && !b.herd) { b.food -= SHEEP_COST * 2; b.milk -= SHEEP_COST * 2; b.herd = 2; syncHerd(b); log(`Els ${b.surname} canvien ${SHEEP_COST * 2} de menjar per dues ovelles per al corral que han comprat.`, 'amber'); }
+  }
+  // things that sit unsold at the market price push their kind's price down
+  const stale = new Set(m.list.filter(l => l.f <= 1 && S.day - l.day > 30).map(l => l.kind));
+  for (const k of stale) if (m.idx[k]) m.idx[k] = Math.max(k === 'field' ? FIELD_MIN : MKT_MIN, m.idx[k] * 0.995);
+  if (stale.has('house')) S.houseIdx *= 0.998;
+  // land is dear once there is no room left for a new field
+  const fails = S.siteFail || {};
+  if (fails['3x2'] === (S.occVer || 0)) m.idx.field = Math.min(MKT_MAX, m.idx.field * 1.003);
+}
+// what a player asks for in the market window
+function applyMkt(h, m) {
+  if (!h || h.gone || !PROP_KINDS.includes(m.kind || 'house')) return;
+  const M = mktState();
+  if (m.a === 'buy') {
+    const l = M.list.find(x => x.id === m.id);
+    if (!l || !owns(l.by, l.kind, l.o)) { if (h === ME) log('Aquesta propietat ja no està en venda.', 'info'); return; }
+    const why = cantBuy(h, l);
+    if (why) { if (h === ME) log(`No podeu comprar ${propName(l.kind, l.o)} dels ${l.by.surname}: ${why.toLowerCase()}.`, 'info'); return; }
+    sellProp(l, h);
+  } else if (m.a === 'unlist') {
+    const i = M.list.findIndex(x => x.id === m.id && x.by === h);
+    if (i >= 0) M.list.splice(i, 1);
+  } else if (m.a === 'list') {
+    const o = findProp(h, m.kind, m.x, m.y), f = PRICE_FACTORS.some(([v]) => v === m.f) ? m.f : 1;
+    if (o == null) return;
+    const l = listingOf(o);
+    if (l && l.by === h) { l.f = f; return; }
+    if (addListing(h, m.kind, o, f) && h.human != null && NET) log(`${playerName(h.human)} posa en venda ${propName(m.kind, o)} dels ${h.surname}.`, 'info');
+  }
+}
 function daily() {
   S.day++;
   const doy = S.day % YEAR, season = seasonOf(doy);
@@ -1690,7 +1980,7 @@ function daily() {
   // work
   for (const h of active) {
     const adults = h.members.filter(p => p.age >= 360 && !p.leaving);
-    const want = Math.min(4, 1 + Math.round((1 - h.lazy) * 2) + (L.work ? 1 : 0));
+    const want = fieldWant(h);
     let tillers = 0, farmers = 0; h.shep = 0;
     const ripe = h.fields.filter(f => f.stage === 2);
     const hx = homeXY(h);
@@ -2136,6 +2426,8 @@ function daily() {
         continue;
       }
       unmetSell++;
+      // nobody buys it today: it goes up on the property market, where anyone can buy it later
+      addListing(sl, 'house', hut, needy ? 0.9 : 1);
     }
     // well-off tenants want a home of their own; if nobody sells one, they leave the flat to build a hut
     for (const t of active.filter(o => o.tenant && daysOf(o) > 60 && o.food > HUT_VAL * S.houseIdx + 120)) {
@@ -2147,6 +2439,7 @@ function daily() {
     // a house is never worth less than what it costs to build one
     S.houseIdx = Math.max((14 + HUT_STONE * S.stonePrice + 10) / HUT_VAL, Math.min(3, S.houseIdx));
   }
+  realEstate(active);
   // improving a sheep pen
   for (const h of active) {
     if (!wantPen(h)) continue;
@@ -3210,6 +3503,12 @@ function updateHud() {
 }
 
 // ---------- laws UI ----------
+// who owns each privatised resource, grouped by house: " Amos del bosc i de la pedrera: els Puig."
+function resOwnersTxt() {
+  const by = new Map();
+  for (const k of RES_KINDS) { const o = S[RES[k].key]; if (lordOk(o)) (by.get(o) || by.set(o, []).get(o)).push(RES[k].of); }
+  return [...by].map(([o, of]) => ` Amos ${andList(of)}: els ${o.surname}.`).join('');
+}
 function renderLaws() {
   drawGini(true);
   const list = $('lawList'); list.innerHTML = '';
@@ -3224,7 +3523,7 @@ function renderLaws() {
     if (lockedLaw(l)) { x.disabled = true; x.textContent = 'Protegida'; x.title = `La revolució la protegeix fins al ${lockEnd()}`; }
     const fx = document.createElement('div');
     fx.className = 'fx' + (l.fx.length ? '' : ' none');
-    const who = l.fx.some(f => ['platform', 'cloud', 'tribute', 'vassal'].includes(f)) && S.lord ? ` Senyors de la plataforma: els ${S.lord.surname}.` : l.fx.includes('enclosure') && S.forestLord ? ` Amos del bosc: els ${S.forestLord.surname}.` : '';
+    const who = l.fx.some(f => ['platform', 'cloud', 'tribute', 'vassal'].includes(f)) && S.lord ? ` Senyors de la plataforma: els ${S.lord.surname}.` : l.fx.includes('enclosure') ? resOwnersTxt() : '';
     fx.textContent = l.fx.length ? l.fx.map(f => LAWDEFS[f].txt).join(' ') + who : 'El poble no sap com aplicar-la, així que no canvia res.';
     li.append(t, x, fx); list.append(li);
   });
@@ -3252,7 +3551,7 @@ function proclaim(k, quiet) {
     log(`Es tanca el graner comú: els seus ${fmt(S.granary)} de menjar es reparteixen segons el que ja té cada casa.`, 'amber'); S.granary = 0;
   }
   if (['platform', 'cloud', 'tribute', 'vassal'].includes(k)) lordOf('lord');
-  if (k === 'enclosure') lordOf('forestLord');
+  if (k === 'enclosure') privatise();
   if (k === 'redist') redistribute();
   renderLaws(); updateHud(); return true;
 }
@@ -4028,11 +4327,13 @@ function restore(data) {
   const o = unpack(JSON.parse(data));
   S = o.S; laws = o.laws; seed = o.seed; rs = o.rs; POLITICS = o.POLITICS; DISASTERS = o.DISASTERS;
   S.riverX = riverFn(S.ph); S.dirty = true; recomputeLaws();
+  for (const l of laws) if (l.text === 'Privatització del bosc') l.text = LAWDEFS.enclosure.name; // the law's old name, in older villages
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; openHouse.clear();
   ME = homeOf(mySlot()); sentAns.clear();
   if (askOpen === 'q') closeAsk(false);
   syncPol(); syncDis(); renderLaws(); updateHud(); updateFamily();
   if (!$('houses').hidden) renderHouses(true);
+  if (!$('mkt').hidden) renderMarket();
 }
 const sig = () => [S.frame, rs, S.people.length, laws.length];
 
@@ -4043,6 +4344,7 @@ function applyInput(m) {
   switch (m.k) {
     case 'ans': applyAnswer(h, m.key, m.yes, m.keep, m.val); if (h && h === ME) { sentAns.delete(m.key); updateFamily(); } break;
     case 'forget': forget(h); break;
+    case 'mkt': applyMkt(h, m); if (h && h === ME) updateFamily(); if (!$('mkt').hidden) renderMarket(); break;
     case 'assign': {
       const o = S.homes.find(x => x.id === m.home && !x.gone);
       if (!o) break;
@@ -4156,6 +4458,8 @@ function handle(p, m) {
   switch (m.t) {
     case 'ans': if (NET.live) queueInput({ k: 'ans', slot: p.slot, key: String(m.key), yes: !!m.yes, keep: !!m.keep, val: m.val == null ? null : Number(m.val) }); break;
     case 'forget': if (NET.live) queueInput({ k: 'forget', slot: p.slot }); break;
+    case 'mkt': if (NET.live && ['buy', 'unlist', 'list'].includes(m.a) && (!m.kind || PROP_KINDS.includes(m.kind)))
+      queueInput({ k: 'mkt', slot: p.slot, a: m.a, id: Number(m.id) || 0, kind: String(m.kind || ''), x: Number(m.x) || 0, y: Number(m.y) || 0, f: Number(m.f) || 1 }); break;
     case 'propose': propose(p.slot, m.law, !!m.on); break;
     case 'vote': castVote(p.slot, m.id, !!m.yes); break;
     case 'run': if (NET.live && running !== !!m.on) { running = !!m.on; syncPlay(); queueInput({ k: 'note', txt: `${p.name} ${running ? 'torna a posar en marxa' : 'atura'} el poble.` }); } break;
@@ -4860,7 +5164,7 @@ const dash = (v, txt = v) => v ? txt : '<span class="dim">—</span>';
 const COLS = [
   ['surname', 'Família', h => h.surname, h => `<td class="fam"><span class="sw" style="background:${h.color}"></span>${esc(h.surname)}${h === ME ? '<b class="you">TU</b>' : h.human != null && NET ? `<b class="you other">${esc(playerName(h.human))}</b>` : ''}</td>`],
   ['members', 'Membres / màx.', h => h.members.length, h => { const kids = h.members.length - h.members.filter(m => m.age >= 360).length; return `<td>${h.members.length}<span class="dim">/${famLimit(h)}</span>${kids ? ` <span class="dim">(${kids} ${kids > 1 ? 'nens' : 'nen'})</span>` : ''}</td>`; }],
-  ['wealth', 'Riquesa', h => wealth(h), h => `<td title="menjar, materials, ovelles i cases">${fmt(wealth(h))}</td>`],
+  ['wealth', 'Riquesa', h => wealth(h), h => `<td title="menjar, materials, ovelles, cases, terres i edificis">${fmt(wealth(h))}</td>`],
   ['food', 'Menjar', h => h.food, h => `<td>${fmt(h.food)}</td>`],
   ['days', 'Dies', h => daysOf(h), h => { const d = daysOf(h); return `<td class="${d < 5 ? 'bad' : d > 40 ? 'good' : ''}">${Math.floor(d)}</td>`; }],
   ['hunger', 'Gana', h => avg(h.members.map(m => m.hunger)), h => { const hg = avg(h.members.map(m => m.hunger)); return `<td class="${hg >= 2 ? 'bad' : 'dim'}">${hg >= 0.5 ? hg.toFixed(1) : '—'}</td>`; }],
@@ -5042,10 +5346,20 @@ const HELP_TABS = [
       'Una cabana es pot millorar a casa de pedra amb pedra i ferro: es fa malbé menys menjar i cal menys llenya.',
       'Sobre una casa es poden aixecar pisos, fins a 5 plantes. Cada planta costa més que l\'anterior.',
       'Els pisos es lloguen a famílies sense casa. El propietari viu a la planta baixa i cobra el lloguer cada dia. Si el llogater no pot pagar, és desnonat.',
-      'Es compren i venen cabanes, cases de pedra i blocs sencers, mai un pis sol. Venen les famílies que passen gana i les famílies petites que tenen una casa massa gran. Compren les famílies sense casa i les famílies grans que volen una casa millor, donant la seva i pagant la diferència.',
+      'Es compren i venen cabanes, cases de pedra i blocs sencers, mai un pis sol. Venen les famílies que passen gana i les famílies petites que tenen una casa massa gran. Compren les famílies sense casa i les famílies grans que volen una casa millor, donant la seva i pagant la diferència. Si no hi ha comprador, la casa es posa en venda al mercat immobiliari.',
       'Una casa (cabana, casa de pedra o bloc) on no viu ningú durant un any queda en ruïnes: perd la pedra i els pisos. Una família sense casa la pot refer per la meitat del que costa una cabana nova (7 de fusta i 3 de pedra). Mentre no està en ruïnes, una casa buida la pot ocupar una família nova.',
       'Una carbonera o una farga que no s\'encén durant un any queda en ruïnes, i la pot arreglar qualsevol carboner o ferrer per la meitat del cost.',
       'Qualsevol edifici en ruïnes (cabana, carbonera o farga) que ningú no arregla durant un any desapareix, i el lloc queda lliure per construir-hi.',
+    ]],
+    ['MERCAT IMMOBILIARI', [
+      'Al mercat immobiliari s\'hi compren i venen camps, corrals, carboneres, fargues, molins, cabanes, cases de pedra i blocs de pisos sencers. Amb la Privatització dels recursos, també el bosc, la pedrera i la mina.',
+      'Les famílies posen en venda el que ja no fan servir: una carbonera, una farga o un molí sense ningú de l\'ofici a casa, un corral que fa tres mesos que no té ovelles o un camp que ningú no treballa. Quan passen gana, venen una cosa per sota del preu de mercat: primer un edifici, després un camp i, al final, els recursos.',
+      'Compren camps les famílies que en volen més i en poden pagar un sense quedar-se sense menjar per a un mes; corrals, les famílies riques que volen ovelles; carboneres, fargues i molins, les que tenen algú de l\'ofici sense lloc on treballar, o una casa rica que hi posa un moliner; cases, les famílies sense casa o de lloguer, i les famílies que ja tenen casa, per llogar-la, quan falten pisos i el lloguer de dos anys la paga.',
+      'Un corral es ven amb les ovelles, i una farga amb les eines que hi ha a les lleixes. Qui compra una carbonera, una farga o un molí sense tenir ningú de l\'ofici hi posa un adult de casa.',
+      'Qui compra una casa on viuen els venedors i no té casa pròpia s\'hi trasllada, i els venedors van al pis que deixa o a un de buit. Si el comprador ja té casa, la lloga sencera i els venedors s\'hi queden de llogaters a la planta baixa.',
+      'Cada mena de propietat té un preu que surt del que costa fer-la i que puja quan es ven de pressa i baixa quan s\'està molt de temps sense vendre. Els camps s\'encareixen quan ja no queda lloc per llaurar-ne de nous. El bosc, la pedrera i la mina valen el que els seus peatges donen en dos anys.',
+      'Ningú no paga gaire més del preu de mercat: el que es posa en venda molt car no es ven. El que una família posa en venda per si sola es retira si en mig any ningú no ho compra.',
+      'Si portes una família, a la finestra Mercat immobiliari pots comprar el que hi ha en venda i posar-hi les teves propietats, al preu de mercat, més barates o més cares.',
     ]],
     ['GRANER COMÚ', [
       'El poble té un graner comú. S\'omple amb el delme de la llei del graner, amb tots els impostos i amb tot el que deixen les famílies que s\'extingeixen sense descendents.',
@@ -5057,7 +5371,7 @@ const HELP_TABS = [
       'Qui és atrapat robant queda avisat; si l\'atrapen una segona vegada, és desterrat del poble per sempre, hi hagi llei o no. Els lladres llestos són atrapats menys sovint, i amb la llei contra els robatoris hi ha guàrdia i se n\'atrapen el doble.',
     ]],
     ['DESIGUALTAT', [
-      'La riquesa d\'una casa és el menjar, la fusta, la pedra, el ferro, el carbó i les ovelles que té, més el valor de les cases que són seves.',
+      'La riquesa d\'una casa és el menjar, la fusta, la pedra, el ferro, el carbó i les ovelles que té, més el valor de mercat de les cases, els camps, el corral, la carbonera, la farga, el molí i els recursos que són seus.',
       'L\'índex de Gini mesura com de repartida està: 0 vol dir que totes les cases tenen el mateix, i 1 que una sola ho té tot. Es mesura cada 5 dies.',
       'L\'histograma mostra quina part de la riquesa total té cada 10% de cases, de les més pobres (a l\'esquerra) a les més riques (a la dreta).',
     ]],
@@ -5122,6 +5436,7 @@ const HELP_TABS = [
       'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar o marxar del poble), el joc es pausa i surt una finestra perquè triïs.',
       'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
       'A la taula de Cases del poble, la teva família surt marcada en blau amb l\'etiqueta TU.',
+      'Al Mercat immobiliari pots comprar camps, corrals, carboneres, fargues, molins, cases i blocs, i posar en venda els teus. Aquí la família no decideix sola: només compra i ven el que tu triïs (la casa també la pot vendre si passeu gana i li dius que sí).',
       'Les altres famílies decideixen soles, com sempre.',
       'Si la teva família es queda sense ningú, passes a portar la família hereva que es queda la casa. Si l\'últim membre es casa i se\'n va, passes a la família amb qui s\'ha casat.',
       'Si no hi ha hereus, la partida s\'acaba. Pots començar un poble nou o continuar mirant el poble.',
@@ -5179,6 +5494,89 @@ setInterval(() => {
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#housesBody')) return; // don't steal keyboard focus
   renderHouses();
 }, 800);
+
+// ---------- property market window ----------
+const fmtF = l => l.f === 1 ? '' : ` <small>(${esc(PRICE_FACTORS.find(([v]) => v === l.f)?.[1] || '')})</small>`;
+function propInfo(kind, o, h) {
+  switch (kind) {
+    case 'house': {
+      const lets = (o.flats || []).filter(f => f && f !== h).length + (o.ground && o.ground !== h ? 1 : 0);
+      const what = o.floors ? `${o.floors + 1} plantes${o.lvl ? ', de pedra' : ''}.` : o.lvl ? 'De pedra: s\'hi fa malbé menys menjar i cal menys llenya.' : 'Cabana de fusta i pedra.';
+      const who = h.hut === o && !h.tenant ? ` Els ${h.surname} hi viuen.` : o.landlord === h ? ` Els ${h.surname} ${o.floors ? 'el lloguen sencer' : 'la lloguen'}.` : '';
+      const rent = `${S.rent.toFixed(2).replace('.', ',')} de menjar al dia`;
+      return `${what}${!lets ? '' : o.floors ? ` ${lets} ${lets > 1 ? 'pisos llogats' : 'pis llogat'}, a ${rent}.` : ` Hi viu una família de lloguer, a ${rent}.`}${who}`;
+    }
+    case 'field': return ['En guaret fins a la sembra.', 'Sembrat: a l\'estiu donarà collita.', 'Blat madur, a punt de segar: la collita va amb el camp.', 'Aquest any ja s\'ha segat.'][o.stage] || '';
+    case 'pen': return `${h.herd ? `Amb ${h.herd > 1 ? `${h.herd} ovelles` : 'una ovella'}, que es venen amb el corral.` : 'Buit, sense ovelles.'}${o.lvl ? ' Millorat amb un cobert i una tanca forta.' : ''}`;
+    case 'kiln': return S.day - (h.kilnUsed ?? 0) <= 7 ? 'Encesa: s\'hi fa carbó.' : 'Fa temps que no s\'encén.';
+    case 'forge': {
+      const n = h.hoes + h.picks + h.plows + h.rods;
+      return `${S.day - (h.forgeUsed ?? -9) <= 7 ? 'S\'hi treballa.' : 'Fa temps que no s\'encén.'}${n ? ` Amb ${n} ${n > 1 ? 'eines' : 'eina'} a les lleixes, que es venen amb la farga.` : ''}`;
+    }
+    case 'mill': return `Aquest any ha mòlt ${fmt(h.millLoad || 0)} de gra, de ${fmt(MILL_CAP)} que hi caben.`;
+    default: return `L'amo cobra una quarta part del que s'hi treu: ara, uns ${fmt((S.mkt ? S.mkt.rate[kind] || 0 : 0) * 365)} de menjar l'any.`;
+  }
+}
+function renderMarket() {
+  const m = S.mkt || { list: [], sold: [] };
+  const sec = (title, inner, cls = '') => `<section class="cat ${cls}"><h3>${title}</h3>${inner}</section>`;
+  const ul = items => items.length ? `<ul>${items.join('')}</ul>` : '';
+  const card = (cls, title, p, pr, act) => `<li${cls ? ` class="${cls}"` : ''}><b>${esc(title)}</b>${p ? `<p>${esc(p)}</p>` : ''}${pr ? `<span class="pr">${pr}</span>` : ''}${act ? `<div class="act">${act}</div>` : ''}</li>`;
+  // what things go for today
+  const prices = [['Cabana', housePrice({})], ['Casa de pedra', housePrice({ lvl: 1 })], ['Bloc de 2 plantes', housePrice({ floors: 1 })], ['Bloc de 3 plantes', housePrice({ floors: 2 })],
+    ['Camp', propValue('field')], ['Corral', propValue('pen', {}), 'sense ovelles'], ['Carbonera', propValue('kiln')], ['Farga', propValue('forge'), 'sense eines'], ['Molí', propValue('mill')],
+    ...(L.enclosure ? RES_KINDS.map(k => [PROP[k].title, resWorth(k), lordOk(S[RES[k].key]) ? `dels ${S[RES[k].key].surname}` : '']) : [])]
+    .map(([t, v, n]) => card('', t, '', `${fmt(v)} <small>de menjar${n ? ` · ${esc(n)}` : ''}</small>`));
+  // on sale
+  const list = m.list.filter(l => owns(l.by, l.kind, l.o)).slice().reverse();
+  const sale = list.map(l => {
+    const d = S.day - l.day, mine = l.by === ME;
+    let act = '';
+    if (ME && mine) act = `<button class="btn" type="button" data-a="unlist" data-id="${l.id}">Retira-ho</button>`;
+    else if (ME) { const why = cantBuy(ME, l); act = `<button class="btn" type="button" data-a="buy" data-id="${l.id}"${why ? ' disabled' : ''}>Compra-ho</button>${why ? `<span class="warn">${esc(why)}</span>` : ''}`; }
+    return card(mine ? 'on' : '', `${cap(propName(l.kind, l.o))} dels ${l.by.surname}`, `${propInfo(l.kind, l.o, l.by)} En venda ${d ? `fa ${d} ${d > 1 ? 'dies' : 'dia'}` : 'des d\'avui'}.`,
+      `${fmt(priceOf(l))} <small>de menjar</small>${fmtF(l)}`, act);
+  });
+  // what the player's family owns
+  let own = '';
+  if (ME && !ME.gone) {
+    const opts = PRICE_FACTORS.map(([v, t]) => `<option value="${v}"${v === 1 ? ' selected' : ''}>${t}</option>`).join('');
+    const items = propsOf(ME).map(([k, o]) => {
+      const l = listingOf(o), at = propAt(o, k), v = propValue(k, o, ME);
+      const lives = k === 'house' && ME.hut === o && !ME.tenant ? ' Si la compra una família sense casa, haureu de buscar on viure; si la compra una família que ja en té, us hi quedareu de llogaters.' : '';
+      const act = l ? `<button class="btn" type="button" data-a="unlist" data-id="${l.id}">Retira-ho</button>`
+        : `<select aria-label="Preu de venda">${opts}</select><button class="btn" type="button" data-a="list" data-kind="${k}" data-x="${at.x}" data-y="${at.y}">Posa-ho en venda</button>`;
+      return card(l ? 'on' : '', cap(propName(k, o)), propInfo(k, o, ME) + lives, l ? `En venda per ${fmt(priceOf(l))} <small>de menjar</small>${fmtF(l)}` : `Val uns ${fmt(v)} <small>de menjar</small>`, act);
+    });
+    own = sec(`LES PROPIETATS DELS ${esc(ME.surname.toUpperCase())}`, items.length ? ul(items) : '<p class="empty">Encara no teniu cap propietat: ni casa, ni camps, ni corral.</p>');
+  }
+  const sold = m.sold.slice(0, 12).map(x => { const c = cal(x.day); return `<li><span>${c.d} ${MSHORT[c.m]} A${c.y}</span>Els ${esc(x.from)} venen ${esc(x.what)} als ${esc(x.to)} per ${fmt(x.price)} de menjar.</li>`; });
+  $('mktBody').innerHTML = sec('PREUS D\'AVUI', ul(prices), 'prices')
+    + sec(`EN VENDA (${list.length})`, list.length ? ul(sale) : '<p class="empty">Ara mateix no es ven res.</p>')
+    + own
+    + sec('ÚLTIMES VENDES', sold.length ? `<ul class="sold">${sold.join('')}</ul>` : '<p class="empty">Encara no s\'ha venut res.</p>');
+  put('mktSub', `${dateLong(S.day)} · ${ME ? 'compra i ven camps, corrals, carboneres, fargues, molins, cases i blocs sencers' : 'per comprar i vendre has de ser el cap d\'una família'}`);
+}
+function mktDo(m) {
+  if (!ME) return;
+  if (NET) netSend({ t: 'mkt', ...m });
+  else { applyMkt(ME, m); renderMarket(); updateFamily(); updateHud(); }
+}
+$('mktBody').addEventListener('click', e => {
+  const b = e.target.closest('button[data-a]'); if (!b || b.disabled) return;
+  const sel = b.closest('li') && b.closest('li').querySelector('select');
+  if (NET) b.disabled = true;
+  mktDo({ a: b.dataset.a, id: +b.dataset.id || 0, kind: b.dataset.kind || '', x: +b.dataset.x || 0, y: +b.dataset.y || 0, f: sel ? +sel.value : 1 });
+});
+$('mktBtn').onclick = () => { renderMarket(); $('mkt').hidden = false; $('mktBody').scrollTop = 0; $('mktClose').focus(); };
+$('mktClose').onclick = () => { $('mkt').hidden = true; $('mktBtn').focus(); };
+$('mkt').addEventListener('click', e => { if (e.target.id === 'mkt') $('mktClose').click(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('mkt').hidden) $('mktClose').click(); });
+setInterval(() => {
+  if ($('mkt').hidden || !running) return;
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest('#mktBody')) return; // don't steal keyboard focus
+  renderMarket();
+}, 1000);
 
 function frame() {
   if (decideNow() && ME && ME.asks && ME.asks.length && askOpen === null) showAsk();
