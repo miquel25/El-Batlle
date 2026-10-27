@@ -885,7 +885,7 @@ function newWorld(sd) {
     day: 0, frame: 0, water, tree, occ, riverX, ph: [ph1, ph2], people: [], homes: [], granary: 0,
     st: { thefts: 0, births: 0, left: 0, died: 0, caught: 0, arrived: 0, lostHerd: 0, jobs: 0, wages: 0, weddings: 0, coalSold: 0, stoneSold: 0, ironSold: 0, hoesSold: 0, picksSold: 0, plowsSold: 0, penUps: 0, rodsSold: 0, disasters: 0, riots: 0, revolutions: 0, fish: 0, bequests: 0, redist: 0, plotsGone: 0, ironSaved: 0, oldDeaths: 0, upgrades: 0, floors: 0, sales: 0, rents: 0 }, rent: RENT_START, houseIdx: 1, gini: [], trend: [], basicFund: 0, homeless: 0, vacant: 0, wage: WAGE, coalPrice: COAL_START, stonePrice: STONE_START, ironPrice: IRON_START, hoePrice: HOE_START, pickPrice: PICK_START, plowPrice: PLOW_START, rodPrice: ROD_START,
     yr: { thefts: 0, births: 0, left: 0, died: 0 },
-    flags: {}, dirty: true, nextId: 1, watch: true, hands: false, handCats: {}, polOn: false, polOff: false, tro: { rev: 0 }, used: new Set(), animals: [], forest: tree.slice(),
+    flags: {}, dirty: true, nextId: 1, watch: true, hands: false, handCats: {}, handLaws: {}, polOn: false, polOff: false, tro: { rev: 0 }, used: new Set(), animals: [], forest: tree.slice(),
   };
   // the quarry sits in the bottom-right corner
   // an irregular blob cut into the hillside; each tile knows how far it is from the rim (deeper tiles get dug out later)
@@ -3916,8 +3916,8 @@ const FLOOD_P = 0.0015, FLOOD_YIELD = 0.3, FLOOD_REACH = 3;        // spring flo
 const FREEZE_P = 0.12, FREEZE_WOOD = 1.8, FREEZE_HUNGER = 1.4;     // a bitter winter: more firewood, colder houses
 const QUAKE_P = 0.015 / YEAR, PLAGUE_P = 0.04 / YEAR, WOLF_P = 0.002, FIRE_P = 0.0008, FIRE_DRY = 0.004;
 const dry = () => !!(S.dis && S.dis.drought >= S.day);
-// for the trophies: the camps of the laws passed by hand in this village
-function byHand(k) { const c = LAW_CATS.find(c => c[1].includes(k)); if (c) (S.handCats ||= {})[c[0]] = true; }
+// for the trophies: the laws, and their camps, passed by hand in this village
+function byHand(k) { const c = LAW_CATS.find(c => c[1].includes(k)); if (c) (S.handCats ||= {})[c[0]] = true; (S.handLaws ||= {})[k] = true; }
 const freezing = () => !!(S.dis && S.dis.cold >= S.day);
 function disaster(text, tagText, x, y) { S.st.disasters = (S.st.disasters || 0) + 1; log(text, 'bad'); if (tagText) tag(x ?? W / 2, y ?? H / 2, tagText, 'bad'); }
 function disasters(doy, season) {
@@ -4812,8 +4812,9 @@ const TROPHIES = [
     art: '<rect class="m" x="20" y="88" width="62" height="8" rx="1"/><rect class="m" x="16" y="80" width="62" height="8" rx="1"/><rect class="m" x="22" y="72" width="62" height="8" rx="1"/><rect class="m" x="32" y="58" width="36" height="12" rx="2"/><rect class="m" x="45" y="38" width="10" height="20"/><circle class="m" cx="50" cy="30" r="11"/><path class="ks" d="M26 92h50M22 84h50M28 76h50"/>' },
   { id: 'oligopoli', tier: 'b', name: 'Oligopoli', desc: 'En qualsevol mode, fes que el 10% de les famílies més riques tinguin el 80% de la riquesa del poble.',
     art: Array.from({ length: 12 }, (_, i) => `<rect class="m" x="50" y="${90 - i * 6}" width="30" height="6" rx="2.5"/>`).join('') + Array.from({ length: 3 }, (_, i) => `<rect class="m" x="22" y="${90 - i * 6}" width="22" height="6" rx="2.5"/>`).join('') + '<rect class="m" x="10" y="90" width="12" height="6" rx="2.5"/>' },
-  { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, fes que s\'acabin alhora tots els arbres i tots els peixos.',
-    art: '<path class="m" d="M30 96l5-7V62h30v27l5 7z"/><ellipse class="m" cx="50" cy="62" rx="15" ry="6"/><ellipse class="ks" cx="50" cy="62" rx="8" ry="3"/><rect class="m" x="32" y="28" width="38" height="3.5"/><path class="m" d="M69 21c10 0 15 8 15 9s-5 9-15 9z"/><path class="m" d="M34 30l-12-9v18z"/><rect class="m" x="39" y="21" width="2.5" height="18"/><rect class="m" x="47" y="19" width="2.5" height="22"/><rect class="m" x="55" y="19" width="2.5" height="22"/><rect class="m" x="63" y="21" width="2.5" height="18"/><circle class="k" cx="76" cy="28" r="1.8"/>' },
+  { id: 'cromatic', tier: 'b', name: 'Canvi cromàtic', desc: 'En qualsevol mode, amb la política dinàmica sempre activada, fes que la protecció del bosc i la pesca regulada estiguin vigents alhora sense aprovar-ne cap a mà.',
+    art: '<rect class="m" x="45" y="80" width="10" height="16"/>' + Array.from({ length: 17 }, (_, i) => { const a = (i - 0.5) * 2 * Math.PI / 17 + 0.05, b = (i + 0.5) * 2 * Math.PI / 17 - 0.05, R = 37, r = 20, p = (rr, t) => `${(50 + rr * Math.sin(t)).toFixed(1)} ${(46 - rr * Math.cos(t)).toFixed(1)}`;
+      return `<path class="m" d="M${p(r, a)}L${p(R, a)}A${R} ${R} 0 0 1 ${p(R, b)}L${p(r, b)}A${r} ${r} 0 0 0 ${p(r, a)}z"/>`; }).join('') },
   { id: 'bigone', tier: 'b', name: 'The Big One', desc: 'En qualsevol mode, fes que hi hagi 10 terratrèmols en una mateixa partida.',
     art: '<path class="m" d="M10 96V62l12-4 10 6 6-6 6 10-6 10 6 8-4 10z"/><path class="m" d="M90 96V58l-12-6-10 6-6-4-2 10 8 8-6 10 6 14z"/><path class="m" d="M38 30l7-5 7 4-2 8h-9z"/><path class="m" d="M60 16l6-2 4 5-3 6-7-2z"/><path class="m" d="M22 36l5-1 2 5-4 3-4-3z"/><path class="ks" d="M44 44l-2 6M66 32l2 6M26 48l1 5"/>' },
 ];
@@ -4886,7 +4887,7 @@ const TESTS = {
   milei: () => troAllLaws('TURBOCAPITALISTES'),
   cabres: () => { const a = S.people.filter(p => !p.leaving); return a.length > 0 && avg(a.map(p => p.int)) * 100 > 90; },
   oligopoli: () => { const hs = troLive(); return hs.length >= 10 && topShare(hs) >= 0.8; },
-  cromatic: () => countTrees() === 0 && (S.fishStock ?? FISH_CAP) < 1,
+  cromatic: () => S.polOff === false && POLITICS && L.forest && L.fishing && (S.handLaws ? !S.handLaws.forest && !S.handLaws.fishing : S.hands === false),
   bigone: () => (S.st.quakes || 0) >= 10,
   pax: () => { if (!(!NET && !ME && !S.fam && MODE === 'batlle' && S.polOff === false && POLITICS)) return false;
     const last = Math.max(S.riotDay ?? (S.st.riots ? Infinity : 0), ...(S.revs || [0])); return S.day - last >= 100 * YEAR; },
