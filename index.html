@@ -465,6 +465,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <div class="stats">
         <h4>POBLACIÓ</h4>
         <div><span>Famílies</span><b id="sHomes">0</b></div>
+        <div title="menjar, materials, ovelles, cases, terres i edificis de totes les cases, més el graner comú"><span>Riquesa total</span><b id="sWealth">0</b></div>
         <div><span>Cognoms</span><b id="sNames">0</b></div>
         <div><span>Edat mitjana</span><b id="sAge">0</b></div>
         <div><span>Salut mitjana</span><b id="sHealth">0</b></div>
@@ -3449,6 +3450,7 @@ function updateHud() {
   put('sGran', fmt(S.granary + (S.commune || 0)));
   put('sRedist', fmt(S.st.redist));
   put('sHomes', act.length);
+  put('sWealth', fmt(wealthsOf(act).reduce((t, v) => t + v, 0) + S.granary));
   put('sNames', new Set(act.map(h => h.surname)).size);
   put('sHerd', act.reduce((t, h) => t + h.herd, 0));
   put('sPens', act.filter(h => h.pen).length);
