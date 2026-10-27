@@ -4214,9 +4214,9 @@ document.querySelectorAll('[data-speed]').forEach(b => b.onclick = () => {
 $('resetBtn').onclick = () => {
   if (NET) { if (NET.role === 'host' && NET.live) startShared(); return; } // a new village for the whole room, every player with a new family
   bases = {}; FX.length = 0; labelsEl.innerHTML = ''; logEl.innerHTML = ''; openHouse.clear();
-  newWorld((Math.random() * 1e9) | 0); updateHud();
-  if (laws.length) { S.watch = false; S.hands = true; for (const l of laws) l.fx.forEach(byHand); } // the laws the mayor brings along count as passed by hand
-  log(laws.length ? `Un poble nou, amb ${laws.length} llei${laws.length > 1 ? 's' : ''} des del primer dia.` : 'Un poble nou. Cent persones, cap llei.', 'info');
+  newWorld((Math.random() * 1e9) | 0);
+  laws = []; recomputeLaws(); renderLaws(); updateHud(); // a new village starts with every law repealed
+  log('Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
   closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
   $('intro').hidden = false; running = false; syncPlay(); $('startBtn').focus();
