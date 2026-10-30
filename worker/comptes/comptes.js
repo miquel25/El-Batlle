@@ -9,7 +9,7 @@
 //
 // Trofeus: cada compte guarda els que ha aconseguit i quan. Només s'accepten els noms de la llista TROFEUS, i un
 // trofeu ja aconseguit no canvia de data. A més, un registre comú (el Durable Object Registre) apunta qui ha guanyat
-// cada trofeu, que només pot consultar el compte ADMIN.
+// cada trofeu, que només pot consultar el compte ADMIN; tothom en pot veure quants jugadors en tenen cadascun.
 //
 // Propostes de lleis: un jugador amb la sessió iniciada envia una proposta i aquí es crea l'issue a GitHub, signada
 // amb el seu nom de jugador. Cal el secret GITHUB_TOKEN (token fine-grained amb Issues: write només a El-Batlle).
@@ -91,6 +91,9 @@ async function ruta(req, env) {
     if (!(await porta('codi', 20, 60))) return err(429, 'Massa intents seguits. Torna-ho a provar d\'aquí una hora.');
     return compte(nom).novaClau(String(d.codi ?? '').trim(), String(d.clau ?? ''));
   }
+
+  // per a tothom: quants comptes tenen cada trofeu, sense cap nom
+  if (m === 'GET' && camí === '/recomptes') return registre.recomptes();
 
   // amb sessió: el testimoni porta el compte al final ("aleatori.nom")
   const t = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, ''), punt = t.indexOf('.');
@@ -192,6 +195,9 @@ export class Registre extends DurableObject {
   }
   esborra(clau) { this.sql.exec('DELETE FROM g WHERE clau = ?', clau); return { ok: true }; }
   treu(clau, id) { this.sql.exec('DELETE FROM g WHERE clau = ? AND id = ?', clau, id); return { ok: true }; }
+  recomptes() {
+    return { recomptes: Object.fromEntries(this.sql.exec('SELECT id, COUNT(*) AS n FROM g GROUP BY id').toArray().map(r => [r.id, r.n])) };
+  }
   llista() {
     const guanyadors = {};
     for (const r of this.sql.exec('SELECT nom, id, quan FROM g ORDER BY quan').toArray()) (guanyadors[r.id] ||= []).push({ nom: r.nom, quan: r.quan });
