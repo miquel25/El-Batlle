@@ -40,8 +40,11 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .hud .grid{display:grid;grid-template-columns:auto auto;column-gap:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .hud .grid b{color:var(--ink);font-weight:600}
 .hud .laws-n b{color:var(--amber)}
-.console{position:absolute;top:96px;left:10px;max-width:58%;background:rgba(14,19,24,.84);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:6px 10px;font-size:10.5px;line-height:1.5;pointer-events:none}
+.console{position:absolute;top:96px;left:10px;max-width:42%;background:rgba(14,19,24,.84);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:4px 8px;font-size:9.5px;line-height:1.45;cursor:pointer;user-select:none}
 .console .p{color:var(--muted)}
+.console .p::after{content:' ▾'}
+.console.min .p::after{content:' ▸'}
+.console.min div:not(.p){display:none}
 .console .e{color:var(--amber)}
 .console div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
@@ -388,7 +391,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
           <span class="laws-n">LLEIS <b id="hLaws">0</b></span><span><b id="hSeason">PRIMAVERA</b></span>
         </div>
       </div>
-      <div class="console" id="console"></div>
+      <div class="console" id="console" role="button" tabindex="0" title="Clica per plegar o desplegar les lleis"></div>
       <div class="waitbar" id="waitBar" hidden></div>
       <div class="intro" id="intro">
         <div class="brand"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjEwIDkwIDk4MCA2MzAiPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0icmciIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4MT0iLTQ3MCIgeTE9IjAiIHgyPSI0NzAiIHkyPSIwIj48c3RvcCBvZmZzZXQ9IjAuMSIgc3RvcC1jb2xvcj0iI0QyMkIzQyIvPjxzdG9wIG9mZnNldD0iMC45IiBzdG9wLWNvbG9yPSIjMkE1QkQ3Ii8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PGRlZnM+PGNsaXBQYXRoIGlkPSJmcm9udGMiPjxyZWN0IHg9Ii02MDAiIHk9Ii0wLjUiIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjQwMCIvPjwvY2xpcFBhdGg+PGNsaXBQYXRoIGlkPSJiYWNrYyI+PHJlY3QgeD0iLTYwMCIgeT0iLTQwMCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iNDAzIi8+PC9jbGlwUGF0aD48bWFzayBpZD0ibU1jIiBtYXNrVW5pdHM9InVzZXJTcGFjZU9uVXNlIiB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIj48cmVjdCB4PSItMjAwIiB5PSItMjAwIiB3aWR0aD0iMTQwMCIgaGVpZ2h0PSIxMjAwIiBmaWxsPSIjZmZmIi8+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBmaWxsLXJ1bGU9ImV2ZW5vZGQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzk2LDMzNCkiPjxwYXRoIGQ9Ik0xMiw1MiBDMTIsMjYgMzAsOCA1MCw4IEM3Miw4IDg4LDI0IDg4LDQ2IEM4OCw2NiA3Niw4MCA2MCw5NCBMMTAsMTYwIEg5MiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjE0IiBzdHJva2UtbWl0ZXJsaW1pdD0iNCIvPjwvZz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg1MTIsMzM0KSI+PHBhdGggZD0iTTg2LDggSDI2IEwxOCw4MCBNMTgsODAgQzMwLDcwIDQ0LDY2IDU2LDY2IEM3OCw2NiA5Miw4NiA5MiwxMTIgQzkyLDE0MCA3MiwxNjIgNDgsMTYyIEMzMCwxNjIgMTYsMTU0IDgsMTQwIiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTQiIHN0cm9rZS1taXRlcmxpbWl0PSI0Ii8+PGNpcmNsZSBjeD0iMTgiIGN5PSI4MCIgcj0iNyIgZmlsbD0iIzAwMCIvPjwvZz48cGF0aCBkPSJNMzcwLDM5MiBMNjMwLDQ1NyIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utd2lkdGg9IjkiIGZpbGw9Im5vbmUiLz48L21hc2s+PG1hc2sgaWQ9Im1CYyIgbWFza1VuaXRzPSJ1c2VyU3BhY2VPblVzZSIgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCI+PHJlY3QgeD0iLTIwMCIgeT0iLTIwMCIgd2lkdGg9IjE0MDAiIGhlaWdodD0iMTIwMCIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zNDQuMCw3MDAuMCBRMzMwLDcwMCAzMzAuMCw2ODYuMCBMMzMwLjAsMTE4LjAgUTMzMCwxMTAgMzM1LjEsMTE2LjIgTDQ5My43LDMxMC4zIFE1MDAsMzE4IDUwNi4zLDMxMC4zIEw2NjQuOSwxMTYuMiBRNjcwLDExMCA2NzAuMCwxMTguMCBMNjcwLjAsNjg2LjAgUTY3MCw3MDAgNjU2LjAsNzAwLjAgWiIgZmlsbD0iIzAwMCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjI4IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9tYXNrPjwvZGVmcz48ZyBtYXNrPSJ1cmwoI21CYykiPjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDUwMCw0ODYpIHJvdGF0ZSgxNCkiIGNsaXAtcGF0aD0idXJsKCNiYWNrYykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L2c+PGcgbWFzaz0idXJsKCNtTWMpIj48cGF0aCBkPSJNMzQ0LjAsNzAwLjAgUTMzMCw3MDAgMzMwLjAsNjg2LjAgTDMzMC4wLDExOC4wIFEzMzAsMTEwIDMzNS4xLDExNi4yIEw0OTMuNywzMTAuMyBRNTAwLDMxOCA1MDYuMywzMTAuMyBMNjY0LjksMTE2LjIgUTY3MCwxMTAgNjcwLjAsMTE4LjAgTDY3MC4wLDY4Ni4wIFE2NzAsNzAwIDY1Ni4wLDcwMC4wIFoiIGZpbGw9IiNGMkYwRUIiLz48L2c+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAwLDQ4Nikgcm90YXRlKDE0KSIgY2xpcC1wYXRoPSJ1cmwoI2Zyb250YykiPjxwYXRoIGQ9Ik0tNDcwLDAgQTQ3MCwxMTggMCAxLDAgNDcwLDAgQTQ3MCwxMTggMCAxLDAgLTQ3MCwwIFogTS00NDYsLTQgQTQ0NiwxMDAgMCAxLDAgNDQ2LC00IEE0NDYsMTAwIDAgMSwwIC00NDYsLTQgWiIgZmlsbD0idXJsKCNyZykiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=" alt="Marca de Miquel (M/25)"><div class="title">EL BATLLE</div></div>
@@ -3648,14 +3651,19 @@ function renderLaws() {
   $('lawEmpty').hidden = laws.length > 0;
   $('lawTitle').textContent = `Llei #${laws.length + 1}`;
   const con = $('console');
-  con.innerHTML = '<div class="p">&gt; lleis del poble</div>';
+  con.innerHTML = `<div class="p">&gt; lleis del poble (${laws.length})</div>`;
   if (!laws.length) { const d = document.createElement('div'); d.innerHTML = '[] <span class="e"># buit</span>'; con.append(d); }
   // the overlay sits on the map, so past a handful it shows only the newest laws; the full list is in the side panel
-  const MAX = 5, from = laws.length > MAX ? laws.length - (MAX - 1) : 0;
+  const MAX = 4, from = laws.length > MAX ? laws.length - (MAX - 1) : 0;
   if (from) { const d = document.createElement('div'); d.innerHTML = `<span class="e"># +${from} lleis més</span>`; con.append(d); }
   laws.slice(from).forEach((l, i) => { const d = document.createElement('div'); d.textContent = `[${from + i + 1}] ${l.text}`; con.append(d); });
   $('hLaws').textContent = laws.length;
 }
+// a click folds the laws overlay down to its title line, so it barely covers the map
+try { $('console').classList.toggle('min', localStorage.getItem('batlle.lawbox') === 'min'); } catch (e) {}
+const foldLaws = () => { const min = $('console').classList.toggle('min'); try { localStorage.setItem('batlle.lawbox', min ? 'min' : 'max'); } catch (e) {} };
+$('console').onclick = foldLaws;
+$('console').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); foldLaws(); } };
 function repeal(i, quiet) {
   if (lockedLaw(laws[i])) { if (!quiet) log(`«${laws[i].text}» no es pot derogar fins al ${lockEnd()}: ho va decidir la revolució.`, 'bad'); return false; }
   const l = laws.splice(i, 1)[0]; recomputeLaws(); renderLaws(); if (!quiet) log(`Es deroga la llei «${l.text}».`, 'amber'); }
