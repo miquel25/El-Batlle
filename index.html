@@ -5046,19 +5046,26 @@ $('troNewOk').onclick = troNewClose;
 $('troNewSee').onclick = () => { troNewClose(); troOpen(); };
 // the case: diamond on the top shelf, then gold, silver and bronze at the bottom
 // the same case shows the player's own trophies or, for the admin, every trophy that any player has won (troWho)
-let troWho = null;
+let troWho = null, troCounts = null;
+// how many players have each trophy, for everyone: only a number, never who
+const troCount = n => n ? `${n} jugador${n > 1 ? 's' : ''}` : 'ningú encara';
+const troN = id => Math.max(troCounts[id] || 0, troGot && troGot[id] ? 1 : 0); // a trophy just won may not have reached the server yet
+async function troLoadCounts() {
+  try { troCounts = (await api('/recomptes')).recomptes || {}; if (!$('tro').hidden) troRender(); } catch (e) {}
+}
 const troDate = q => new Date(q).toLocaleString('ca', { dateStyle: 'long', timeStyle: 'short' });
 function troRender() {
   const all = troWho && troWho.guanyadors, got = all || troGot || {}, n = TROPHIES.filter(t => got[t.id]).length;
   put('troTitle', all ? 'TROFEUS DELS JUGADORS' : 'TROFEUS');
   put('troSub', troWho === 'wait' || (!all && !troGot) ? 'Carregant…' : all ? `${n} de ${TROPHIES.length} guanyats per algú. Toca'n un per veure qui.` : `${n} de ${TROPHIES.length} aconseguits. Toca un trofeu per veure què demana.`);
-  const sub = t => all ? (got[t.id] ? `${got[t.id].length} jugador${got[t.id].length > 1 ? 's' : ''}` : 'ningú') : '';
+  const sub = t => all ? (got[t.id] ? troCount(got[t.id].length) : 'ningú') : troCounts ? troCount(troN(t.id)) : '';
   $('troCase').innerHTML = ['d', 'o', 'p', 'b'].map(k => `<div class="shelf ${k}"><span class="sl">${TIERS[k]}</span><ul>${TROPHIES.filter(t => t.tier === k).map(t =>
-    `<li><button class="trophy${got[t.id] || all ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id] || all)}<small>${esc(t.name)}${all ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
+    `<li><button class="trophy${got[t.id] || all ? '' : ' locked'}" type="button" data-t="${t.id}" aria-label="${esc(t.name)}${got[t.id] ? '' : ', encara no aconseguit'}">${troSvg(t, got[t.id] || all)}<small>${esc(t.name)}${sub(t) ? `<br><b>${sub(t)}</b>` : ''}</small></button></li>`).join('')}</ul></div>`).join('');
 }
 function troOpen() {
   if (!ACC) { $('troMsg').hidden = false; $('troLogin').focus(); return; }
   troWho = null; troRender(); $('troDet').hidden = true; $('tro').hidden = false; $('troClose').focus();
+  troLoadCounts();
 }
 const troAdmin = () => !!ACC && ACC.nom.toLocaleLowerCase('ca') === 'miquel';
 async function troOpenAll() {
@@ -5075,7 +5082,7 @@ $('troCase').addEventListener('click', e => {
   $('troDetFig').innerHTML = troSvg(t, all || when); // the admin's view draws every trophy, won or not
   $('troDetTier').className = 'tier ' + t.tier; put('troDetTier', 'TROFEU DE ' + TIERS[t.tier]);
   put('troDetName', t.name); put('troDetDesc', t.desc);
-  put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.');
+  put('troDetWhen', all ? (who ? `L'han guanyat ${who.length} jugador${who.length > 1 ? 's' : ''}:` : 'Encara no l\'ha guanyat ningú.') : (when ? 'Aconseguit el ' + troDate(when) + '.' : 'Encara no l\'has aconseguit.') + (troCounts ? ' ' + (troN(t.id) ? `L'han guanyat ${troCount(troN(t.id))} en total.` : 'Encara no l\'ha guanyat ningú.') : ''));
   $('troDetWho').hidden = !who;
   $('troDetWho').innerHTML = who ? who.map(w => `<li><b>${esc(w.nom)}</b><span>${esc(troDate(w.quan))}</span></li>`).join('') : '';
   $('troDetDrop').hidden = !(when && troAdmin()); // the admin can take a trophy back off their own account, to win it again

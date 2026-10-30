@@ -12,6 +12,8 @@ Permet crear un compte amb un nom de jugador i una contrasenya i desar-hi fins a
 
 Cada compte guarda els trofeus que ha aconseguit i quan (`GET /trofeus`, `POST /trofeus` amb `{ id }`). Només s'accepten els noms de la llista `TROFEUS` de `comptes.js`, i un trofeu que ja es té no canvia de data. Quan es canvia el nom del compte, els trofeus passen al nom nou.
 
+`GET /recomptes` (sense sessió) diu quants jugadors tenen cada trofeu, `{ recomptes: { id: n } }`, sense cap nom: és el que mostra la vitrina de tothom. Només l'administrador (`GET /guanyadors`) veu qui són.
+
 ## Desplegar
 
 Es desplega sol amb GitHub Actions (`.github/workflows/comptes.yml`) cada vegada que canvia aquesta carpeta a `main`, amb els mateixos secrets que el repetidor de sales (`CLOUDFLARE_API_TOKEN` i `CLOUDFLARE_ACCOUNT_ID`, vegeu [`worker/sales`](../sales/README.md)). També es pot llançar a mà: https://github.com/miquel25/El-Batlle/actions → **Desplega els comptes i les partides desades** → **Run workflow**.
