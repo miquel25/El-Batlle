@@ -980,7 +980,8 @@ function newWorld(sd) {
   const sizes = []; let total = 0;
   while (total < 100) { let s = ri(3, 5); if (total + s > 100) s = 100 - total; if (s < 2) { sizes[sizes.length - 1] += s; break; } sizes.push(s); total += s; }
   for (const s of sizes) {
-    const h = family(newHome(rr(50, 85)), s);
+    const h = family(newHome(0), s);
+    h.food = need(h) * rr(120, 150); // enough to build a hut and till two fields without going hungry until the first harvest
     for (const p of h.members) {
       p.x = CX + rr(-9, 9); p.y = CY + rr(-7, 7);
       p.tx = p.x; p.ty = p.y; p.bx = p.x; p.by = p.y;
