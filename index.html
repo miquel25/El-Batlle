@@ -376,6 +376,37 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .scroll .vote .row{justify-content:flex-start}
 .scroll .vote .btn{font-size:12px;padding:4px 16px;background:transparent;color:var(--parch-ink)}
 .scroll .vote .btn[aria-pressed="true"]{background:var(--parch-ink);color:var(--parch)}
+
+/* prototype: the family meeting */
+.citizenNote{display:none;font-size:12px;margin:0;text-align:center;font-family:var(--f-serif);font-style:italic}
+.citizen #lawPickBtn,.citizen .laws .x{display:none}
+.citizen .citizenNote{display:block}
+.cbar{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--amber)}
+.houses.meeting{align-items:flex-start;overflow-y:auto;overscroll-behavior:contain}
+.houses.meeting .win{width:min(640px,100%);height:auto;max-height:none;margin:auto 0}
+@media (max-width:700px){.houses.meeting .win{min-height:100%}}
+.meeting .body{overflow:visible}
+.mclash li{padding:8px 10px;border:1px solid var(--bad);border-radius:6px;font-size:12px;color:var(--bad)}
+.meeting .ch{margin:4px 0 0;font-family:var(--f-display);font-weight:400;font-size:11px;letter-spacing:.1em;color:var(--amber)}
+.meeting ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mwork li{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;border:1px solid var(--line);border-radius:6px}
+.mwork li b{font-family:var(--f-serif);font-size:15px}
+.mwork li span{font-size:11px;color:var(--muted)}
+.mwork select{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px;max-width:100%}
+.meeting .body>*{flex-shrink:0}
+.mtrade{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.trow{display:grid;grid-template-columns:minmax(70px,1fr) repeat(3,minmax(0,.7fr)) auto;gap:8px;align-items:center;background:var(--panel);padding:6px 8px;font-size:12px;font-variant-numeric:tabular-nums}
+.trow b{font-family:var(--f-serif);font-size:14px}
+.trow span i{display:block;font-style:normal;font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.trow .tb{display:flex;gap:6px;justify-content:flex-end}
+.trow .tb .btn{padding:4px 8px;font-size:11px}
+@media (max-width:520px){.trow{grid-template-columns:repeat(3,minmax(0,1fr))}.trow b{grid-column:1/-1}.trow .tb{grid-column:1/-1;justify-content:stretch}.trow .tb .btn{flex:1}}
+.masks li{padding:10px;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:8px}
+.masks li.none{color:var(--muted);font-size:12px}
+.masks .q{font-size:16px}
+.troguest{margin:0;font-size:12px;color:var(--amber);text-align:center;max-width:36ch}
+.op{display:block;font-size:13px;font-family:var(--f-serif);color:var(--ink);border-left:2px solid var(--amber);padding-left:8px;margin-top:6px}
+.op i{color:var(--muted);font-size:12px}
 </style>
 
 <div class="app">
@@ -430,6 +461,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
         <p class="by" id="lawBy">proclamada per: el batlle</p>
         <button class="btn" type="button" id="lawPickBtn">Tria una llei</button>
         <p class="msg" id="lawMsg"></p>
+        <p class="citizenNote">Ets un veí més: el batlle i el consell del poble fan i desfan les lleis. Tu les vius.</p>
         <div class="votes" id="voteBox" hidden></div>
       </div>
     </div>
@@ -446,6 +478,7 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       </div>
       <p class="empty" id="fWho"></p>
       <button class="btn forget" type="button" id="forgetBtn">Oblida les respostes recordades</button>
+      <div class="cbar"><span id="mWait"></span><button class="btn" type="button" id="mOpen">Convoca una reunió per canviar qui fa què</button></div>
     </section>
 
     <section class="sec" id="mpSec" hidden>
@@ -592,6 +625,25 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
   </aside>
 </div>
 
+<div class="houses ask meeting" id="meeting" hidden role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="win">
+    <header><div><h2 id="mTitle">REUNIÓ FAMILIAR</h2><p id="mSub"></p></div><button class="btn primary" type="button" id="mClose">Tanca la reunió i continua</button></header>
+    <div class="body">
+      <p class="ctx" id="mIntro"></p>
+      <h3 class="ch">DECISIONS PENDENTS</h3>
+      <ul class="masks" id="mAsks"></ul>
+      <h3 class="ch">QUI FA QUÈ</h3>
+      <p class="ctx">Les decisions de la família passen davant: quan el blat és madur tothom sega, si les ovelles no tenen pastor algú hi va, i si heu dit que sí a llaurar un camp o fer obres, algú deixa la seva feina per fer-ho.</p>
+      <ul class="mwork" id="mWork"></ul>
+      <div class="fam" id="mFam"></div>
+      <h3 class="ch">COMPRAR I VENDRE</h3>
+      <p class="ctx">Compreu als veïns que en tenen de sobres, a preu de mercat. Si veneu, us paguen una cinquena part menys.</p>
+      <div class="mtrade" id="mTrade"></div>
+      <p class="more" id="mMsg" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
 <div class="houses ask" id="ask" hidden role="dialog" aria-modal="true" aria-labelledby="askTitle">
   <div class="win">
     <header><div><h2 id="askTitle">DECISIÓ</h2><p id="askSub"></p></div></header>
@@ -719,7 +771,8 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 <div class="houses tronew" id="troNew" hidden role="dialog" aria-modal="true" aria-labelledby="troNewName">
   <div class="win">
     <div class="body"><p class="lbl">TROFEU ACONSEGUIT!</p><div class="fig" id="troNewFig"></div><p class="tier" id="troNewTier"></p><h3 id="troNewName"></h3><p id="troNewDesc"></p>
-      <div class="row"><button class="btn primary" type="button" id="troNewOk">Endavant</button><button class="btn" type="button" id="troNewSee">Mira la vitrina</button></div></div>
+      <p class="troguest" id="troNewGuest" hidden>No has iniciat sessió: aquest trofeu no es guardarà. Entra o crea un compte abans de tancar la pàgina i se't desarà.</p>
+      <div class="row"><button class="btn primary" type="button" id="troNewOk">Endavant</button><button class="btn" type="button" id="troNewSee">Mira la vitrina</button><button class="btn" type="button" id="troNewLogin" hidden>Inicia sessió</button></div></div>
   </div>
 </div>
 <svg class="tdefs" aria-hidden="true" focusable="false"><defs>
@@ -2032,7 +2085,8 @@ function daily() {
     const toTend = () => allFields.filter(f => f.stage <= 1 && f.tended !== S.day).sort((a, b) => a.care - b.care)[0];
     const hx = homeXY(h);
     for (const p of adults) {
-      const eff = 1 - p.lazy * (L.work ? 0.15 : 0.55);
+      const eff = (1 - p.lazy * (L.work ? 0.15 : 0.55)) * moodF(p);
+      if (p.ord && h.human != null && h.hut && doOrder(h, p, eff, sf, season, ripe)) continue;
       if (p.job === 'carboner' && h.hut && !L.nocoal) { burnCoal(h, p, eff); continue; }
       if (p.job === 'miner' && h.iron < 25) { mineIron(h, p, eff); continue; }
       if (p.job === 'ferrer' && h.hut && smith(h, p, eff)) continue;
@@ -2892,9 +2946,9 @@ function breedFish(season) {
   S.fishStock = Math.min(FISH_CAP, f + r * f * (1 - f / FISH_CAP) + 2); // a few always swim down from upstream
 }
 const fishLeft = () => Math.min(1, (S.fishStock ?? FISH_CAP) / (FISH_CAP * FISH_EASY));
-function forage(h, p, eff, sf, season) {
+function forage(h, p, eff, sf, season, force) {
   const hx = homeXY(h);
-  const fish = (p.id % 2 || hasRod(p)) && !(L.fishing && season === 0); // whoever owns a rod goes fishing, except in a closed season
+  const fish = force ? force === 'fish' : (p.id % 2 || hasRod(p)) && !(L.fishing && season === 0); // whoever owns a rod goes fishing, except in a closed season
   if (fish) {
     const y = clampY(hx.y + ((p.id * 7) % 30) - 15);
     setTask(p, 'fish', S.riverX(y) + 3, y, 1.2);
@@ -4128,7 +4182,7 @@ function ask(h, key, text, yes = 'Sí', no = 'No', ttl = 30, yesDays = 0) {
   h.pol ||= {}; h.asks ||= [];
   const pol = h.pol[key];
   if (pol && pol.until >= S.day) { if (pol.once) delete h.pol[key]; return pol.yes; }
-  if (!h.asks.some(q => q.key === key)) { h.asks.push({ key, text, yes, no, ttl, yesDays }); if (h === ME && !weekly()) showAsk(); }
+  if (!h.asks.some(q => q.key === key)) { h.asks.push({ key, text, yes, no, ttl, yesDays }); if (h === ME && !weekly() && !meetHolds(key)) showAsk(); }
   return false;
 }
 // the player said yes and the family hasn't acted on it yet: chance checks that would hold the action back are skipped
@@ -4140,16 +4194,17 @@ const sentAns = new Set(); // answers sent to the host that haven't come back ye
 function pauseFor() { if (NET) return; if (askOpen === null) askWasRunning = running || askWasRunning; running = false; syncPlay(); }
 function showAsk() {
   if (weekly() && !decideNow()) return; // in a shared village the questions wait for the end of the week
-  const q = ME && ME.asks && ME.asks.find(q => !sentAns.has(q.key));
+  const q = ME && ME.asks && ME.asks.find(q => !sentAns.has(q.key) && !meetHolds(q.key));
   if (!q || (askOpen && askOpen !== 'q')) return;
   pauseFor(); askOpen = 'q'; askQ = q;
-  const h = ME, more = ME.asks.filter(o => o !== q && !sentAns.has(o.key)).length;
+  const h = ME, more = ME.asks.filter(o => o !== q && !sentAns.has(o.key) && !meetHolds(o.key)).length;
   put('askTitle', `DECISIÓ · ELS ${h.surname.toUpperCase()}`);
   put('askSub', dateLong(S.day) + (weekly() ? ' · decisions de la setmana' : ''));
   put('askText', q.text);
-  if (q.ctx) $('askCtx').innerHTML = q.ctx;
+  if (meetMode()) q.op ||= opinion(h, q);
+  if (q.ctx || q.op) $('askCtx').innerHTML = (q.ctx || '') + opHtml(q.op);
   else put('askCtx', '');
-  $('askCtx').hidden = !q.ctx; askFam(h);
+  $('askCtx').hidden = !(q.ctx || q.op); askFam(h);
   put('askMore', more ? `Hi ha ${more} decisió${more > 1 ? 'ns' : ''} més esperant.` : '');
   $('askRememberL').hidden = !!q.opts; $('askRemember').checked = false;
   const b = $('askBtns'); b.innerHTML = '';
@@ -4170,10 +4225,11 @@ function askFam(h) {
 }
 function answer(yes, val) {
   const q = askQ, keep = !q.opts && $('askRemember').checked;
+  if (meetMode()) { moodAfter(ME, q, yes, val); afterAnswer(ME, q.key, yes); }
   askOpen = null; askQ = null;
   if (NET) { sentAns.add(q.key); netSend({ t: 'ans', key: q.key, yes, keep, val }); }
   else applyAnswer(ME, q.key, yes, keep, val);
-  if (ME && ME.asks.some(o => !sentAns.has(o.key))) { showAsk(); return; }
+  if (ME && ME.asks.some(o => !sentAns.has(o.key) && !meetHolds(o.key))) { showAsk(); return; }
   closeAsk(true);
 }
 function applyAnswer(h, key, yes, keep, val) {
@@ -4206,7 +4262,7 @@ function pickPlayer() {
   const c = S.homes.filter(h => !h.gone && h.members.length);
   if (!c.length) return;
   setPlayer(c[(Math.random() * c.length) | 0], 0); S.watch = false; S.fam = true;
-  log(`Ets el cap de la família ${ME.surname}. Cada vegada que hagi de decidir alguna cosa, t'ho preguntarà.`, 'good');
+  log(`Ets el cap de la família ${ME.surname}. Cada mes fareu una reunió familiar per decidir qui fa què i què feu amb el que teniu. El batlle és un altre veí: les lleis arriben soles.`, 'good');
   tagHome(ME, `ELS ${ME.surname.toUpperCase()}`, 'amber');
 }
 function setPlayer(h, slot) {
@@ -4345,7 +4401,7 @@ $('resetBtn').onclick = () => {
   laws = []; recomputeLaws(); renderLaws(); updateHud(); // a new village starts with every law repealed
   log('Un poble nou. Cent persones, cap llei.', 'info');
   // back to the start screen, where the player picks how to play the new village
-  closeAsk(false); ME = null; updateFamily(); MODE = 'batlle';
+  closeAsk(false); ME = null; updateFamily(); MODE = 'batlle'; protoReset();
   $('intro').hidden = false; running = false; syncPlay(); $('startBtn').focus();
 };
 cv.addEventListener('click', e => {
@@ -4971,6 +5027,7 @@ async function troLoad() {
     troGot = d.trofeus || {};
     let wait = []; try { wait = JSON.parse(localStorage.getItem('batlle.trofeus.' + ACC.nom.toLocaleLowerCase('ca')) || '[]'); } catch (e) {}
     for (const id of wait) if (TRO[id] && !troGot[id]) troSave(id); // won while the server couldn't be reached
+    for (const id in troGuest) if (TRO[id] && !troGot[id]) troSave(id); // won in this page before logging in
     if (!$('tro').hidden) troRender();
   } catch (e) { if (t === troFor) setTimeout(() => { if (t === troFor && !troGot) troLoad(); }, 60000); }
 }
@@ -5008,7 +5065,7 @@ const TESTS = {
   endogamia: () => { const me = troMine(); if (!me) return false; const hs = troLive(), mine = branches(me), n = hs.filter(h => mine.has(h.id)).length; return n > 1 && n * 2 >= hs.length; },
   gilito: () => { const me = troMine(); if (!me) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); return hs.length >= 10 && tot > 0 && ws[hs.indexOf(me)] >= 0.5 * tot; },
   camps: () => !!S.siteFail && S.siteFail['2x2'] === (S.occVer || 0), // the last search for a hut site found none, and nothing has been built or cleared since
-  completista: () => TROPHIES.every(t => t.id === 'completista' || troGot[t.id]),
+  completista: () => TROPHIES.every(t => t.id === 'completista' || (ACC ? troGot : troGuest)[t.id]),
   malvat: () => { if (!troAlone() || L.redist || !S.handLaws || S.handLaws.redist) return false; const g = S.gini, i = g.findIndex(x => x[1] > 0.8); return i >= 0 && g.length - 1 > i && g[g.length - 1][1] < 0.25; },
   mansa: () => { if (!troAlone()) return false; const hs = troLive(), ws = wealthsOf(hs), tot = ws.reduce((t, v) => t + v, 0); const top = Math.max(...ws); return hs.length > 1 && top >= 100000 && top >= 0.5 * tot; },
   palantir: () => troAllLaws('TECNOFEUDALS'),
@@ -5030,8 +5087,9 @@ const TESTS = {
 };
 function troDay() {
   S.tro ||= { rev: S.st.revolutions || 0 }; // what the trophies remember goes in the village, so a saved game keeps it
-  if (!ACC || !troGot || !$('intro').hidden) return;
-  for (const t of TROPHIES) if (!troGot[t.id] && TESTS[t.id]()) { troSave(t.id); troQueue.push(t); }
+  if (!$('intro').hidden || (ACC && !troGot)) return;
+  const got = ACC ? troGot : troGuest; // without an account, the trophies won only last while the page is open
+  for (const t of TROPHIES) if (!got[t.id] && TESTS[t.id]()) { if (ACC) troSave(t.id); else troGuest[t.id] = Date.now(); troQueue.push(t); }
   if (troQueue.length && $('troNew').hidden) troShowNew();
 }
 // a trophy just won: a window that also pauses a village played alone
@@ -5040,7 +5098,7 @@ function troShowNew() {
   const t = troQueue.shift(); if (!t) return;
   if (!NET && running) { troWasRunning = true; running = false; syncPlay(); }
   $('troNewFig').innerHTML = troSvg(t, true); $('troNewTier').className = 'tier ' + t.tier; put('troNewTier', 'TROFEU DE ' + TIERS[t.tier]);
-  put('troNewName', t.name); put('troNewDesc', t.desc);
+  put('troNewName', t.name); put('troNewDesc', t.desc); $('troNewGuest').hidden = $('troNewLogin').hidden = !!ACC;
   $('troNew').hidden = false; $('troNewOk').focus();
   log(`Trofeu aconseguit: «${t.name}».`, 'good');
 }
@@ -5050,7 +5108,9 @@ function troNewClose() {
   if (troWasRunning && !NET) { if (askOpen === null) { running = true; syncPlay(); } else askWasRunning = true; } // a question still open resumes it when answered
   troWasRunning = false;
 }
+const troGuest = {};
 $('troNewOk').onclick = troNewClose;
+$('troNewLogin').onclick = () => { troQueue.length = 0; troNewClose(); openAcc(); };
 $('troNewSee').onclick = () => { troNewClose(); troOpen(); };
 // the case: diamond on the top shelf, then gold, silver and bronze at the bottom
 // the same case shows the player's own trophies or, for the admin, every trophy that any player has won (troWho)
@@ -5603,10 +5663,14 @@ const HELP_TABS = [
   ]],
   ['Mode família', [
     ['MODE CAP DE FAMÍLIA', [
-      'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. En aquest mode també pots proclamar lleis.',
+      'A la pantalla d\'inici pots triar ser el batlle (dictes les lleis) o el cap d\'una família del poble, triada a l\'atzar. Com a cap de família ets un veí més: no proclames lleis, el batlle i el consell del poble les fan i desfan sols.',
       'La teva casa porta un marcador groc al mapa, i el panell LA TEVA FAMÍLIA mostra els seus membres, el menjar, els dies que els durarà, la riquesa, els camps i les ovelles.',
-      'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar o marxar del poble), el joc es pausa i surt una finestra perquè triïs.',
-      'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda la resposta" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
+      'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar, casar-se o marxar del poble), el joc es pausa i es fa una reunió familiar. Les decisions que deixis sense respondre queden a la llista per a la reunió següent.',
+      'A cada decisió algú de casa diu la seva, segons el seu caràcter (fort, llest, cobdiciós, mandrós o treballador). Si li portes la contrària s\'enfada, i qui està descontent treballa pitjor. L\'ànim es recupera a poc a poc.',
+      'Amb el botó "Convoca una reunió" del panell de la família pots reunir-los quan vulguis per decidir qui fa què: treballar els camps, pescar, collir fruits, fer llenya, picar pedra o quedar-se a casa. Amb "El que calgui" la persona fa el que la família necessita, o el seu ofici si en té. Les decisions passen davant: quan el blat és madur tothom sega, si les ovelles no tenen pastor algú hi va, i si heu dit que sí a llaurar un camp o fer obres, algú deixa la seva feina per fer-ho. Qui accepta un ofici torna a "El que calgui".',
+      'A la reunió també podeu comprar fusta, pedra, ferro i carbó de 5 en 5 als veïns que en tenen de sobres, a preu de mercat, i vendre\'ls-en si tenen menjar per pagar, per una cinquena part menys. Les ovelles es compren i es venen d\'una en una, i cal tenir lloc al corral.',
+      'Jugant amb amics, les decisions surten d\'una en una com abans, a la setmana si la sala ho demana.',
+      'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda-ho" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
       'A la taula de Cases del poble, la teva família surt marcada en blau amb l\'etiqueta TU.',
       'Al Mercat immobiliari pots comprar camps, corrals, carboneres, fargues, molins, cases i blocs, i posar en venda els teus. Aquí la família no decideix sola: només compra i ven el que tu triïs (la casa també la pot vendre si passeu gana i li dius que sí).',
       'Les altres famílies decideixen soles, com sempre.',
@@ -5760,9 +5824,272 @@ function frame() {
   if (decideNow() && ME && ME.asks && ME.asks.length && askOpen === null) showAsk();
   if (NET && NET.live) NET.role === 'host' ? hostRun(speed) : guestRun(Math.max(Math.ceil(speed * 1.25), NET.target - S.frame - speed * 8)); // a little faster than the host, and all at once when far behind
   else for (let k = 0; k < speed && running; k++) step();
-  render();
+  render(); protoFrame();
   requestAnimationFrame(frame);
 }
+
+// ---------- prototype: the family meeting ----------
+// Playing a family, every question it gets calls a family meeting, where the player decides it with the opinion of
+// someone at home in front of them. Going against people's opinions sours their mood, which makes them work worse.
+// The player can also call a meeting at any time to set what each adult works at, and to buy and sell wood, stone,
+// iron, coal and sheep. What the family decides comes before those orders: a field to plough or a flock to look after
+// takes someone off their usual work. The player is a neighbour and not the mayor: laws come and go by themselves.
+let MEET = { due: false };
+const meetMode = () => MODE === 'familia' && !NET;
+const meetHolds = () => meetMode(); // every question waits for the meeting it calls
+// a sour mood makes for slow work; families no player heads are never touched
+function moodF(p) { return p.h.human == null ? 1 : 0.8 + 0.25 * (p.mood ?? 0.8); }
+
+// what the player told someone to work at. Returns false when it can't be done today, and the usual day goes on
+function doOrder(h, p, eff, sf, season, ripe) {
+  // what the family has decided comes first: ripe wheat (it rots in days), a flock nobody is looking after, and the
+  // field, house or pen it has said yes to, which takes one of them a day off their usual work
+  if (season === 2 && ripe.length) return false;
+  if (season !== 3 && h.herd > 0 && h.pen && !h.shep) return false;
+  const doy = S.day % YEAR, build = (doy < 150 && (h.pending || want(h, 'field'))) || ['stone', 'floor', 'pen', 'sheep'].some(k => want(h, k));
+  if (build && h.decidedDay !== S.day) { h.decidedDay = S.day; return false; }
+  switch (p.ord) {
+    case 'fish': forage(h, p, eff, sf, season, 'fish'); return true;
+    case 'forage': forage(h, p, eff, sf, season, 'forage'); return true;
+    case 'wood': doWood(h, p, eff, homeXY(h)); return true;
+    case 'stone': quarry(h, p, eff, false); return true;
+    case 'farm': {
+      const f = season <= 1 && h.fields.filter(f => f.stage <= 1 && f.tended !== S.day).sort((a, b) => a.care - b.care)[0];
+      if (!f) return false; // no field to work: ploughing a new one is the family's own call
+      setTask(p, 'farm', f.x + 1.5, f.y + 1, 1.5);
+      f.care += eff * INT(h) * HOE(p); h.food += 0.4 * sf * STR(p); f.tended = f.used = S.day;
+      return true;
+    }
+    case 'home': {
+      const hx = homeXY(h);
+      setTask(p, 'home', hx.x, hx.y, 2.5);
+      h.food += 0.12 * h.skill * eff; p.health = Math.min(1, p.health + 0.003); p.mood = Math.min(1, (p.mood ?? 0.8) + 0.01);
+      return true;
+    }
+  }
+  return false;
+}
+const ORDERS = [['', 'El que calgui'], ['farm', 'Treballar els camps'], ['fish', 'Pescar al riu'], ['forage', 'Collir fruits al bosc'],
+  ['wood', 'Fer llenya'], ['stone', 'Picar pedra a la pedrera'], ['home', 'Quedar-se a casa']];
+
+// ---- what people at home think ----
+const fem = p => p.sex === 'f';
+const adj = (p, m, f) => fem(p) ? f : m;
+function traits(p) {
+  const t = [];
+  if (p.str > 0.65) t.push(adj(p, 'fort', 'forta'));
+  if (p.int > 0.65) t.push(adj(p, 'llest', 'llesta'));
+  if (p.greed > 0.5) t.push(adj(p, 'cobdiciós', 'cobdiciosa'));
+  if (p.lazy > 0.5) t.push(adj(p, 'mandrós', 'mandrosa'));
+  else if (p.lazy < 0.2) t.push(adj(p, 'treballador', 'treballadora'));
+  return t;
+}
+function moodTxt(p) { const m = p.mood ?? 0.8; return m > 0.7 ? adj(p, 'content', 'contenta') : m > 0.4 ? adj(p, 'neguitós', 'neguitosa') : adj(p, 'descontent', 'descontenta'); }
+function opinion(h, q) {
+  const ad = h.members.filter(m => m.age >= 360 && !m.leaving);
+  if (!ad.length) return null;
+  const base = q.key.replace(/\d+$/, ''), id = +(q.key.match(/\d+$/) || [])[0];
+  const subj = ad.find(m => m.id === id) || h.members.find(m => m.id === id);
+  const by = f => ad.slice().sort(f)[0];
+  const eldest = by((a, b) => b.age - a.age), smart = by((a, b) => b.int - a.int), greedy = by((a, b) => b.greed - a.greed),
+    honest = by((a, b) => a.greed - b.greed), lazy = by((a, b) => b.lazy - a.lazy);
+  const days = daysOf(h);
+  const say = (who, yes, text) => who ? { who, yes, text } : null;
+  switch (base) {
+    case 'job': return subj && (subj.lazy < 0.45
+      ? say(subj, true, 'Ho vull provar. Un ofici ens donarà més del que traiem ara del bosc.')
+      : say(subj, false, 'Jo? Això és massa feina. Estic bé com estic.'));
+    case 'leave': {
+      if (!subj) return null;
+      const kids = h.members.filter(m => m.age < 360 && (m.parentIds || []).includes(subj.id));
+      return kids.length ? say(subj, false, `No penso deixar ${kids.length > 1 ? 'els meus fills' : fem(kids[0]) ? 'la meva filla' : 'el meu fill'}.`)
+        : say(subj, true, 'Si me\'n vaig, quedarà més menjar per als altres.');
+    }
+    case 'wedI': case 'wedO': return subj && q.opts && q.opts.length > 1 ? { who: subj, yes: true, val: q.opts[0][1], text: `M'agradaria casar-me amb ${q.opts[0][0]}.` } : null;
+    case 'steal': case 'steal2':
+      return greedy.greed > 0.45 ? say(greedy, true, 'Si no mengem, ens morirem. Ells en tenen de sobres.')
+        : say(honest, false, 'No som lladres. Si ens atrapen, encara serà pitjor.');
+    case 'loan': return smart.int > 0.5 ? say(smart, false, 'Haurem de tornar-ne un 40% més. Si no podem, ens ho prendran tot.')
+      : say(eldest, true, 'Ara el que cal és menjar. Ja ho tornarem.');
+    case 'sell': return say(smart, true, 'Més val vendre la casa que morir de gana.');
+    case 'buy': return say(greedy, true, 'Una casa millor és el millor que podem deixar als fills.');
+    case 'hut': return say(eldest, true, 'Sense sostre no passarem l\'hivern. Fem-la ara.');
+    case 'hoe': case 'plow': case 'pick': case 'rod':
+      return days < 60 ? say(greedy === subj ? eldest : greedy, false, 'És molt de menjar per a una eina. No ens ho podem permetre.')
+        : subj && say(subj, true, 'Amb una eina nova rendiré molt més.');
+    case 'work': return lazy.lazy > 0.5 ? say(lazy, false, 'Treballar per als altres? Prou feina tenim a casa.') : say(eldest, true, 'Un jornal sempre va bé.');
+    case 'hire': return greedy.greed > 0.4 ? say(greedy, false, 'Pagar jornals és llençar el menjar.') : say(smart, true, 'Amb ajuda collirem més i abans.');
+    case 'field': return say(smart, true, 'Un camp és menjar per a tot l\'any. Com més aviat el llaurem, millor.');
+    case 'stone': case 'floor': case 'pen': case 'sheep': case 'sheepBuy':
+      return days < 40 ? say(eldest, false, 'Primer hem d\'assegurar el menjar de l\'hivern.') : say(smart, true, 'A la llarga ens sortirà a compte.');
+  }
+  return say(eldest, true, 'Endavant.');
+}
+const opHtml = op => op ? `<span class="op"><b>${esc(op.who.name)}</b> <i>(${esc(traits(op.who).join(', ') || moodTxt(op.who))})</i>: «${esc(op.text)}»</span>` : '';
+// someone who takes up a trade goes to work at it, whatever the last meeting said
+function afterAnswer(h, key, yes) {
+  const m = /^job(\d+)$/.exec(key);
+  if (yes && m) { const p = h.members.find(p => p.id === +m[1]); if (p) p.ord = null; }
+}
+// going along with what someone said cheers them up; going against it sours them
+function moodAfter(h, q, yes, val) {
+  const op = q.op || opinion(h, q);
+  if (!op || !op.who || op.who.h !== h) return;
+  const agree = op.val != null ? val === op.val : yes === op.yes, p = op.who, was = p.mood ?? 0.8;
+  p.mood = agree ? Math.min(1, was + 0.05) : Math.max(0, was - 0.18);
+  if (!agree && p.mood < 0.35 && was >= 0.35) log(`${fullName(p)} està molt ${adj(p, 'descontent', 'descontenta')} amb el que es decideix a casa: treballarà de mala gana.`, 'bad');
+}
+
+// ---- buying and selling materials ----
+// a family buys from the neighbours that have some to spare, at the market price, and sells to the ones with food to
+// pay for it, for a fifth less: selling in a hurry is never a good deal
+const TRADE = { wood: 'fusta', stone: 'pedra', iron: 'ferro', coal: 'carbó', herd: 'ovelles' };
+const tradePrice = k => k === 'coal' ? S.coalPrice ?? COAL_START : k === 'herd' ? S.sheepPrice : MATS[k][1]();
+// sheep come one at a time and need room in the pen; a seller is short of none
+const sheepRoom = o => o.pen ? herdMax(o) - o.herd : 0;
+function sheepBuy(h) {
+  if (sheepRoom(h) < 1 || h.food < S.sheepPrice) return 0;
+  const pay = buySheep(h, 1); log(`Els ${h.surname} compren una ovella per ${fmt(pay)} de menjar.`, 'amber'); return 1;
+}
+function sheepSell(h) {
+  const p = S.sheepPrice * 0.8;
+  const b = h.herd >= 1 && S.homes.filter(o => o !== h && !o.gone && o.members.length && sheepRoom(o) >= 1 && o.food - p > need(o) * 15).sort((a, c) => c.food - a.food)[0];
+  if (!b) return 0;
+  h.herd--; b.herd++; h.food += p; b.food -= p; h.milk += p; b.milk -= p; syncHerd(h); syncHerd(b);
+  log(`Els ${h.surname} venen una ovella als ${b.surname} per ${fmt(p)} de menjar.`, 'amber'); return 1;
+}
+const tradeSpare = (o, k) => k === 'coal' ? o.coal - 10 : spareOf(o, k);
+const tradeSellers = (h, k) => S.homes.filter(o => o !== h && !o.gone && o.members.length && tradeSpare(o, k) >= 1).sort((a, b) => tradeSpare(b, k) - tradeSpare(a, k));
+const tradeBuyers = (h, k, unit) => S.homes.filter(o => o !== h && !o.gone && o.members.length && o.food - unit > need(o) * 15).sort((a, b) => b.food - a.food);
+const onSale = (h, k) => k === 'herd' ? S.homes.filter(o => o !== h && !o.gone && o.members.length).reduce((t, o) => t + sheepSpare(o), 0) : tradeSellers(h, k).reduce((t, o) => t + Math.floor(tradeSpare(o, k)), 0);
+function tradeBuy(h, k, q) {
+  const p = tradePrice(k);
+  q = Math.min(q, onSale(h, k), Math.floor(h.food / p));
+  if (q <= 0) return 0;
+  let left = q, paid = 0;
+  for (const o of tradeSellers(h, k)) {
+    const t = Math.min(left, Math.floor(tradeSpare(o, k))); if (t <= 0) continue;
+    o[k] -= t; h[k] += t; o.food += t * p; h.food -= t * p; paid += t * p; left -= t;
+    if (!left) break;
+  }
+  log(`Els ${h.surname} compren ${q} de ${TRADE[k]} per ${fmt(paid)} de menjar.`, 'amber');
+  return q;
+}
+function tradeSell(h, k, q) {
+  const p = tradePrice(k) * 0.8;
+  q = Math.min(q, Math.floor(h[k]));
+  let left = q, got = 0;
+  for (const o of tradeBuyers(h, k, p)) {
+    const t = Math.min(left, Math.floor((o.food - need(o) * 15) / p)); if (t <= 0) continue;
+    o[k] += t; h[k] -= t; o.food -= t * p; h.food += t * p; got += t * p; left -= t;
+    if (!left) break;
+  }
+  if (q - left) log(`Els ${h.surname} venen ${q - left} de ${TRADE[k]} per ${fmt(got)} de menjar.`, 'amber');
+  return q - left;
+}
+
+// ---- the family meeting ----
+function openMeeting(called) {
+  if (!ME || ME.gone) return;
+  if (askOpen !== null || !$('troNew').hidden) { if (called) MEET.due = true; return; }
+  MEET.due = false;
+  pauseFor(); askOpen = 'meeting';
+  for (const m of ME.members) m.mood ??= 0.8;
+  const c = cal(S.day);
+  put('mTitle', `REUNIÓ FAMILIAR · ELS ${ME.surname.toUpperCase()}`);
+  put('mSub', `${cap(MONTHS[c.m])} de l'any ${c.y}`);
+  put('mIntro', called ? 'Heu reunit la família. Podeu canviar qui fa què i comprar o vendre el que teniu.'
+    : 'Hi ha coses a decidir. Ja que sou tots al voltant del foc, també podeu canviar qui fa què.');
+  put('mMsg', '');
+  renderMeeting();
+  $('meeting').hidden = false; $('mClose').focus();
+}
+function renderMeeting() {
+  const h = ME;
+  if (!h) return;
+  const ad = h.members.filter(m => m.age >= 360 && !m.leaving).sort((a, b) => b.age - a.age);
+  $('mWork').innerHTML = ad.map(p => `<li><div><b>${esc(p.name)}</b> <span>${ageTxt(p)}${p.job ? ' · ' + p.job : ''} · ${moodTxt(p)}${traits(p).length ? ' · ' + traits(p).join(', ') : ''}</span></div>
+    <select id="mOrd${p.id}" data-p="${p.id}" aria-label="Feina de ${esc(p.name)}">${ORDERS.map(([k, t]) => `<option value="${k}"${(p.ord || '') === k ? ' selected' : ''}>${k === '' && p.job ? `El seu ofici (${p.job})` : t}</option>`).join('')}</select></li>`).join('')
+    || '<li>No hi ha cap adult a casa.</li>';
+  const rows = Object.entries(TRADE).map(([k, name]) => {
+    const p = tradePrice(k), sale = onSale(h, k), have = Math.floor(h[k] || 0), n = k === 'herd' ? 1 : 5;
+    const canBuy = k === 'herd' ? sheepRoom(h) >= 1 && h.food >= p : sale >= 1 && h.food >= p;
+    return `<div class="trow"><b>${cap(name)}</b><span><i>Teniu</i>${fmt(have)}</span><span><i>Preu</i>${p.toFixed(1)}</span><span><i>En venda</i>${k === 'herd' && !h.pen ? 'cal corral' : fmt(sale)}</span>
+      <span class="tb"><button class="btn" type="button" data-buy="${k}" ${canBuy ? '' : 'disabled'}>Compra ${n}</button><button class="btn" type="button" data-sell="${k}" ${have >= 1 ? '' : 'disabled'}>Ven ${n}</button></span></div>`;
+  }).join('');
+  $('mTrade').innerHTML = rows;
+  const qs = h.asks || [];
+  for (const q of qs) { q.op ||= opinion(h, q); q.seen = true; }
+  $('mAsks').innerHTML = qs.length ? qs.map(q => `<li data-k="${q.key}"><p class="q">${esc(q.text)}</p>${q.ctx || ''}${opHtml(q.op)}
+    <div class="row">${q.opts ? q.opts.map(([l, v], i) => `<button class="btn${i ? '' : ' primary'}" type="button" data-v="${v}">${esc(l)}</button>`).join('')
+      : `<button class="btn primary" type="button" data-y="1">${esc(q.yes)}</button><button class="btn" type="button" data-y="0">${esc(q.no)}</button>`}</div>
+    ${q.opts ? '' : `<label><input type="checkbox" id="mKeep-${q.key}"> Recorda-ho i no ho tornis a portar a la reunió</label>`}</li>`).join('')
+    : '<li class="none">No hi ha cap decisió pendent.</li>';
+  askFam(h); $('mFam').innerHTML = $('askFam').innerHTML; $('askFam').hidden = true;
+}
+function closeMeeting() {
+  $('meeting').hidden = true; askOpen = null;
+  if (askWasRunning && !NET) { running = true; syncPlay(); }
+  askWasRunning = false;
+  updateFamily();
+}
+// in this mode the player is a neighbour: the laws pass and fall by themselves
+function citizenMode() {
+  POLITICS = true; syncPol(); S.polOn = true; S.polOff = false;
+  document.body.classList.add('citizen');
+}
+function protoReset() {
+  MEET = { due: false };
+  document.body.classList.remove('citizen');
+  $('meeting').hidden = true;
+}
+// moods drift back to normal day by day
+let protoDay = -1;
+function protoTick() {
+  if (S.day === protoDay || !meetMode() || !ME) return;
+  protoDay = S.day;
+  for (const m of ME.members) if (m.mood != null && m.mood < 0.8) m.mood = Math.min(0.8, m.mood + 0.002);
+  const n = (ME.asks || []).length;
+  put('mWait', n ? `${n} ${n === 1 ? 'decisió espera' : 'decisions esperen'} la reunió` : 'Cap decisió pendent');
+}
+// a question the family hasn't seen yet calls a meeting; the ones left open stay on the list for the next one
+function protoFrame() {
+  protoTick();
+  if (!meetMode() || !ME || askOpen !== null) return;
+  if (MEET.due) openMeeting(true);
+  else if ((ME.asks || []).some(q => !q.seen)) openMeeting(false);
+}
+
+$('mWork').addEventListener('change', e => {
+  const s = e.target.closest('select[data-p]'); if (!s || !ME) return;
+  const p = ME.members.find(m => m.id === +s.dataset.p); if (!p) return;
+  p.ord = s.value || null;
+  // telling a lazy one to quarry or chop wood doesn't go down well
+  if ((p.ord === 'stone' || p.ord === 'wood') && p.lazy > 0.5) p.mood = Math.max(0, (p.mood ?? 0.8) - 0.1);
+  renderMeeting();
+});
+$('mTrade').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !ME) return;
+  const k = b.dataset.buy || b.dataset.sell, name = TRADE[k];
+  const n = k === 'herd' ? (b.dataset.buy ? sheepBuy(ME) : sheepSell(ME)) : b.dataset.buy ? tradeBuy(ME, k, 5) : tradeSell(ME, k, 5);
+  const what = k === 'herd' ? (n === 1 ? 'una ovella' : `${n} ovelles`) : `${n} de ${name}`;
+  put('mMsg', n ? `${b.dataset.buy ? 'Heu comprat' : 'Heu venut'} ${what}.` : b.dataset.buy ? `Ningú no us pot vendre ${name} ara mateix.` : `Ningú no té prou menjar${k === 'herd' ? ' ni lloc al corral' : ''} per comprar-vos ${name}.`);
+  renderMeeting(); updateFamily();
+});
+$('mAsks').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !ME) return;
+  const li = b.closest('li[data-k]'), q = ME.asks.find(q => q.key === li.dataset.k); if (!q) return;
+  const opt = b.dataset.v != null, yes = opt ? b === li.querySelector('button') : b.dataset.y === '1';
+  const val = opt ? +b.dataset.v : undefined, keep = !!(li.querySelector('input') || {}).checked;
+  moodAfter(ME, q, yes, val); applyAnswer(ME, q.key, yes, keep, val); afterAnswer(ME, q.key, yes);
+  renderMeeting(); updateFamily();
+});
+$('mClose').onclick = closeMeeting;
+$('mOpen').onclick = () => openMeeting(true);
+$('familyBtn').onclick = () => {
+  $('startBtn').click(); MODE = 'familia'; pickPlayer(); citizenMode();
+  MEET = { due: false }; protoDay = -1; protoTick();
+};
 
 newWorld(20261024);
 renderLaws(); updateHud();
