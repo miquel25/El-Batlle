@@ -4233,7 +4233,7 @@ function askFam(h) {
   const ms = h.members.slice().sort((a, b) => b.age - a.age).map(m => `<li><b>${esc(m.name)}</b><span>${m.job ? m.job + ' · ' : ''}${ageTxt(m)} · <span class="${m.health < 0.5 ? 'bad' : ''}">salut ${Math.round(m.health * 100)}</span></span></li>`).join('');
   $('askFam').innerHTML = `<h3>LA TEVA FAMÍLIA</h3><div class="stats">${st('Membres', h.members.length)}${st('Menjar', fmt(h.food), days < 15)}${st('Dies', days, days < 15)}${st('Riquesa', fmt(wealth(h)))}`
     + `${st('Fusta', fmt(h.wood))}${st('Pedra', fmt(h.stone))}${st('Ferro', fmt(h.iron))}${st('Carbó', fmt(h.coal))}${st('Camps', h.fields.length)}${st('Ovelles', h.herd)}</div>`
-    + `<p class="home">${esc(homeTxt(h))}</p><ul>${ms}</ul>`;
+    + `<p class="home">${esc(homeTxt(h))}${plantsTxt(h) ? ' ' + esc(plantsTxt(h)) : ''}</p><ul>${ms}</ul>`;
   $('askFam').hidden = false;
 }
 function answer(yes, val) {
@@ -4326,6 +4326,16 @@ function updateFamily() {
   put('fWho', `${ad} adult${ad === 1 ? '' : 's'} i ${h.members.length - ad} infant${h.members.length - ad === 1 ? '' : 's'}. ${homeTxt(h)}`);
 }
 // where the family lives and what it owns, counted like the village houses table: blocks by their number of floors
+// the corral, kiln, forge and mill a family owns, and in what state
+function plantsTxt(h) {
+  const parts = [];
+  if (h.pen) parts.push(`un corral${h.herd ? ` amb ${h.herd === 1 ? 'una ovella' : h.herd + ' ovelles'}` : ' buit'}`);
+  for (const [kind, job] of HOME_JOBS) if (h[kind]) {
+    const P = PLANT[kind];
+    parts.push(`${P.male ? 'un' : 'una'} ${P.name}${h[kind + 'Broken'] ? ' en ruïnes' : h.members.some(x => x.job === job && !x.leaving) ? '' : ' sense ningú que hi treballi'}`);
+  }
+  return parts.length ? `També tenen ${parts.join(', ').replace(/, ([^,]*)$/, ' i $1')}.` : '';
+}
 function homeTxt(h) {
   const u = h.hut, own = ownedHuts(h);
   const lives = !u ? 'Encara sense casa.' : h.tenant ? `Viuen de lloguer en un pis${rentTo(u) ? ` dels ${rentTo(u).surname}` : ''}.`
