@@ -394,6 +394,13 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
 .mwork li span{font-size:11px;color:var(--muted)}
 .mwork select{background:var(--night);color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px;max-width:100%}
 .meeting .body>*{flex-shrink:0}
+.mjobs li{padding:8px 10px;border:1px solid var(--line);border-radius:6px;display:flex;flex-direction:column;gap:6px}
+.mjobs li>div:first-child{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.mjobs li b{font-family:var(--f-serif);font-size:15px}
+.mjobs li span{font-size:11px;color:var(--muted)}
+.mjobs .who{display:flex;flex-wrap:wrap;gap:6px}
+.mjobs .who button{font-size:12px;padding:4px 10px}
+.mjobs .who button[aria-pressed="true"]{background:var(--amber);color:var(--night);border-color:var(--amber)}
 .mtrade{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .trow{display:grid;grid-template-columns:minmax(70px,1fr) repeat(3,minmax(0,.7fr)) auto;gap:8px;align-items:center;background:var(--panel);padding:6px 8px;font-size:12px;font-variant-numeric:tabular-nums}
 .trow b{font-family:var(--f-serif);font-size:14px}
@@ -635,6 +642,11 @@ canvas#map{width:100%;height:100%;display:block;image-rendering:pixelated;cursor
       <h3 class="ch">QUI FA QUÈ</h3>
       <p class="ctx">Les decisions de la família passen davant: quan el blat és madur tothom sega, si les ovelles no tenen pastor algú hi va, i si heu dit que sí a llaurar un camp o fer obres, algú deixa la seva feina per fer-ho.</p>
       <ul class="mwork" id="mWork"></ul>
+      <div id="mJobsWrap" hidden>
+        <h3 class="ch">OFICIS DE CASA</h3>
+        <p class="ctx">Trieu qui treballa als oficis de casa. Qui hi poseu deixa el que feia abans i hi va a treballar; qui en traieu torna a fer el que calgui.</p>
+        <ul class="mjobs" id="mJobs"></ul>
+      </div>
       <div class="fam" id="mFam"></div>
       <h3 class="ch">COMPRAR I VENDRE</h3>
       <p class="ctx">Compreu als veïns que en tenen de sobres, a preu de mercat. Si veneu, us paguen una cinquena part menys.</p>
@@ -5669,6 +5681,7 @@ const HELP_TABS = [
       'Cada vegada que la teva família ha de decidir alguna cosa (fer una cabana, llaurar un camp, comprar ovelles, contractar jornalers, anar a jornal, fer un ofici, comprar una eina, fer un pis, millorar el corral o la casa, vendre o comprar una casa, demanar un préstec, robar, casar-se o marxar del poble), el joc es pausa i es fa una reunió familiar. Les decisions que deixis sense respondre queden a la llista per a la reunió següent.',
       'A cada decisió algú de casa diu la seva, segons el seu caràcter (fort, llest, cobdiciós, mandrós o treballador). Si li portes la contrària s\'enfada, i qui està descontent treballa pitjor. L\'ànim es recupera a poc a poc.',
       'Amb el botó "Convoca una reunió" del panell de la família pots reunir-los quan vulguis per decidir qui fa què: treballar els camps, pescar, collir fruits, fer llenya, picar pedra o quedar-se a casa. Amb "El que calgui" la persona fa el que la família necessita, o el seu ofici si en té. Les decisions passen davant: quan el blat és madur tothom sega, si les ovelles no tenen pastor algú hi va, i si heu dit que sí a llaurar un camp o fer obres, algú deixa la seva feina per fer-ho. Qui accepta un ofici torna a "El que calgui".',
+      'Si la família té una carbonera, una farga o un molí, a la reunió trieu qui hi treballa: qui hi poseu es fa carboner, ferrer o moliner i deixa el que feia abans (a qui és mandrós no li agrada gaire), i qui en traieu deixa l\'ofici. Si l\'edifici està en ruïnes, qui hi poseu l\'haurà d\'arreglar.',
       'A la reunió també podeu comprar fusta, pedra, ferro i carbó de 5 en 5 als veïns que en tenen de sobres, a preu de mercat, i vendre\'ls-en si tenen menjar per pagar, per una cinquena part menys. Les ovelles es compren i es venen d\'una en una, i cal tenir lloc al corral.',
       'Jugant amb amics, les decisions surten d\'una en una com abans, a la setmana si la sala ho demana.',
       'Si dius que sí, la família ho fa (una sola vegada, o durant tres mesos si és anar a jornal o contractar jornalers). Si en aquell moment no es pot fer, ho farà la propera vegada que pugui, durant dos mesos com a màxim. Si dius que no, no t\'ho tornarà a preguntar fins al cap d\'un temps. Pots marcar "Recorda-ho" perquè no t\'ho pregunti mai més. El botó "Oblida les respostes recordades" del panell de la família esborra totes les respostes i torna a preguntar-ho tot.',
@@ -5870,6 +5883,23 @@ function doOrder(h, p, eff, sf, season, ripe) {
   }
   return false;
 }
+// the trades whose building a family owns: at the meeting the player picks who works at them
+const HOME_JOBS = [['kiln', 'carboner', 'Carbonera'], ['forge', 'ferrer', 'Farga'], ['mill', 'moliner', 'Molí']];
+function setHomeJob(h, p, job) {
+  const was = p.job;
+  if (was === job) {
+    p.job = null;
+    log(`${fullName(p)} deixa l'ofici de ${job}: ho ha decidit la família.`, 'info');
+  } else {
+    p.job = job; p.ord = null; // goes to work at it, whatever the last meeting said
+    // a question about this person taking up a trade no longer needs answering
+    if (h.asks) h.asks = h.asks.filter(q => q.key !== 'job' + p.id);
+    if (h.pol) delete h.pol['job' + p.id];
+    // the lazy ones don't like being handed a trade
+    if (p.lazy >= 0.45) p.mood = Math.max(0, (p.mood ?? 0.8) - 0.1);
+    log(`${fullName(p)} ${was ? `deixa l'ofici de ${was} i ` : ''}es fa ${job}: ho ha decidit la família.`, 'amber');
+  }
+}
 const ORDERS = [['', 'El que calgui'], ['farm', 'Treballar els camps'], ['fish', 'Pescar al riu'], ['forage', 'Collir fruits al bosc'],
   ['wood', 'Fer llenya'], ['stone', 'Picar pedra a la pedrera'], ['home', 'Quedar-se a casa']];
 
@@ -6019,6 +6049,15 @@ function renderMeeting() {
       <span class="tb"><button class="btn" type="button" data-buy="${k}" ${canBuy ? '' : 'disabled'}>Compra ${n}</button><button class="btn" type="button" data-sell="${k}" ${have >= 1 ? '' : 'disabled'}>Ven ${n}</button></span></div>`;
   }).join('');
   $('mTrade').innerHTML = rows;
+  const own = HOME_JOBS.filter(([kind]) => h[kind]);
+  $('mJobsWrap').hidden = !own.length;
+  $('mJobs').innerHTML = own.map(([kind, job, title]) => {
+    const on = ad.filter(p => p.job === job);
+    const state = h[kind + 'Broken'] ? 'en ruïnes: qui hi poseu l\'haurà d\'arreglar' : kind === 'kiln' && L.nocoal ? 'apagada: la llei prohibeix fer carbó'
+      : on.length ? `${on.length === 1 ? 'hi treballa' : 'hi treballen'} ${on.map(p => esc(p.name)).join(' i ')}` : 'no hi treballa ningú';
+    return `<li><div><b>${title}</b><span>${state}</span></div><div class="who">${ad.map(p => `<button class="btn" type="button" data-job="${job}" data-p="${p.id}" aria-pressed="${p.job === job}"
+      title="${p.job && p.job !== job ? `Ara és ${p.job}` : ''}">${esc(p.name)}${p.job && p.job !== job ? ` <i>(${p.job})</i>` : ''}</button>`).join('') || '<span>No hi ha cap adult a casa.</span>'}</div></li>`;
+  }).join('');
   const qs = h.asks || [];
   for (const q of qs) { q.op ||= opinion(h, q); q.seen = true; }
   $('mAsks').innerHTML = qs.length ? qs.map(q => `<li data-k="${q.key}"><p class="q">${esc(q.text)}</p>${q.ctx || ''}${opHtml(q.op)}
@@ -6068,6 +6107,12 @@ $('mWork').addEventListener('change', e => {
   // telling a lazy one to quarry or chop wood doesn't go down well
   if ((p.ord === 'stone' || p.ord === 'wood') && p.lazy > 0.5) p.mood = Math.max(0, (p.mood ?? 0.8) - 0.1);
   renderMeeting();
+});
+$('mJobs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-job]'); if (!b || !ME) return;
+  const p = ME.members.find(m => m.id === +b.dataset.p); if (!p) return;
+  setHomeJob(ME, p, b.dataset.job);
+  renderMeeting(); updateFamily();
 });
 $('mTrade').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || !ME) return;
